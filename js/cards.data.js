@@ -126,8 +126,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Puts armour on adjacent card adding 1 to Roll Buff (e.g. Knight requires 2 rolls - becomes 3)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -165,8 +165,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Horse Mounted Troops attack with him",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -191,8 +191,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Card behind attacks card behind opponent",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -308,8 +308,8 @@ var KV_CARDS = [
   "code": "Any",
   "pattern": "any",
   "text": "Attacks any card + previous failed attacked cards(reset: 3)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -503,8 +503,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Shields 1 surrounding card while Ent is alive",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -542,8 +542,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "(+) Both adjacent cards attack",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -555,8 +555,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "On kill, gets to revive any gravestone",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -646,8 +646,8 @@ var KV_CARDS = [
   "code": "LUR",
   "pattern": "forD",
   "text": "Pick from 3 rolls; Can't pick previous roll",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -724,8 +724,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Surrounding cards are poisoned (-1 x 3)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -776,8 +776,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Whole row attacks",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -789,8 +789,8 @@ var KV_CARDS = [
   "code": "Any",
   "pattern": "any",
   "text": "Poisoned and Paralyzed (x3)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -802,8 +802,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Opponent dies on third attack if not killed (doesn't consume turn)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -815,8 +815,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Flame Debuff (-2) (x2)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -945,8 +945,8 @@ var KV_CARDS = [
   "code": "LUR",
   "pattern": "forD",
   "text": "Have to roll the number 3 times to kill. If the card faills to kill the card, of if Hydra fails to kill card, then card is poisned (x3). Attack +2 Damage",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -984,8 +984,8 @@ var KV_CARDS = [
   "code": "Any",
   "pattern": "any",
   "text": "Rolls number, all cards with that number of life die.",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1283,8 +1283,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Gets to choose, either (gets to attack twice on a turn) or (+2 Damage.)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1296,8 +1296,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "All attack damage cards cant attack him",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1335,8 +1335,8 @@ var KV_CARDS = [
   "code": "Pos",
   "pattern": "mirror",
   "text": "All wisp attack their identical place on formation. All attackers maintain damage boost",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {

@@ -288,7 +288,7 @@
       d1.textContent = r.dice[0]; d2.textContent = r.dice[1] || '';
       var any = r.hits.some(function (h) { return h.success; });
       rt.className = any ? 'good' : 'bad';
-      rt.textContent = (r.dice.length < 2 ? r.dice[0] + '×2 = ' : '') + r.total + (r.mod ? ' (' + (r.mod > 0 ? '+' : '') + r.mod + ')' : '') + ' ' +
+      rt.textContent = (r.by ? r.by + ': ' : '') + (r.dice.length < 2 ? r.dice[0] + '×2 = ' : '') + r.total + (r.mod ? ' (' + (r.mod > 0 ? '+' : '') + r.mod + ')' : '') + ' ' +
         r.hits.map(function (h) { return h.killed ? '☠' : h.success ? '✔' : '✖'; }).join('');
       r.hits.forEach(function (h) {
         var el = els[h.id]; if (!el) return;
@@ -498,7 +498,8 @@
     if (G.sel) {
       var opts = R.getOptions(s, G.view, G.sel);
       var hits = [];
-      opts.forEach(function (o, i) { if (o.targets.indexOf(id) >= 0) hits.push(i); });
+      opts.forEach(function (o, i) { if (o.targets[0] === id) hits.push(i); });          // options where it's the main target first
+      opts.forEach(function (o, i) { if (o.targets.indexOf(id) > 0) hits.push(i); });
       var k = hits.length ? hits[0] : -1;
       // tapping the same shared target again cycles through the options containing it
       if (G.chosen && G.chosen.targetId === id && hits.length > 1) k = hits[(hits.indexOf(G.chosen.opt) + 1) % hits.length];

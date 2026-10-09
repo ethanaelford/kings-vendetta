@@ -27,7 +27,7 @@ var KV_AI = (function () {
       if (need && expKills < need) risk += value(att) * (1 - expKills / need);
       if (R.ab(att).customAction) {
         // one-shot specials (e.g. Thunder Warrior): rarely worth the card
-        score = a.targets.reduce(function (sum, id) { return sum + value(R.findCard(state, id).card) * 0.25; }, 0) - value(att) * 0.8;
+        score = a.targets.reduce(function (sum, id) { return sum + value(R.findCard(state, id).card) * (R.ab(att).customSafe ? 0.45 : 0.25); }, 0) - (R.ab(att).customSafe ? 0 : value(att) * 0.8);
         risk = 0;
       }
       var attacks = (R.ab(att).attacks || 1);

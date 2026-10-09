@@ -47,6 +47,28 @@ Answer in batches and I'll update the engine.
 - **Blood Hound** (LUR), **Cannon** (Lean), **Avenger** (Last): pattern only.
 - **Guardian** was left out: "can't kill any card until this card is dead" combined with LOS could leave a player with no legal attack for many turns.
 
+## Batch B (statuses, bonus attacks, dice) - assumptions
+
+- **Status timing:** "for N turns" means the affected card's owner's next N turns.
+- **Ice Sentinel**: when an attack on it fails, the attacker and the card behind the attacker are frozen (can't attack) for 2 turns.
+- **Lava Guardian**: when an attack on it fails, the attacker gets -1 on its next turn and Lava Guardian gets +1 on its next turn.
+- **Thunder Warrior**: instead of rolling, gives its LOS target -8 on its rolls for 2 turns, then Thunder Warrior dies.
+- **Elephant Mounted Warrior**: whoever kills it has Life 4 for 2 turns (even the General).
+- **Venom Warrior**: on a kill, the dead card's neighbours (left, right, front/back) have their Life halved, rounded up, permanently.
+  "(reset: 1)" means it can't trigger again until it has skipped a turn. Generals are immune.
+- **The Supplier**: never attacks. Its neighbours get +2 on their rolls and +1 Life ("to Max" ignored).
+- **Apprentice**: always reuses the last dice roll made in the game, by either player. The odds show 0% or 100%.
+- **Magma Knight**: roll + 1/3 of the roll, rounded down (a 9 becomes 12).
+- **Tactical Ninja**: rolls three times and keeps the best.
+- **Stone Golem**: when it's your only card left besides the General, every enemy card except their General dies (once per game).
+- **Major**: when killed, every card on the killer's team with the killer's Life dies (the killer too). Generals are spared.
+- **Dragon Ninja**: immune to freeze, debuffs, Life changes (Elephant), and Venom.
+- **Spy**: shown to the opponent as Militia until it attacks. It kills the General instantly when the General is in its line of sight.
+- **Frost Giant**: if it survives an attack, it gets an immediate free attack. Then its owner takes their normal turn.
+- **Elf Rampager / Light Dragon / Elf Blitz Warrior**: after a kill, they may attack again (optional, there's a Skip button).
+  Elf Blitz "can't kill partial column": if the roll doesn't kill every card in the column, none die.
+- **Hog Mounted Brute**: after a kill, one free attack on any enemy card (no chaining).
+
 ## Waiting for later sessions (ready: false)
 
 - Grim Reaper (Life "D"), Bounty Hunter (Life "Inf"), Morphing Warrior (Life "?"): special-Life cards.

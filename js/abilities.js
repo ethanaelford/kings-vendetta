@@ -193,6 +193,206 @@ var KV_ABILITIES = {
       if (ctx.kills) ctx.state.pendingExtra = { side: ctx.attacker.side, cardId: ctx.attacker.id, reason: 'Elf Blitz Warrior keeps attacking!' };
     },
   },
+  // ---- batch C: companions, poison, marks ----
+  'commander': {
+    // Both adjacent (same-row) allies attack their own LOS targets with the Commander's roll
+    companions: function (ctx) {
+      var out = [], col = ctx.index % 6, r0 = ctx.index < 6 ? 0 : 6;
+      [col - 1, col + 1].forEach(function (c) {
+        if (c < 0 || c > 5) return;
+        var ally = ctx.slots[r0 + c];
+        if (!ally) return;
+        var g = ctx.patternGroups('los', ctx.enemySlots, c)[0];
+        if (g) out.push({ cardId: ally.id, targets: g });
+      });
+      return out;
+    },
+  },
+  'captain': {
+    // All Horse Mounted Troops attack with his roll (their column); if none, one adjacent ally attacks its LOS
+    companions: function (ctx) {
+      var out = [];
+      ctx.slots.forEach(function (c, i) {
+        if (c && c.cardKey === 'horse-mounted-troop') {
+          var g = ctx.patternGroups('column', ctx.enemySlots, i % 6)[0];
+          if (g) out.push({ cardId: c.id, targets: g });
+        }
+      });
+      if (out.length) return out;
+      var col = ctx.index % 6, r0 = ctx.index < 6 ? 0 : 6;
+      [col - 1, col + 1].some(function (c) {
+        var ally = c >= 0 && c <= 5 && ctx.slots[r0 + c];
+        var g = ally && ctx.patternGroups('los', ctx.enemySlots, c)[0];
+        if (g) out.push({ cardId: ally.id, targets: g });
+        return !!g;
+      });
+      return out;
+    },
+  },
+  'tactical-warrior': {
+    // The card behind him attacks the card behind his opponent, with his roll
+    companions: function (ctx) {
+      if (ctx.index >= 6) return [];
+      var behind = ctx.slots[ctx.index + 6], foe = ctx.enemySlots[ctx.index + 6];
+      return behind && foe ? [{ cardId: behind.id, targets: [foe.id] }] : [];
+    },
+  },
+  'admiral': {
+    // Whole row attacks: every other card in his row attacks its LOS target with his roll
+    companions: function (ctx) {
+      var out = [], r0 = ctx.index < 6 ? 0 : 6;
+      for (var c = 0; c < 6; c++) {
+        var ally = ctx.slots[r0 + c];
+        if (!ally || ally.id === ctx.attacker.id) continue;
+        var g = ctx.patternGroups('los', ctx.enemySlots, c)[0];
+        if (g) out.push({ cardId: ally.id, targets: g });
+      }
+      return out;
+    },
+  },
+  'wisp-captain': {
+    // All wisps attack their identical slot, with his roll (keeping their own bonuses)
+    companions: function (ctx) {
+      var out = [];
+      ctx.slots.forEach(function (c, i) {
+        if (c && c.id !== ctx.attacker.id && /wisp/.test(c.cardKey) && ctx.enemySlots[i]) out.push({ cardId: c.id, targets: [ctx.enemySlots[i].id] });
+      });
+      return out;
+    },
+  },
+  'wolf-mounted-dwarf': {
+    // Chooses: attack twice, or +2. Auto-picks whichever has the better kill chance.
+    plan: function (ctx) {
+      var t = ctx.targets[0];
+      if (!t) return {};
+      var p0 = KV_RULES.hitChance(ctx.state, ctx.attacker, t).p;
+      ctx.attacker.tmpBonus = 2;
+      var p2 = KV_RULES.hitChance(ctx.state, ctx.attacker, t).p;
+      ctx.attacker.tmpBonus = 0;
+      var twice = 1 - (1 - p0) * (1 - p0);
+      return twice >= p2 ? { attacks: 2, note: 'Wolf Mounted Dwarf attacks twice' } : { bonus: 2, note: 'Wolf Mounted Dwarf charges (+2)' };
+    },
+  },
+  'hydra': {
+    // 3 hits to kill, +2 damage; whoever fails against it (or survives it) is poisoned for 3 turns
+    rollsRequired: function () { return 3; },
+    modifyRoll: function () { return 2; },
+    onFailedAttackAgainstMe: function (ctx) { ctx.addStatus(ctx.state, ctx.attacker, { type: 'poison', n: 1, turns: 3 }); },
+    onAttackResolved: function (ctx) {
+      ctx.survivors.forEach(function (id) { var f = KV_RULES.findCard(ctx.state, id); if (f) ctx.addStatus(ctx.state, f.card, { type: 'poison', n: 1, turns: 3 }); });
+    },
+  },
+  'lightning-mage': {
+    // The target's neighbours are poisoned (-1 Life per turn, 3 turns)
+    onAttackResolved: function (ctx) {
+      var seen = {};
+      ctx.targets.forEach(function (id) {
+        var f = KV_RULES.findCard(ctx.state, id);
+        var slots = ctx.state.teams[KV_RULES.other(ctx.attacker.side)].slots;
+        var idx = f ? f.index : -1;
+        if (idx < 0) return;
+        KV_RULES.neighbours(idx).forEach(function (i) {
+          var c = slots[i];
+          if (c && !seen[c.id]) { seen[c.id] = 1; ctx.addStatus(ctx.state, c, { type: 'poison', n: 1, turns: 3 }); }
+        });
+      });
+    },
+  },
+  'fire-striker': {
+    // Flame debuff: a surviving target gets -2 on its rolls for 2 turns
+    onAttackResolved: function (ctx) {
+      ctx.survivors.forEach(function (id) { var f = KV_RULES.findCard(ctx.state, id); if (f) ctx.addStatus(ctx.state, f.card, { type: 'debuff', n: 2, turns: 2 }); });
+    },
+  },
+  'chemical-warfare-warrior': {
+    // No roll: any enemy card is poisoned and paralyzed for 3 turns
+    customAction: function (ctx) {
+      ctx.targets.forEach(function (t) {
+        var a = ctx.addStatus(ctx.state, t, { type: 'poison', n: 1, turns: 3 });
+        var b = ctx.addStatus(ctx.state, t, { type: 'frozen', turns: 3 });
+        ctx.ev.notes.push(a || b ? t.name + ' is poisoned and paralyzed!' : t.name + ' is immune');
+      });
+    },
+    customSafe: true,
+    customText: 'Poison + paralyze (3 turns)',
+  },
+  'redstone-warrior': {
+    // The third time it attacks the same card, that card dies
+    autoKill: function (ctx) { return !ctx.target.isGeneral && (ctx.target.redstone || 0) >= 2; },
+    onAttackResolved: function (ctx) {
+      ctx.survivors.forEach(function (id) { var f = KV_RULES.findCard(ctx.state, id); if (f) f.card.redstone = (f.card.redstone || 0) + 1; });
+    },
+  },
+  'peasant-mob': { dice: 'mob' },
+  'bomb-expert': {
+    // Attacks any card + every card it previously failed to kill (marks last 3 turns)
+    anyRow: true,
+    getTargets: function (ctx) {
+      var marked = ctx.enemySlots.filter(function (c) {
+        return c && (c.statuses || []).some(function (st) { return st.type === 'mark' && st.src === ctx.card.id; });
+      }).map(function (c) { return c.id; });
+      return ctx.enemySlots.filter(Boolean).map(function (c) {
+        return [c.id].concat(marked.filter(function (id) { return id !== c.id; }));
+      });
+    },
+    onAttackResolved: function (ctx) {
+      ctx.survivors.forEach(function (id) {
+        var f = KV_RULES.findCard(ctx.state, id);
+        if (f) ctx.addStatus(ctx.state, f.card, { type: 'mark', src: ctx.attacker.id, turns: 3 });
+      });
+    },
+  },
+  'ace': {
+    // Rolls a number: every enemy card (except the General) with exactly that Life dies
+    anyRow: true,
+    successRule: 'exact',
+    getTargets: function (ctx) {
+      var g = ctx.enemySlots.filter(function (c) { return c && !c.isGeneral; }).map(function (c) { return c.id; });
+      return g.length ? [g] : [];
+    },
+  },
+  'fire-sprite': {
+    // Cards with damage bonuses can't attack it
+    canBeTargetedBy: function (ctx) {
+      var a = KV_RULES.ab(ctx.attacker);
+      return !(a.modifyRoll || a.dice === 'magma' || ctx.attacker.dmg);
+    },
+  },
+  'samurai': {
+    // After attacking, armours one neighbouring ally (+1 hit needed to kill it), General first. Permanent.
+    onAttackResolved: function (ctx) {
+      var f = KV_RULES.findCard(ctx.state, ctx.attacker.id);
+      if (!f) return;
+      var slots = ctx.state.teams[f.side].slots, best = null;
+      KV_RULES.neighbours(f.index).forEach(function (i) {
+        var c = slots[i];
+        if (!c || c.armored) return;
+        if (!best || (c.isGeneral && !best.isGeneral) || (!best.isGeneral && c.life > best.life)) best = c;
+      });
+      if (best) { best.armored = true; best.rollsToKill += 1; ctx.ev.notes.push('Samurai armours ' + best.name + ' (+1 hit to kill)'); }
+    },
+  },
+  'ent': { shieldsNeighbour: true },
+  'reviver': {
+    // On kill, revives the best card from its graveyard into an empty slot
+    onKill: function (ctx) {
+      var side = ctx.attacker.side, graves = ctx.state.graves[side];
+      var best = -1;
+      graves.forEach(function (g, i) {
+        var d = KV_RULES.cardDef(g.cardKey);
+        if (g.cardKey === 'general' || !d.ready) return;
+        if (best < 0 || (d.life || 0) > (KV_RULES.cardDef(graves[best].cardKey).life || 0)) best = i;
+      });
+      if (best < 0) return;
+      var slots = ctx.state.teams[side].slots, spot = -1;
+      for (var c = 0; c < 6 && spot < 0; c++) if (slots[c] && !slots[c + 6]) spot = c + 6;
+      for (var c2 = 0; c2 < 6 && spot < 0; c2++) if (!slots[c2] && !slots[c2 + 6]) spot = c2;
+      if (spot < 0) return;
+      var g = graves.splice(best, 1)[0];
+      slots[spot] = KV_RULES.makeCard(g.cardKey, side);
+      ctx.ev.notes.push('Reviver raises ' + g.name + ' from the grave!');
+    },
+  },
   'hog-mounted-brute': {
     onAttackResolved: function (ctx) {
       if (ctx.kills && !ctx.isExtra) ctx.state.pendingExtra = { side: ctx.attacker.side, cardId: ctx.attacker.id, pattern: 'any', reason: 'Hog Mounted Brute earns a free attack on any card!' };

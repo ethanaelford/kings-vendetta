@@ -239,6 +239,35 @@ t('best-of-3 distribution sums to 1', function () {
   ok(Math.abs(tot - 1) < 1e-9);
 });
 
+console.log('batch C: companions & more');
+t('Commander: adjacent allies attack with the same roll', function () {
+  var s = battleState(row(['militia', 'commander', 'militia'], ['general']), row(['militia', 'militia', 'militia'], ['general']));
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[1].id, option: 0 }, HIGH);
+  eq(s2.lastEvent.rolls.length, 3); eq(s2.lastEvent.rolls[1].dice, s2.lastEvent.rolls[0].dice);
+});
+t('Ace kills every enemy with exactly the rolled Life', function () {
+  var s = battleState(row(['ace', 'general'], []), row(['militia', 'militia', 'front-lineman', 'general'], []));
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: 0 }, fixedRng([0, 0.4])); // 1+3 = 4
+  eq(s2.lastEvent.deaths.length, 1); eq(s2.lastEvent.rolls[0].total, 4);
+});
+t('Reviver brings back a fallen card on a kill', function () {
+  var s = battleState(row(['reviver', 'general'], []), row(['militia', 'general'], []));
+  s.graves.p1.push({ cardKey: 'knight', name: 'Knight', id: 'x' });
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: 0 }, HIGH);
+  ok(s2.teams.p1.slots.some(function (c) { return c && c.cardKey === 'knight'; }), 'knight revived');
+});
+t('Samurai armours its neighbour', function () {
+  var s = battleState(row(['samurai', 'general'], []), row(['knight', 'general'], []));
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: 0 }, LOW);
+  eq(R.generalOf(s2, 'p1').rollsToKill, 2);
+});
+t('Ent shields its ward from one hit', function () {
+  var s = battleState(row(['militia', 'general'], []), row(['knight', 'general'], [null, 'ent']));
+  s.turn = 'p1';
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[1].id, option: 0 }, HIGH); // General attacks General
+  ok(R.generalOf(s2, 'p2'), 'shield saved the General');
+});
+
 console.log('deal');
 t('exactly one General per team, no duplicates (200 deals)', function () {
   for (var n = 0; n < 200; n++) {

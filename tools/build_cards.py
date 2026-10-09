@@ -36,6 +36,10 @@ READY = {
     'Ice Sentinel', 'Lava Guardian', 'Thunder Warrior', 'Elephant Mounted Warrior', 'Venom Warrior', 'The Supplier',
     'Apprentice', 'Magma Knight', 'Tactical Ninja', 'Stone Golem', 'Major', 'Dragon Ninja', 'Spy', 'Frost Giant',
     'Elf Rampager', 'Light Dragon', 'Elf Blitz Warrior', 'Hog Mounted Brute',
+    # batch C
+    'Commander', 'Captain', 'Tactical Warrior', 'Admiral', 'Wisp Captain', 'Wolf Mounted Dwarf', 'Hydra',
+    'Lightning Mage', 'Fire Striker', 'Chemical Warfare Warrior', 'Redstone Warrior', 'Peasant Mob', 'Bomb Expert',
+    'Ace', 'Fire Sprite', 'Samurai', 'Ent', 'Reviver',
 }
 
 # One-line "what's missing" notes for the Card Library (default: ability not built yet).
