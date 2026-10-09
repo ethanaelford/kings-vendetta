@@ -48,8 +48,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "If attacked and not killed, gets a free turn",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -178,8 +178,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Can keep attacking if successful",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -321,8 +321,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "On kill, marks adjacent cards with half life (reset: 1)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -334,8 +334,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "If killed, opponent's life (=4) (reset: 2)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -620,8 +620,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Debuff (-8) for 2 turns; Death with use",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -633,8 +633,8 @@ var KV_CARDS = [
   "code": "Coll",
   "pattern": "column",
   "text": "Can keep attacking if successful; Can't kill partial column",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -659,8 +659,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Can use last roll",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -698,8 +698,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Can't be affected by Destruction or Debuffs",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -750,8 +750,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Disguised as militia. Instant kill General",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -763,8 +763,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "All cards with same life of killer die",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -854,8 +854,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "1/3 roll added to roll",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -880,8 +880,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "3 rolls for one attack",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -906,8 +906,8 @@ var KV_CARDS = [
   "code": "Surr",
   "pattern": "support",
   "text": "Surrounding cards get +2 damage/+1 life to Max",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1101,8 +1101,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "If attacker fails, then attacker, and card behind, are frozen (paralized) for the next two turns",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1114,8 +1114,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "If attacker fails, then for next turn card has -1 damage, and for that round, LG has +1 damage ()",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1218,8 +1218,8 @@ var KV_CARDS = [
   "code": "Col",
   "pattern": "column",
   "text": "Attacks column. If succeeds, then he gets a free attack on any card.",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1231,8 +1231,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Normal Attack. If he is the only card left in the formation (other than the General) then the other enemy formation automaticaly dies (except for general)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1270,8 +1270,8 @@ var KV_CARDS = [
   "code": "Quad",
   "pattern": "quad",
   "text": "Attacks quadrant. Keeps on attack Quads until it fails.",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {

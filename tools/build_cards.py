@@ -32,6 +32,10 @@ READY = {
     'Blood Hound', 'Cannon', 'Avenger', 'Dwarf Blitzer', 'Royal Assassin', 'Rookie', 'Fallen Knight', 'Spartan',
     'Unstable Titan', 'Elite Assasin', 'Fire Sentinel', 'Wizard', 'Horse Mounted Troop', 'Hammer Dwarf', 'Ranger',
     'Generals Bodyguard', 'Wisp', 'Neon Wisp',
+    # batch B
+    'Ice Sentinel', 'Lava Guardian', 'Thunder Warrior', 'Elephant Mounted Warrior', 'Venom Warrior', 'The Supplier',
+    'Apprentice', 'Magma Knight', 'Tactical Ninja', 'Stone Golem', 'Major', 'Dragon Ninja', 'Spy', 'Frost Giant',
+    'Elf Rampager', 'Light Dragon', 'Elf Blitz Warrior', 'Hog Mounted Brute',
 }
 
 # One-line "what's missing" notes for the Card Library (default: ability not built yet).

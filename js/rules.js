@@ -26,15 +26,46 @@
   // ---------- dice ----------
   function rollDie(rng) { return 1 + Math.floor((rng || Math.random)() * 6); }
 
-  // Distribution of the raw roll for an attacker: {total: probability}
-  function diceDist(attacker) {
-    var d = {};
-    if (ab(attacker).dice === 'oneDouble') {
+  var TWO = {}, BEST3 = {};
+  (function () {
+    var x, y;
+    for (x = 1; x <= 6; x++) for (y = 1; y <= 6; y++) TWO[x + y] = (TWO[x + y] || 0) + 1 / 36;
+    var keys = Object.keys(TWO).map(Number);
+    keys.forEach(function (a) { keys.forEach(function (b) { keys.forEach(function (c) {
+      var m = Math.max(a, b, c); BEST3[m] = (BEST3[m] || 0) + TWO[a] * TWO[b] * TWO[c];
+    }); }); });
+  })();
+
+  // Distribution of the base roll (before modifiers) for an attacker: {total: probability}
+  function diceDist(attacker, state) {
+    var d = {}, kind = ab(attacker).dice;
+    if (kind === 'oneDouble') {
       for (var a = 1; a <= 6; a++) d[a * 2] = (d[a * 2] || 0) + 1 / 6;
-    } else {
-      for (var x = 1; x <= 6; x++) for (var y = 1; y <= 6; y++) d[x + y] = (d[x + y] || 0) + 1 / 36;
+      return d;
     }
-    return d;
+    if (kind === 'best3') return BEST3;
+    if (kind === 'last' && state && state.lastRoll) { d[state.lastRoll.sum] = 1; return d; }
+    if (kind === 'magma') {
+      Object.keys(TWO).forEach(function (k) { var v = +k + Math.floor(+k / 3); d[v] = (d[v] || 0) + TWO[k]; });
+      return d;
+    }
+    return TWO;
+  }
+
+  // Roll the attacker's dice: {raw:[faces], base:number}
+  function rollFor(attacker, state, rng) {
+    var kind = ab(attacker).dice, raw, base;
+    if (kind === 'oneDouble') { raw = [rollDie(rng)]; return { raw: raw, base: raw[0] * 2 }; }
+    if (kind === 'last' && state.lastRoll) return { raw: state.lastRoll.raw.slice(), base: state.lastRoll.sum, reused: true };
+    if (kind === 'best3') {
+      var best = null;
+      for (var i = 0; i < 3; i++) { var r = [rollDie(rng), rollDie(rng)]; if (!best || r[0] + r[1] > best[0] + best[1]) best = r; }
+      return { raw: best, base: best[0] + best[1] };
+    }
+    raw = [rollDie(rng), rollDie(rng)];
+    base = raw[0] + raw[1];
+    if (kind === 'magma') base += Math.floor(base / 3);
+    return { raw: raw, base: base };
   }
 
   // P(2d6 >= n), exact
@@ -259,6 +290,37 @@
     return groups;
   }
 
+  // ---------- statuses ----------
+  var STATUS_ICON = { frozen: '❄', debuff: '⬇', buff: '⬆', lifeSet: '♥' };
+  var BAD = { frozen: 1, debuff: 1, lifeSet: 1 };
+  function addStatus(s, card, st) {
+    if (!card) return false;
+    if (BAD[st.type] && ab(card).immuneDebuffs) return false;
+    st.born = s.turnCount; st.icon = STATUS_ICON[st.type] || '*';
+    card.statuses = (card.statuses || []).filter(function (x) { return x.type !== st.type; });
+    card.statuses.push(st);
+    return true;
+  }
+  function hasStatus(card, type) { return (card.statuses || []).some(function (x) { return x.type === type; }); }
+  // End of `side`'s turn: count down its cards' statuses and cooldowns (not ones created this turn).
+  function tickStatuses(s, side) {
+    s.teams[side].slots.forEach(function (c) {
+      if (!c) return;
+      c.statuses = (c.statuses || []).filter(function (st) {
+        if (st.born === s.turnCount) return true;
+        st.turns--; return st.turns > 0;
+      });
+      Object.keys(c.cooldowns || {}).forEach(function (k) { if (c.cooldowns[k] > 0) c.cooldowns[k]--; });
+    });
+  }
+  function neighbours(index) {
+    var out = [], col = index % 6;
+    if (col > 0) out.push(index - 1);
+    if (col < 5) out.push(index + 1);
+    out.push(index < 6 ? index + 6 : index - 6);
+    return out;
+  }
+
   function canTarget(attacker, target, targetSlots) {
     var a = ab(target);
     if (a.canBeTargetedBy && !a.canBeTargetedBy({ attacker: attacker, target: target })) return false;
@@ -278,7 +340,12 @@
     var card = f.card, def = cardDef(card.cardKey), a = ab(card);
     var enemySlots = state.teams[other(side)].slots;
     var groups;
-    if (a.getTargets) {
+    var ex = state.extra;
+    if (ex && (ex.side !== side || ex.cardId !== cardId)) return [];
+    if (hasStatus(card, 'frozen') || a.noAttack) return [];
+    if (ex && ex.pattern) {
+      groups = patternGroups(ex.pattern, enemySlots, f.index, {});
+    } else if (a.getTargets) {
       if (rowOf(f.index) === 1 && !a.anyRow) return [];
       groups = a.getTargets({ state: state, card: card, index: f.index, col: colOf(f.index), row: rowOf(f.index), enemySlots: enemySlots, patternGroups: patternGroups });
     } else {
@@ -310,8 +377,12 @@
     if (a.modifyRoll) m += a.modifyRoll({ state: state, attacker: attacker, target: target });
     // passive auras from allies (e.g. Neon Wisp)
     var mine = attacker.side && state.teams[attacker.side] ? state.teams[attacker.side].slots : [];
-    mine.forEach(function (ally) {
-      if (ally && ab(ally).passiveAura) m += ab(ally).passiveAura({ state: state, ally: ally, attacker: attacker, target: target }) || 0;
+    var af = attacker.side && findCard(state, attacker.id);
+    mine.forEach(function (ally, i) {
+      if (ally && ab(ally).passiveAura) {
+        var adj = af ? neighbours(af.index).indexOf(i) >= 0 : false;
+        m += ab(ally).passiveAura({ state: state, ally: ally, attacker: attacker, target: target, adjacent: adj }) || 0;
+      }
     });
     (attacker.statuses || []).forEach(function (st) { if (st.type === 'debuff') m -= st.n; if (st.type === 'buff') m += st.n; });
     return m;
@@ -320,7 +391,12 @@
   function targetLife(state, target) {
     var l = target.life, a = ab(target);
     if (a.modifyTargetLife) l = a.modifyTargetLife({ state: state, target: target, life: l });
-    (target.statuses || []).forEach(function (st) { if (st.type === 'armor') l += st.n || 1; });
+    var f = target.side && findCard(state, target.id);
+    if (f) {
+      var slots = state.teams[f.side].slots;
+      neighbours(f.index).forEach(function (i) { var al = slots[i]; if (al && ab(al).lifeAura) l += ab(al).lifeAura({ ally: al, target: target }) || 0; });
+    }
+    (target.statuses || []).forEach(function (st) { if (st.type === 'armor') l += st.n || 1; if (st.type === 'lifeSet') l = st.n; });
     return l;
   }
 
@@ -339,14 +415,17 @@
     var aa = ab(attacker), ta = ab(target);
     var p = 0, text;
     if (ta.onlyDiesTo === 'snakeEyes') {
-      p = aa.dice === 'oneDouble' ? 0 : 1 / 36;
+      p = aa.dice === 'oneDouble' ? 0 : aa.dice === 'best3' ? 1 / 46656 : 1 / 36;
+      if (aa.dice === 'last' && state.lastRoll) p = state.lastRoll.raw[0] === 1 && state.lastRoll.raw[1] === 1 ? 1 : 0;
       text = 'Snake eyes only';
+    } else if (aa.customAction) {
+      p = 1; text = aa.customText || 'Special';
     } else if (aa.autoKill && aa.autoKill({ attacker: attacker, target: target })) {
       p = 1; text = 'Auto-kill';
     } else if (aa.successRule === 'doubles') {
       p = 1 / 6; text = 'Need doubles';
     } else {
-      var d = diceDist(attacker);
+      var d = diceDist(attacker, state);
       Object.keys(d).forEach(function (k) {
         var t = +k + mod;
         if (aa.successRule === 'under' ? t < life : t >= life) p += d[k];
@@ -417,61 +496,103 @@
     if (!opt) return null;
 
     var s = clone(state);
+    var wasExtra = s.extra; s.extra = null; s.pendingExtra = null;
     var att = findCard(s, intent.cardId);
     var attacker = att.card, aa = ab(attacker);
     var attacks = aa.attacks || 1;
-    var ev = { kind: 'attack', side: side, attackerId: attacker.id, attackerName: attacker.name, rolls: [], deaths: [], attackerDied: false, moves: { p1: [], p2: [] } };
+    var ev = { kind: 'attack', side: side, attackerId: attacker.id, attackerName: attacker.name, rolls: [], deaths: [], attackerDied: false, moves: { p1: [], p2: [] }, notes: [] };
+    if (wasExtra) ev.bonus = true;
     var deaths = ev.deaths;
     var alive = opt.targets.slice();
     var kills = 0;
+    attacker.revealed = true;
 
-    for (var k = 0; k < attacks && alive.length && !ev.attackerDied; k++) {
-      var raw = aa.dice === 'oneDouble' ? [rollDie(rng)] : [rollDie(rng), rollDie(rng)];
-      var base = aa.dice === 'oneDouble' ? raw[0] * 2 : raw[0] + raw[1];
+    function kill(id) {
+      var f = findCard(s, id);
+      if (!f) return false;
+      killCard(s, f, deaths);
+      return true;
+    }
+
+    if (aa.customAction) {
+      aa.customAction({ state: s, attacker: attacker, targets: alive.map(function (id) { return findCard(s, id).card; }), ev: ev, addStatus: addStatus });
+      ev.notes.forEach(function (n) { log(s, s.names[side] + ' - ' + n); });
+    }
+
+    for (var k = 0; k < attacks && alive.length && !ev.attackerDied && !aa.customAction; k++) {
+      var rolled = rollFor(attacker, s, rng);
+      var raw = rolled.raw, base = rolled.base;
+      if (!rolled.reused) s.lastRoll = { raw: raw.slice(), sum: raw.length === 2 ? raw[0] + raw[1] : raw[0] * 2 };
       var firstT = findCard(s, alive[0]);
       var mod = rollModifier(s, attacker, firstT && firstT.card);
       var total = base + mod;
-      var r = { dice: raw, base: base, mod: mod, total: total, hits: [] };
+      var r = { dice: raw, base: base, mod: mod, total: total, hits: [], reused: !!rolled.reused };
       var survivors = [];
-      alive.forEach(function (id) {
+      // decide success for every target first (needed for all-or-nothing attackers)
+      var plan = alive.map(function (id) {
         var tf = findCard(s, id);
+        if (!tf) return null;
+        var life = targetLife(s, tf.card);
+        return { id: id, life: life, ok: isSuccess(attacker, tf.card, raw, base + rollModifier(s, attacker, tf.card), life) };
+      }).filter(Boolean);
+      if (aa.allOrNothing && plan.some(function (x) { return !x.ok; })) plan.forEach(function (x) { x.ok = false; });
+      plan.forEach(function (x) {
+        var tf = findCard(s, x.id);
         if (!tf) return;
-        var t = tf.card, life = targetLife(s, t);
-        var tTotal = base + rollModifier(s, attacker, t);
-        var ok = isSuccess(attacker, t, raw, tTotal, life);
-        var killed = false;
-        if (ok) {
+        var t = tf.card, killed = false, ta = ab(t);
+        if (x.ok) {
           t.hitsTaken++;
           if (t.hitsTaken >= t.rollsToKill) {
             killed = true; kills++;
+            var tIndex = tf.index, tSide = tf.side;
             killCard(s, tf, deaths);
-            if (aa.onKill) aa.onKill({ state: s, attacker: attacker, target: t });
-            var ka = ab(t);
-            if (ka.onKilled && ka.onKilled({ state: s, killer: attacker, target: t }) === 'killerDies' && !attacker.isGeneral) {
-              ev.attackerDied = true; ev.dieReason = t.name + ' takes its killer down';
+            if (aa.onKill) aa.onKill({ state: s, attacker: attacker, target: t, index: tIndex, slots: s.teams[tSide].slots, addStatus: addStatus, ev: ev });
+            if (ta.onKilled) {
+              var res = ta.onKilled({ state: s, killer: attacker, target: t, addStatus: addStatus, ev: ev });
+              if (res === 'killerDies' && !attacker.isGeneral) { ev.attackerDied = true; ev.dieReason = t.name + ' takes its killer down'; }
+              if (res && res.kill) res.kill.forEach(function (id) {
+                if (id === attacker.id) { ev.attackerDied = true; ev.dieReason = 'is cursed by ' + t.name; }
+                else kill(id);
+              });
             }
           }
-        } else if (generalRisk(attacker, t)) {
-          ev.attackerDied = true; ev.dieReason = 'failed against the General';
+        } else {
+          if (generalRisk(attacker, t)) { ev.attackerDied = true; ev.dieReason = 'failed against the General'; }
+          if (ta.onFailedAttackAgainstMe) ta.onFailedAttackAgainstMe({ state: s, attacker: attacker, target: t, addStatus: addStatus, ev: ev });
         }
-        if (!killed) survivors.push(id);
-        r.hits.push({ id: id, name: t.name, life: life, success: ok, killed: killed, hitsTaken: t.hitsTaken, rollsToKill: t.rollsToKill });
+        if (!killed) {
+          survivors.push(x.id);
+          if (ta.onSurvive && !ev.attackerDied) ta.onSurvive({ state: s, attacker: attacker, target: t, ev: ev });
+        }
+        r.hits.push({ id: x.id, name: t.name, life: x.life, success: x.ok, killed: killed, hitsTaken: t.hitsTaken, rollsToKill: t.rollsToKill });
       });
       ev.rolls.push(r);
       alive = survivors;
-      var msg = attacker.name + ' rolls ' + total + (mod ? ' (' + base + (mod > 0 ? '+' : '') + mod + ')' : '') + ': ' +
+      var msg = attacker.name + (r.reused ? ' reuses the last roll ' : ' rolls ') + total + (mod ? ' (' + base + (mod > 0 ? '+' : '') + mod + ')' : '') + ': ' +
         r.hits.map(function (h) { return h.name + (h.killed ? ' killed' : h.success ? ' hit (' + h.hitsTaken + '/' + h.rollsToKill + ')' : ' survives'); }).join(', ');
       log(s, s.names[side] + ' - ' + msg);
     }
     if (!ev.attackerDied && aa.mustKill && kills < aa.mustKill) {
       ev.attackerDied = true; ev.dieReason = 'needed ' + aa.mustKill + ' kills';
     }
-    if (aa.onAttackResolved) aa.onAttackResolved({ state: s, attacker: attacker, kills: kills });
-    if (ev.attackerDied) {
+    if (aa.onAttackResolved) aa.onAttackResolved({ state: s, attacker: attacker, kills: kills, isExtra: !!wasExtra, ev: ev });
+    if (ev.attackerDied || ev.selfDestruct) {
       var af = findCard(s, attacker.id);
       if (af) killCard(s, af, deaths);
-      log(s, attacker.name + ' ' + ev.dieReason + ' and dies!');
+      if (ev.attackerDied) log(s, attacker.name + ' ' + ev.dieReason + ' and dies!');
+      if (s.pendingExtra && s.pendingExtra.cardId === attacker.id) s.pendingExtra = null;
     }
+    // Stone Golem: last card standing (besides the General) wipes the enemy formation, once
+    SIDES.forEach(function (sd) {
+      if (s.golemDone && s.golemDone[sd]) return;
+      var mine = s.teams[sd].slots.filter(function (c) { return c && !c.isGeneral; });
+      if (mine.length === 1 && ab(mine[0]).lastStandWipe && deaths.length) {
+        s.golemDone = s.golemDone || {}; s.golemDone[sd] = true;
+        s.teams[other(sd)].slots.forEach(function (c) { if (c && !c.isGeneral) kill(c.id); });
+        ev.notes.push(mine[0].name + ' stands alone: the enemy formation crumbles!');
+        log(s, mine[0].name + ' stands alone: the enemy formation crumbles!');
+      }
+    });
     // onAnyKill: survivors react to enemy deaths (e.g. Spartan)
     SIDES.forEach(function (sd) {
       var enemyDeaths = deaths.filter(function (d) { return d.side !== sd; }).length;
@@ -481,7 +602,19 @@
       });
     });
     s.lastActor[side] = attacker.id;
-    finishTurn(s, side, ev);
+    finishTurn(s, side, ev, wasExtra);
+    return bump(s, ev);
+  }
+
+  // Skip an optional bonus attack.
+  function skip(state, side) {
+    if (state.phase !== 'battle' || !state.extra || state.extra.side !== side) return null;
+    var s = clone(state);
+    var ex = s.extra; s.extra = null;
+    log(s, s.names[side] + ' skips the bonus attack.');
+    var ev = { kind: 'skip', side: side, deaths: [], moves: { p1: [], p2: [] } };
+    s.turn = ex.thenTurn;
+    autoPass(s, ev);
     return bump(s, ev);
   }
 
@@ -496,24 +629,10 @@
     return false;
   }
 
-  function finishTurn(s, side, ev) {
-    SIDES.forEach(function (sd) {
-      var res = compactBoard(s.teams[sd], CFG);
-      s.teams[sd].slots = res.slots;
-      ev.moves[sd] = res.moves;
-    });
-    if (checkWin(s)) return;
-    s.turnCount++;
-    s.quietTurns = ev.deaths && ev.deaths.length ? 0 : (s.quietTurns || 0) + 1;
-    if (s.quietTurns >= (CFG.STALEMATE_TURNS || 30)) {
-      s.phase = 'over'; s.winner = 'draw';
-      log(s, 'Stalemate: ' + s.quietTurns + ' turns without a kill - draw.');
-      return;
-    }
-    s.turn = other(side);
-    // auto-pass if the next player has no legal action
-    for (var guard = 0; guard < 2; guard++) {
+  function autoPass(s, ev) {
+    for (var guard = 0; guard < 4; guard++) {
       if (legalActions(s, s.turn).length) return;
+      if (s.extra) { s.turn = s.extra.thenTurn; s.extra = null; continue; }
       log(s, s.names[s.turn] + ' has no legal attack and passes.');
       ev.passed = (ev.passed || []).concat(s.turn);
       s.turn = other(s.turn);
@@ -522,13 +641,41 @@
     log(s, 'No one can attack - draw.');
   }
 
+  function finishTurn(s, side, ev, wasExtra) {
+    SIDES.forEach(function (sd) {
+      var res = compactBoard(s.teams[sd], CFG);
+      s.teams[sd].slots = res.slots;
+      ev.moves[sd] = res.moves;
+    });
+    if (checkWin(s)) return;
+    tickStatuses(s, side);
+    s.turnCount++;
+    s.quietTurns = ev.deaths && ev.deaths.length ? 0 : (s.quietTurns || 0) + 1;
+    if (s.quietTurns >= (CFG.STALEMATE_TURNS || 30)) {
+      s.phase = 'over'; s.winner = 'draw';
+      log(s, 'Stalemate: ' + s.quietTurns + ' turns without a kill - draw.');
+      return;
+    }
+    var next = wasExtra ? wasExtra.thenTurn : other(side);
+    var pe = s.pendingExtra; s.pendingExtra = null;
+    if (pe && findCard(s, pe.cardId)) {
+      s.extra = { side: pe.side, cardId: pe.cardId, pattern: pe.pattern || null, reason: pe.reason, thenTurn: next };
+      s.turn = pe.side;
+      ev.extra = s.extra;
+      log(s, pe.reason);
+    } else {
+      s.turn = next;
+    }
+    autoPass(s, ev);
+  }
+
   var KV_RULES = {
     SIDES: SIDES, other: other, clone: clone, cardDef: cardDef, ab: ab, colOf: colOf, rowOf: rowOf,
     probAtLeast: probAtLeast, diceDist: diceDist, makeCard: makeCard, readyPool: readyPool, dealTeam: dealTeam,
     newGame: newGame, findCard: findCard, generalOf: generalOf, compactBoard: compactBoard,
     patternGroups: patternGroups, getOptions: getOptions, legalActions: legalActions,
     hitChance: hitChance, generalRisk: generalRisk, targetLife: targetLife,
-    swap: swap, setReady: setReady, act: act, checkWin: checkWin,
+    swap: swap, setReady: setReady, act: act, skip: skip, checkWin: checkWin, addStatus: addStatus, hasStatus: hasStatus, neighbours: neighbours,
   };
   root.KV_RULES = KV_RULES;
   if (isNode) module.exports = KV_RULES;

@@ -84,8 +84,14 @@
   }
 
   // ---------------- card rendering ----------------
+  function shownKey(card) {
+    var f = G.state && R.findCard(G.state, card.id);
+    if (card.cardKey === 'spy' && !card.revealed && f && f.side !== G.view && G.mode !== 'hotseat') return 'militia';
+    return card.cardKey;
+  }
+
   function cardInner(card) {
-    var def = R.cardDef(card.cardKey);
+    var def = R.cardDef(shownKey(card));
     var h = '<div class="art">' + KV_ART.html(def) + '</div>';
     h += '<div class="life">' + card.life + '</div>';
     h += '<div class="pat">' + (KV_ART.PATTERN_ICON[def.pattern] || '') + '</div>';
@@ -137,7 +143,7 @@
           board.appendChild(el);
           els[card.id] = el;
         }
-        var sig = card.cardKey + '|' + card.life + '|' + card.hitsTaken + '|' + (card.dmg || 0) + '|' + JSON.stringify(card.statuses);
+        var sig = shownKey(card) + '|' + card.life + '|' + card.hitsTaken + '|' + (card.dmg || 0) + '|' + JSON.stringify(card.statuses);
         if (el._sig !== sig) { el.innerHTML = cardInner(card); el._sig = sig; }
         var cls = 'card ' + (side === G.view ? 'mine' : 'enemy');
         if (card.isGeneral) cls += ' general';
@@ -184,7 +190,7 @@
     } else if (s.phase === 'battle') {
       var mine = myTurn();
       ban.className = 'banner ' + (mine ? 'mine' : 'theirs');
-      ban.textContent = mine ? (G.mode === 'hotseat' ? s.names[G.view] + ': your turn' : 'Your turn') : opp + "'s turn…";
+      ban.textContent = mine ? (s.extra ? 'Bonus attack!' : G.mode === 'hotseat' ? s.names[G.view] + ': your turn' : 'Your turn') : opp + (s.extra ? "'s bonus attack…" : "'s turn…");
     } else {
       ban.className = 'banner deploy';
       ban.textContent = s.winner === 'draw' ? 'Draw' : (s.winner === G.view || G.mode === 'hotseat' ? s.names[s.winner] + ' wins!' : opp + ' wins');
@@ -205,6 +211,9 @@
     } else if (s.phase === 'battle') {
       if (!myTurn()) {
         h = '<div class="info">' + esc(opp) + ' is choosing an attack…</div><button class="btn" data-act="log">Log</button>';
+      } else if (s.extra && !G.sel) {
+        h = '<div class="info"><b>' + esc(s.extra.reason || 'Bonus attack') + '</b><br>Tap the glowing card, or skip.</div>' +
+          '<button class="btn" data-act="skip">Skip</button>';
       } else if (!G.sel) {
         h = '<div class="info">Tap one of your <b>glowing</b> cards to attack with it.</div>';
       } else {
@@ -288,6 +297,14 @@
       });
       await sleep(900);
       r.hits.forEach(function (h) { var el = els[h.id]; if (el) el.classList.remove('flash-hit', 'target'); });
+    }
+    if (!ev.rolls.length && ev.notes && ev.notes.length) {
+      d1.classList.add('hidden2'); d2.classList.add('hidden2');
+      rt.className = 'bad'; rt.textContent = ev.notes[0];
+      await sleep(1100);
+    } else if (ev.notes && ev.notes.length) {
+      rt.className = 'good'; rt.textContent = ev.notes.join(' · ');
+      await sleep(1000);
     }
     if (ev.attackerDied && att) {
       rt.className = 'bad';
@@ -399,6 +416,7 @@
     if (intent.type === 'swap') res = R.swap(s, side, intent.a, intent.b);
     else if (intent.type === 'ready') res = R.setReady(s, side);
     else if (intent.type === 'action') res = R.act(s, side, intent);
+    else if (intent.type === 'skip') res = R.skip(s, side);
     else if (intent.type === 'rematch' && s.phase === 'over') {
       res = R.newGame({ names: s.names });
       res.seq = s.seq + 1; res.lastEvent = { kind: 'deal', seq: res.seq };
@@ -431,7 +449,8 @@
         aiTimer = null;
         if (G.mode !== 'ai' || G.state.turn !== 'p2' || G.state.phase !== 'battle') return;
         var c = KV_AI.choose(G.state, 'p2');
-        if (c) commit(engineApply('p2', { type: 'action', cardId: c.cardId, option: c.option }));
+        if (c && !(G.state.extra && c.score < 0)) commit(engineApply('p2', { type: 'action', cardId: c.cardId, option: c.option }));
+        else if (G.state.extra) commit(engineApply('p2', { type: 'skip' }));
       }, C.AI_THINK_MS || 600);
     }
   }
@@ -500,6 +519,7 @@
     }
     else if (act === 'info' && G.sel) openDetails(G.sel);
     else if (act === 'log') openLog();
+    else if (act === 'skip') { G.sel = null; G.chosen = null; dispatch({ type: 'skip' }); }
     else if (act === 'rematch') dispatch({ type: 'rematch' });
     else if (act === 'lobby') leave();
   }
@@ -520,13 +540,14 @@
 
   function openDetails(id) {
     var f = R.findCard(G.state, id); if (!f) return;
-    var c = f.card, def = R.cardDef(c.cardKey);
+    var c = f.card, def = R.cardDef(shownKey(c));
     var h = '<div class="detail"><div class="big-art">' + KV_ART.html(def) + '</div><div>' +
       '<h2>' + esc(def.name) + '</h2>' +
       '<div class="kv">Life: <b>' + c.life + '</b>' + (c.rollsToKill > 1 ? ' · hits ' + c.hitsTaken + '/' + c.rollsToKill : '') + '</div>' +
       '<div class="kv">Attack: ' + KV_ART.PATTERN_ICON[def.pattern] + ' ' + esc(KV_ART.PATTERN_TEXT[def.pattern]) + '</div>' +
       '<div class="kv">Team: ' + esc(G.state.names[f.side]) + (f.side === G.view ? ' (you)' : '') + ' · ' + (f.index < 6 ? 'front' : 'back') + ' row</div>' +
-      (c.statuses.length ? '<div class="kv">Status: ' + c.statuses.map(function (s) { return esc(s.type); }).join(', ') + '</div>' : '') +
+      (c.statuses.length ? '<div class="kv">Status: ' + c.statuses.map(function (s) { return s.icon + ' ' + esc(s.type) + (s.n ? ' ' + s.n : '') + ' (' + s.turns + ' turn' + (s.turns > 1 ? 's' : '') + ')'; }).join(', ') + '</div>' : '') +
+      (c.dmg ? '<div class="kv">Roll bonus: +' + c.dmg + '</div>' : '') +
       '</div></div><div class="ability">' + esc(def.text || 'No special ability.') +
       (c.isGeneral ? '<br><br><i>Any attack on the General that fails kills the attacker (unless the attacker is the other General). Kill the enemy General to win.</i>' : '') +
       '</div>';

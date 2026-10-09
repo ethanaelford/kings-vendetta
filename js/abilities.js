@@ -98,5 +98,105 @@ var KV_ABILITIES = {
   'neon-wisp': {
     passiveAura: function (ctx) { return /wisp/.test(ctx.attacker.cardKey) ? 2 : 0; },
   },
+
+  // ---- batch B: statuses, bonus attacks, dice ----
+  'ice-sentinel': {
+    // If attacker fails: attacker and the card behind it are frozen for their next 2 turns
+    onFailedAttackAgainstMe: function (ctx) {
+      var f = KV_RULES.findCard(ctx.state, ctx.attacker.id);
+      ctx.addStatus(ctx.state, ctx.attacker, { type: 'frozen', turns: 2 });
+      if (f && f.index < 6) ctx.addStatus(ctx.state, ctx.state.teams[f.side].slots[f.index + 6], { type: 'frozen', turns: 2 });
+      ctx.ev.notes.push(ctx.attacker.name + ' is frozen!');
+    },
+  },
+  'lava-guardian': {
+    // If attacker fails: attacker -1 on its next roll, Lava Guardian +1 on its next roll
+    onFailedAttackAgainstMe: function (ctx) {
+      ctx.addStatus(ctx.state, ctx.attacker, { type: 'debuff', n: 1, turns: 1 });
+      ctx.addStatus(ctx.state, ctx.target, { type: 'buff', n: 1, turns: 1 });
+    },
+  },
+  'thunder-warrior': {
+    // No roll: LOS target gets -8 on its rolls for 2 turns; Thunder Warrior dies using it
+    customAction: function (ctx) {
+      ctx.targets.forEach(function (t) {
+        var ok = ctx.addStatus(ctx.state, t, { type: 'debuff', n: 8, turns: 2 });
+        ctx.ev.notes.push(ok ? t.name + ' is thunderstruck (-8 for 2 turns)' : t.name + ' shrugs off the thunder');
+      });
+      ctx.ev.selfDestruct = true;
+    },
+    customText: 'Debuff -8 (Thunder Warrior dies)',
+  },
+  'elephant-mounted-warrior': {
+    // If killed, the killer's Life becomes 4 for 2 turns
+    onKilled: function (ctx) {
+      if (ctx.addStatus(ctx.state, ctx.killer, { type: 'lifeSet', n: 4, turns: 2 })) ctx.ev.notes.push(ctx.killer.name + "'s Life drops to 4!");
+    },
+  },
+  'venom-warrior': {
+    // On kill, the dead card's neighbours have their Life halved (reset: 1 turn)
+    onKill: function (ctx) {
+      var me = ctx.attacker;
+      me.cooldowns = me.cooldowns || {};
+      if (me.cooldowns.venom) return;
+      KV_RULES.neighbours(ctx.index).forEach(function (i) {
+        var c = ctx.slots[i];
+        if (c && !c.isGeneral && !KV_RULES.ab(c).immuneDebuffs) c.life = Math.ceil(c.life / 2);
+      });
+      me.cooldowns.venom = 2;
+      ctx.ev.notes.push('Venom spreads: neighbours lose half their Life');
+    },
+  },
+  'the-supplier': {
+    // Doesn't attack; neighbouring allies get +2 to rolls and +1 Life
+    noAttack: true,
+    passiveAura: function (ctx) { return ctx.adjacent ? 2 : 0; },
+    lifeAura: function () { return 1; },
+  },
+  'apprentice': { dice: 'last' },               // reuses the last roll made in the game
+  'magma-knight': { dice: 'magma' },            // roll + 1/3 of the roll (rounded down)
+  'tactical-ninja': { dice: 'best3' },          // best of 3 rolls
+  'stone-golem': { lastStandWipe: true },
+  'major': {
+    // When killed, every card on the killer's team with the killer's Life dies (Generals excepted)
+    onKilled: function (ctx) {
+      var side = ctx.killer.side, life = ctx.killer.life, ids = [];
+      ctx.state.teams[side].slots.forEach(function (c) { if (c && !c.isGeneral && c.life === life) ids.push(c.id); });
+      if (ids.length) ctx.ev.notes.push('The Major’s curse strikes every Life-' + life + ' card');
+      return { kill: ids };
+    },
+  },
+  'dragon-ninja': { immuneDebuffs: true },
+  'spy': {
+    // Disguised as Militia until it acts; instantly kills the General
+    autoKill: function (ctx) { return ctx.target.isGeneral; },
+  },
+  'frost-giant': {
+    // If attacked and not killed, gets a free attack right away
+    onSurvive: function (ctx) {
+      if (!ctx.state.pendingExtra) ctx.state.pendingExtra = { side: ctx.target.side, cardId: ctx.target.id, reason: 'Frost Giant shrugs it off and strikes back!' };
+    },
+  },
+  'elf-rampager': {
+    onAttackResolved: function (ctx) {
+      if (ctx.kills) ctx.state.pendingExtra = { side: ctx.attacker.side, cardId: ctx.attacker.id, reason: 'Elf Rampager keeps attacking!' };
+    },
+  },
+  'light-dragon': {
+    onAttackResolved: function (ctx) {
+      if (ctx.kills) ctx.state.pendingExtra = { side: ctx.attacker.side, cardId: ctx.attacker.id, reason: 'Light Dragon attacks again!' };
+    },
+  },
+  'elf-blitz-warrior': {
+    allOrNothing: true, // can't kill a partial column
+    onAttackResolved: function (ctx) {
+      if (ctx.kills) ctx.state.pendingExtra = { side: ctx.attacker.side, cardId: ctx.attacker.id, reason: 'Elf Blitz Warrior keeps attacking!' };
+    },
+  },
+  'hog-mounted-brute': {
+    onAttackResolved: function (ctx) {
+      if (ctx.kills && !ctx.isExtra) ctx.state.pendingExtra = { side: ctx.attacker.side, cardId: ctx.attacker.id, pattern: 'any', reason: 'Hog Mounted Brute earns a free attack on any card!' };
+    },
+  },
 };
 if (typeof module !== 'undefined') module.exports = KV_ABILITIES;

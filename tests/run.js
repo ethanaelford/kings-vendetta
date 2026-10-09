@@ -3,6 +3,7 @@ global.KV_CONFIG = require('../config.js');
 global.KV_CARDS = require('../js/cards.data.js');
 global.KV_ABILITIES = require('../js/abilities.js');
 var R = require('../js/rules.js');
+global.KV_RULES = R;
 
 var pass = 0, fail = 0;
 function t(name, fn) {
@@ -174,6 +175,68 @@ t('Spartan gains +1 per enemy kill', function () {
   var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: 0 }, HIGH);
   var sp = R.findCard(s2, s.teams.p1.slots[1].id).card;
   eq(sp.dmg, 1);
+});
+
+console.log('batch B: statuses & bonus attacks');
+t('Ice Sentinel freezes a failed attacker (and the card behind)', function () {
+  var s = battleState(row(['militia', 'general'], ['knight']), row(['ice-sentinel', 'general'], []));
+  var m = s.teams.p1.slots[0], behind = s.teams.p1.slots[6];
+  var s2 = R.act(s, 'p1', { cardId: m.id, option: 0 }, LOW);
+  ok(R.hasStatus(R.findCard(s2, m.id).card, 'frozen'), 'attacker frozen');
+  ok(R.hasStatus(R.findCard(s2, behind.id).card, 'frozen'), 'card behind frozen');
+  eq(R.getOptions(s2, 'p1', m.id).length, 0);
+});
+t('frozen wears off after 2 owner turns', function () {
+  var s = battleState(row(['militia', 'general'], []), row(['ice-sentinel', 'general'], []));
+  var m = s.teams.p1.slots[0];
+  s = R.act(s, 'p1', { cardId: m.id, option: 0 }, LOW);           // p1 frozen
+  var p2g = R.generalOf(s, 'p2'); s.turn = 'p2';
+  var acts = function (side) { return R.legalActions(s, side); };
+  for (var i = 0; i < 4; i++) { var a = acts(s.turn)[0]; s = R.act(s, s.turn, { cardId: a.cardId, option: a.option }, LOW); if (s.phase !== 'battle') break; }
+  var mc = R.findCard(s, m.id);
+  ok(!mc || !R.hasStatus(mc.card, 'frozen'), 'thawed');
+});
+t('Frost Giant strikes back after surviving', function () {
+  var s = battleState(row(['militia', 'general'], []), row(['frost-giant', 'general'], []));
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: 0 }, LOW);
+  eq(s2.turn, 'p2'); ok(s2.extra && s2.extra.cardId === s.teams.p2.slots[0].id, 'bonus for frost giant');
+  eq(R.legalActions(s2, 'p2').every(function (a) { return a.cardId === s2.extra.cardId; }), true);
+  var s3 = R.act(s2, 'p2', { cardId: s2.extra.cardId, option: 0 }, LOW);
+  eq(s3.turn, 'p2', 'then p2 still gets its normal turn'); ok(!s3.extra);
+});
+t('Elf Rampager chains on kills, and can skip', function () {
+  var s = battleState(row(['elf-rampager', 'general'], []), row(['militia', 'general'], ['militia']));
+  var er = s.teams.p1.slots[0];
+  var s2 = R.act(s, 'p1', { cardId: er.id, option: 0 }, HIGH);
+  eq(s2.turn, 'p1'); ok(s2.extra, 'bonus');
+  var s3 = R.skip(s2, 'p1'); eq(s3.turn, 'p2'); ok(!s3.extra);
+});
+t('Elf Blitz Warrior cannot kill a partial column', function () {
+  var s = battleState(row(['elf-blitz-warrior', 'general'], []), row(['militia', 'general'], ['juggernaut']));
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: 0 }, fixedRng([0.5, 0.5])); // 4+4=8: kills militia, not juggernaut
+  eq(s2.lastEvent.deaths.length, 0);
+});
+t('Spy kills the General instantly', function () {
+  var s = battleState(row(['spy'], ['general']), row(['general'], ['militia']));
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: 0 }, LOW);
+  eq(s2.winner, 'p1');
+});
+t('Apprentice reuses the last roll', function () {
+  var s = battleState(row(['apprentice', 'general'], []), row(['knight', 'general'], []));
+  s.lastRoll = { raw: [6, 6], sum: 12 };
+  eq(R.hitChance(s, s.teams.p1.slots[0], s.teams.p2.slots[0]).p, 1);
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: 0 }, LOW);
+  eq(s2.lastEvent.rolls[0].total, 12);
+});
+t('Thunder Warrior debuffs and dies', function () {
+  var s = battleState(row(['thunder-warrior', 'general'], []), row(['knight', 'general'], []));
+  var tw = s.teams.p1.slots[0], kn = s.teams.p2.slots[0];
+  var s2 = R.act(s, 'p1', { cardId: tw.id, option: 0 }, LOW);
+  ok(!R.findCard(s2, tw.id), 'TW dead'); ok(R.hasStatus(R.findCard(s2, kn.id).card, 'debuff'), 'knight debuffed');
+});
+t('best-of-3 distribution sums to 1', function () {
+  var d = R.diceDist({ cardKey: 'tactical-ninja' }), tot = 0; Object.keys(d).forEach(function (k) { tot += d[k]; });
+  ok(Math.abs(tot - 1) < 1e-9);
 });
 
 console.log('deal');
