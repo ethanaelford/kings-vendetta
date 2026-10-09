@@ -122,16 +122,24 @@ Answer in batches and I'll update the engine.
 - **Tactical Alchemist**: on a kill, gives itself +1 Life and +1 damage. Should the player pick a card to buff, or an enemy to debuff?
 - **Guardian**: while it's alive, no other card on its team can be targeted. (It can cause passes; the 30-turn stalemate rule covers that.)
 
-## Waiting for later sessions (ready: false)
+## Batch F (charges, summons, recruits) - assumptions
 
-- Grim Reaper (Life "D"), Bounty Hunter (Life "Inf"), Morphing Warrior (Life "?"): special-Life cards.
-- Kings Knight, Strategic Warrior, War Captain, Dark Knight, General's Guard, Wisp Major, Centurion, Phoenix, Field Marshall:
-  multi-turn charges, rounds, or summons.
-- "Round" is used in several cards (General: "If killed Round is won by opponent"). Is a game several rounds? *Assumed:* one round = one game.
-- Royal Assassin "+5 on Royals": which cards count as Royal? (General? Kings Knight? General's Guard?)
-- Wizard "same life on row": the row of the LOS target, or the whole exposed row?
-- Bomb Expert "(reset: 3)": a 3-turn cooldown, or the marks clear after 3 turns?
-- Cobalt Knight "Attacks each card with LOS life (+1)": the cards whose Life equals the LOS target's Life + 1?
-- Peasant Mob "Can't pick previous roll": the previous roll of this card, or of any card?
-- Ent "Shields 1 surrounding card": the owner chooses which card? What does a shield block (one successful hit)?
-- Spy "Disguised as militia": is the card shown to the enemy as Militia until it attacks?
+- **Attack Wagon**: attacks normally, or uses its turn to switch any enemy card (not the General) with the enemy card in its line of sight.
+- **Centurion** (x1): uses its turn to call 2 random cards from its deck (ready cards never dealt to that team) into empty slots.
+- **Field Marshall**: uses its turn to take any enemy card (not the General) into one of its own empty slots. Can it do this every turn?
+- **Phoenix**: on a roll of exactly 7, three random cards are drawn; the best match on the enemy team dies (the General can't be drawn).
+- **Kings Knight**: "Charge" twice (each uses a turn, not necessarily in a row), then one roll against every enemy card.
+  Every card with Life <= the roll dies. If the roll misses the General, the General rule kills the Kings Knight.
+- **General's Guard**: when it dies, its General has 4 of its owner's turns to make a kill. If it does, the Guard comes back.
+- **Bounty Hunter** (Life "Inf"): can't be targeted at all. It must make a kill at least every 4 of its owner's turns or it leaves the field.
+  It attacks with LOS (the sheet says "TD"; what does TD mean?).
+
+## Still not built (ready: false)
+
+- **Grim Reaper** (Life "D"): "Attacks remaining cards by number for lowest roll; if 11, lowest card; if 12, General". What does Life "D" mean, and how does the roll pick a target?
+- **Morphing Warrior** (Life "?"): "Round Start: Morphs into any card". What is a "round"?
+- **Shadow Warrior**: "Less roll subtracts life". Does a miss subtract the roll from the target's Life, or 1?
+- **Dark Knight / Strategic Warrior / War Captain / Wisp Major**: all depend on "rounds". *Assumed so far:* one game = one round.
+  Is a match several rounds (keep surviving cards, refill)?
+- **Lightning Wizard**: "75% chance to debuff (-4) each turn until debuff fail (reset life)". Which card gets debuffed, and what resets?
+- **Chariot Warrior**: "Can fill empty card slots". With column shifting there are rarely empty slots. Should it move into an empty back-row slot, or open a new column?
