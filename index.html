@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="King's Vendetta">
+<meta name="theme-color" content="#1b1410">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="images/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="images/icon-180.png">
+<title>King's Vendetta</title>
+<link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+
+<!-- LOBBY -->
+<section id="lobby" class="screen">
+  <div class="lobby-inner">
+    <img src="images/icon.svg" class="crest" alt="">
+    <h1>King's Vendetta</h1>
+    <p class="sub">A medieval card battle &middot; est. 2015</p>
+
+    <label class="field">Your name
+      <input id="nameInput" maxlength="16" autocomplete="off" placeholder="e.g. Ethan">
+    </label>
+
+    <div id="joinBanner" class="panel hidden">
+      <div>Invited to game <b id="joinBannerCode"></b></div>
+      <button id="joinBannerBtn" class="btn primary big">Join game</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Online 1v1</div>
+      <button id="createBtn" class="btn primary big">Create Game</button>
+      <div class="row">
+        <input id="codeInput" maxlength="4" placeholder="CODE" autocapitalize="characters" autocomplete="off">
+        <button id="joinBtn" class="btn">Join</button>
+      </div>
+      <div id="netWarn" class="warn hidden">Online play not configured yet (config.js).</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">On this device</div>
+      <div class="row"><input id="name2Input" class="name2" maxlength="16" placeholder="Player 2 name" autocomplete="off">
+      <button id="hotseatBtn" class="btn">Pass &amp; Play</button></div>
+      <button id="aiBtn" class="btn big">Play vs Computer</button>
+    </div>
+
+    <button id="libraryBtn" class="btn link">Card Library (dev)</button>
+  </div>
+  <div id="version" class="version"></div>
+</section>
+
+<!-- GAME -->
+<section id="game" class="screen hidden">
+  <header class="topbar">
+    <button id="menuBtn" class="iconbtn" aria-label="Menu">☰</button>
+    <div id="banner" class="banner">…</div>
+    <button id="logBtn" class="iconbtn" aria-label="Battle log">📜</button>
+  </header>
+  <div id="netbar" class="netbar hidden"></div>
+  <div id="boardWrap">
+    <div id="board">
+      <div id="mid">
+        <div id="dice"><div class="die" id="die1">?</div><div class="die" id="die2">?</div></div>
+        <div id="rollText"></div>
+      </div>
+    </div>
+  </div>
+  <footer id="actionbar" class="actionbar"></footer>
+</section>
+
+<!-- CARD LIBRARY -->
+<section id="library" class="screen hidden">
+  <header class="topbar">
+    <button id="libBack" class="iconbtn" aria-label="Back">←</button>
+    <div class="banner">Card Library</div>
+    <span class="iconbtn"></span>
+  </header>
+  <div id="libList" class="liblist"></div>
+</section>
+
+<!-- Bottom sheet -->
+<div id="sheetBack" class="sheet-back hidden"></div>
+<div id="sheet" class="sheet hidden"><div class="grab"></div><div id="sheetBody"></div></div>
+
+<!-- Full-screen overlay (hand-off, game over, share) -->
+<div id="overlay" class="overlay hidden"><div id="overlayBody" class="overlay-body"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="js/cards.data.js"></script>
+<script src="js/sprite-map.js"></script>
+<script src="js/abilities.js"></script>
+<script src="js/rules.js"></script>
+<script src="js/art.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/net.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>

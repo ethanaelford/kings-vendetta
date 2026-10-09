@@ -1,0 +1,32 @@
+// Simple enemy AI: score every (card, option) by sum of P(kill) x target value, minus General-attack risk.
+var KV_AI = (function () {
+  var R = KV_RULES;
+
+  function value(card) {
+    if (card.isGeneral) return 100;
+    return 4 + (card.baseLife || 6) + (card.rollsToKill - 1) * 3;
+  }
+
+  function choose(state, side, rng) {
+    rng = rng || Math.random;
+    var best = null;
+    R.legalActions(state, side).forEach(function (a) {
+      var att = R.findCard(state, a.cardId).card;
+      var score = 0, risk = 0;
+      a.targets.forEach(function (id) {
+        var t = R.findCard(state, id).card;
+        var hc = R.hitChance(state, att, t);
+        var left = t.rollsToKill - t.hitsTaken;
+        var pKill = left > 1 ? hc.p * 0.35 : hc.p;
+        score += pKill * value(t);
+        if (R.generalRisk(att, t)) risk = Math.max(risk, (1 - hc.p) * value(att) * 1.2);
+      });
+      var attacks = (R.ab(att).attacks || 1);
+      score = score * (attacks > 1 ? 1.6 : 1) - risk + rng() * 1.5;
+      if (!best || score > best.score) best = { score: score, cardId: a.cardId, option: a.option };
+    });
+    return best;
+  }
+
+  return { choose: choose };
+})();

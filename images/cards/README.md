@@ -1,0 +1,109 @@
+# Card art overrides
+
+Drop a picture here named exactly as below (.png, .jpg or .webp) and it replaces the sprite/SVG.
+Recommended size: **400x560** (5:7 portrait).
+
+- `catapult.png` - Catapult
+- `grim-reaper.png` - Grim Reaper
+- `stealth-warrior.png` - Stealth Warrior
+- `frost-giant.png` - Frost Giant
+- `titan.png` - Titan
+- `chariot-warrior.png` - Chariot Warrior
+- `iron-giant.png` - Iron Giant
+- `berserker-warrior.png` - Berserker Warrior
+- `lightning-ninja.png` - Lightning Ninja
+- `samurai.png` - Samurai
+- `hammer-dwarf.png` - Hammer Dwarf
+- `blood-hound.png` - Blood Hound
+- `captain.png` - Captain
+- `elf-rampager.png` - Elf Rampager
+- `tactical-warrior.png` - Tactical Warrior
+- `attack-wagon.png` - Attack Wagon
+- `ranger.png` - Ranger
+- `fire-sentinel.png` - Fire Sentinel
+- `eagle-warrior.png` - Eagle Warrior
+- `centurion.png` - Centurion
+- `cannon.png` - Cannon
+- `avenger.png` - Avenger
+- `cobalt-knight.png` - Cobalt Knight
+- `bomb-expert.png` - Bomb Expert
+- `venom-warrior.png` - Venom Warrior
+- `elephant-mounted-warrior.png` - Elephant Mounted Warrior
+- `heavily-armored-soldier.png` - Heavily Armored Soldier
+- `stationary-crossbow-soldier.png` - Stationary Crossbow Soldier
+- `joker.png` - Joker
+- `morphing-warrior.png` - Morphing Warrior
+- `militia.png` - Militia
+- `front-lineman.png` - Front Lineman
+- `horse-mounted-troop.png` - Horse Mounted Troop
+- `foot-soldier.png` - Foot Soldier
+- `archer.png` - Archer
+- `knight.png` - Knight
+- `minotaur.png` - Minotaur
+- `wizard.png` - Wizard
+- `ent.png` - Ent
+- `brute.png` - Brute
+- `general.png` - General
+- `commander.png` - Commander
+- `reviver.png` - Reviver
+- `unskilled-warrior.png` - Unskilled Warrior
+- `phoenix.png` - Phoenix
+- `dwarf-blitzer.png` - Dwarf Blitzer
+- `lightning-wizard.png` - Lightning Wizard
+- `thunder-warrior.png` - Thunder Warrior
+- `elf-blitz-warrior.png` - Elf Blitz Warrior
+- `peasant-mob.png` - Peasant Mob
+- `apprentice.png` - Apprentice
+- `the-manipulator.png` - The Manipulator
+- `blade-dancer.png` - Blade Dancer
+- `dragon-ninja.png` - Dragon Ninja
+- `dragon-tamer.png` - Dragon Tamer
+- `lightning-mage.png` - Lightning Mage
+- `field-marshall.png` - Field Marshall
+- `spy.png` - Spy
+- `major.png` - Major
+- `admiral.png` - Admiral
+- `chemical-warfare-warrior.png` - Chemical Warfare Warrior
+- `redstone-warrior.png` - Redstone Warrior
+- `fire-striker.png` - Fire Striker
+- `shadow-warrior.png` - Shadow Warrior
+- `royal-assassin.png` - Royal Assassin
+- `magma-knight.png` - Magma Knight
+- `frost-brute.png` - Frost Brute
+- `tactical-ninja.png` - Tactical Ninja
+- `armored-warrior.png` - Armored Warrior
+- `the-supplier.png` - The Supplier
+- `bounty-hunter.png` - Bounty Hunter
+- `juggernaut.png` - Juggernaut
+- `hydra.png` - Hydra
+- `ranged-expert.png` - Ranged Expert
+- `melee-expert.png` - Melee Expert
+- `ace.png` - Ace
+- `kings-knight.png` - Kings Knight
+- `rookie.png` - Rookie
+- `unstable-bomb-expert.png` - Unstable Bomb Expert
+- `stone-monster.png` - Stone Monster
+- `tactical-alchemist.png` - Tactical Alchemist
+- `general-s-guard.png` - General's Guard
+- `generals-bodyguard.png` - Generals Bodyguard
+- `guardian.png` - Guardian
+- `ice-sentinel.png` - Ice Sentinel
+- `lava-guardian.png` - Lava Guardian
+- `fallen-knight.png` - Fallen Knight
+- `dark-knight.png` - Dark Knight
+- `strategic-warrior.png` - Strategic Warrior
+- `medic.png` - Medic
+- `war-captain.png` - War Captain
+- `corrupt-commander.png` - Corrupt Commander
+- `unstable-titan.png` - Unstable Titan
+- `hog-mounted-brute.png` - Hog Mounted Brute
+- `stone-golem.png` - Stone Golem
+- `elite-assasin.png` - Elite Assasin
+- `spartan.png` - Spartan
+- `light-dragon.png` - Light Dragon
+- `wolf-mounted-dwarf.png` - Wolf Mounted Dwarf
+- `fire-sprite.png` - Fire Sprite
+- `wisp.png` - Wisp
+- `neon-wisp.png` - Neon Wisp
+- `wisp-captain.png` - Wisp Captain
+- `wisp-major.png` - Wisp Major

@@ -1,0 +1,6 @@
+.env.local
+reference/
+.claude/
+dist/
+*.zip
+__pycache__/
