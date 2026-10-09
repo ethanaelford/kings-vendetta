@@ -373,8 +373,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "If not attacked gets free attack on Any after Roll",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -568,8 +568,8 @@ var KV_CARDS = [
   "code": "Any",
   "pattern": "any",
   "text": "Roll kills rnd card",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -672,8 +672,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Make any opponent card use the turn (x1)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -711,8 +711,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Marks opponent card for Destruction",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -867,8 +867,8 @@ var KV_CARDS = [
   "code": "LUR",
   "pattern": "forD",
   "text": "roll = to life attacks back",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1036,8 +1036,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "All cards that he killed, cards that have < life in hand = 1/2 of life.",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1049,8 +1049,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "If he kills a card, able to buff own card (+1 Health / Damage) or debuff enemy card (-1 Healht / Damage)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1088,8 +1088,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "You are not able to kill any card in hand until this card is dead.",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {

@@ -43,6 +43,9 @@ READY = {
     # batch D
     'Foot Soldier', 'Medic', 'Lightning Ninja', 'Eagle Warrior', 'Unstable Bomb Expert', 'Cobalt Knight',
     'Corrupt Commander', 'Ranged Expert', 'Melee Expert',
+    # batch E
+    'Joker', 'Unskilled Warrior', 'The Manipulator', 'Dragon Tamer', 'Frost Brute', 'Stone Monster',
+    'Tactical Alchemist', 'Guardian',
 }
 
 # One-line "what's missing" notes for the Card Library (default: ability not built yet).

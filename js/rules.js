@@ -309,8 +309,8 @@
   }
 
   // ---------- statuses ----------
-  var STATUS_ICON = { frozen: '❄', debuff: '⬇', buff: '⬆', lifeSet: '♥', poison: '☠', mark: '◎' };
-  var BAD = { frozen: 1, debuff: 1, lifeSet: 1, poison: 1, mark: 1 };
+  var STATUS_ICON = { frozen: '❄', debuff: '⬇', buff: '⬆', lifeSet: '♥', poison: '☠', mark: '◎', doom: '☄' };
+  var BAD = { frozen: 1, debuff: 1, lifeSet: 1, poison: 1, mark: 1, doom: 1 };
   function addStatus(s, card, st) {
     if (!card) return false;
     if (BAD[st.type] && ab(card).immuneDebuffs) return false;
@@ -321,16 +321,21 @@
   }
   function hasStatus(card, type) { return (card.statuses || []).some(function (x) { return x.type === type; }); }
   // End of `side`'s turn: count down its cards' statuses and cooldowns (not ones created this turn).
+  // Returns ids of cards destroyed by an expiring 'doom' (Dragon Tamer) whose source is still alive.
   function tickStatuses(s, side) {
+    var destroyed = [];
     s.teams[side].slots.forEach(function (c) {
       if (!c) return;
       c.statuses = (c.statuses || []).filter(function (st) {
         if (st.born === s.turnCount) return true;
         if (st.type === 'poison') c.life = Math.max(2, c.life - (st.n || 1));
-        st.turns--; return st.turns > 0;
+        st.turns--;
+        if (st.turns <= 0 && st.type === 'doom' && findCard(s, st.src)) destroyed.push(c.id);
+        return st.turns > 0;
       });
       Object.keys(c.cooldowns || {}).forEach(function (k) { if (c.cooldowns[k] > 0) c.cooldowns[k]--; });
     });
+    return destroyed;
   }
   function neighbours(index) {
     var out = [], col = index % 6;
@@ -520,6 +525,7 @@
       s.turn = s.first;
       log(s, 'Battle! ' + s.names[s.first] + ' goes first.');
       ev = { kind: 'start', first: s.first };
+      autoPass(s, ev);
     }
     return bump(s, ev);
   }
@@ -548,6 +554,7 @@
     if (wasExtra) ev.bonus = true;
     var deaths = ev.deaths;
     var alive = opt.targets.slice();
+    if (aa.randomTarget && !opt.mode && alive.length > 1) alive = [alive[Math.floor((rng || Math.random)() * alive.length)]];
     var kills = 0;
     var doomed = {}; // attacker id -> reason (companions included)
     attacker.revealed = true;
@@ -571,6 +578,8 @@
         if (!tf) return null;
         var life = targetLife(s, tf.card);
         var tot = base + (powerless ? 0 : rollModifier(s, atk, tf.card));
+        tf.card.lastTargetedTurn = s.turnCount;
+        if (ab(tf.card).reflectOnExact && tot === life) return { id: id, life: life, ok: false, reflect: true };
         return { id: id, life: life, ok: powerless ? (ab(tf.card).onlyDiesTo ? isSuccess({}, tf.card, raw, tot, life) : tot >= life) : isSuccess(atk, tf.card, raw, tot, life) };
       }).filter(Boolean);
       if (A.allOrNothing && plan.some(function (x) { return !x.ok; })) plan.forEach(function (x) { x.ok = false; });
@@ -601,6 +610,10 @@
         } else if (!shielded) {
           if (generalRisk(atk, t)) doomed[atk.id] = 'failed against the General';
           if (ta.onFailedAttackAgainstMe) ta.onFailedAttackAgainstMe({ state: s, attacker: atk, target: t, addStatus: addStatus, ev: ev });
+        }
+        if (x.reflect && !s.pendingExtra) {
+          s.pendingExtra = { side: tf.side, cardId: t.id, reason: t.name + ' catches the blow and strikes back!' };
+          ev.notes.push(t.name + ' reflects the attack!');
         }
         if (!killed) {
           survivors.push(x.id);
@@ -646,6 +659,14 @@
         attacker.usesLeft = 0;
         ev.notes.push(attacker.name + ' drags ' + tF.card.name + ' into its sights');
       }
+    }
+    if (opt.mode === 'manipulate') {
+      noRoll = true; ev.kind = 'move';
+      var mt = findCard(s, alive[0]);
+      attacker.usesLeft = 0;
+      s.pendingExtra = { side: other(side), cardId: mt.card.id, thenTurn: side, reason: attacker.name + ' forces ' + s.names[other(side)] + ' to use ' + mt.card.name + ' this turn' };
+      ev.notes.push(attacker.name + ' manipulates ' + mt.card.name + '!');
+      alive = [];
     }
     if (opt.mode === 'hailMary') {
       noRoll = true;
@@ -788,13 +809,16 @@
   }
 
   function finishTurn(s, side, ev, wasExtra) {
+    tickStatuses(s, side).forEach(function (id) {
+      var f = findCard(s, id);
+      if (f) { killCard(s, f, ev.deaths); log(s, f.card.name + ' is destroyed by the dragon!'); (ev.notes = ev.notes || []).push(f.card.name + ' is destroyed!'); }
+    });
     SIDES.forEach(function (sd) {
       var res = compactBoard(s.teams[sd], CFG);
       s.teams[sd].slots = res.slots;
       ev.moves[sd] = res.moves;
     });
     if (checkWin(s)) return;
-    tickStatuses(s, side);
     s.turnCount++;
     s.quietTurns = ev.deaths && ev.deaths.length ? 0 : (s.quietTurns || 0) + 1;
     if (s.quietTurns >= (CFG.STALEMATE_TURNS || 30)) {
@@ -805,7 +829,7 @@
     var next = wasExtra ? wasExtra.thenTurn : other(side);
     var pe = s.pendingExtra; s.pendingExtra = null;
     if (pe && findCard(s, pe.cardId)) {
-      s.extra = { side: pe.side, cardId: pe.cardId, pattern: pe.pattern || null, reason: pe.reason, thenTurn: next };
+      s.extra = { side: pe.side, cardId: pe.cardId, pattern: pe.pattern || null, reason: pe.reason, thenTurn: pe.thenTurn || next };
       s.turn = pe.side;
       ev.extra = s.extra;
       log(s, pe.reason);

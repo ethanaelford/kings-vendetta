@@ -474,6 +474,69 @@ var KV_ABILITIES = {
       return !KV_RANGED[k] && !ctx.card.isGeneral && !/expert/.test(k) ? { life: 3, dmg: 1, hits: 1 } : null;
     },
   },
+  // ---- batch E ----
+  'joker': {
+    // If it wasn't attacked during the enemy's last turn, it gets a free attack on any card after its roll
+    onAttackResolved: function (ctx) {
+      var me = ctx.attacker;
+      if (ctx.isExtra || ctx.state.pendingExtra) return;
+      if (me.lastTargetedTurn == null || me.lastTargetedTurn < ctx.state.turnCount - 1) {
+        ctx.state.pendingExtra = { side: me.side, cardId: me.id, pattern: 'any', reason: 'Joker was left alone - free attack on any card!' };
+      }
+    },
+  },
+  'unskilled-warrior': {
+    // Rolls against a random enemy card (not the General)
+    anyRow: true,
+    randomTarget: true,
+    getTargets: function (ctx) {
+      var g = ctx.enemySlots.filter(function (c) { return c && !c.isGeneral; }).map(function (c) { return c.id; });
+      return g.length ? [g] : [];
+    },
+  },
+  'the-manipulator': {
+    // Once per game: pick any enemy card - the opponent must use that card on their next turn (or lose the turn)
+    extraOptions: function (ctx) {
+      if (ctx.card.usesLeft === 0) return [];
+      return ctx.enemySlots.filter(Boolean).map(function (c) { return { targets: [c.id], mode: 'manipulate', label: 'Manipulate' }; });
+    },
+  },
+  'dragon-tamer': {
+    // No roll: marks an enemy card (not the General) for Destruction. It is destroyed at the end of its owner's
+    // next turn unless they kill the Dragon Tamer first.
+    customAction: function (ctx) {
+      ctx.targets.forEach(function (t) {
+        if (t.isGeneral) { ctx.ev.notes.push('The General cannot be marked'); return; }
+        var ok = ctx.addStatus(ctx.state, t, { type: 'doom', src: ctx.attacker.id, turns: 1 });
+        ctx.ev.notes.push(ok ? t.name + ' is marked for Destruction! Kill the Dragon Tamer to save it.' : t.name + ' is immune');
+      });
+    },
+    customSafe: true,
+    customText: 'Mark for Destruction',
+    canMark: function (t) { return !t.isGeneral; },
+  },
+  'frost-brute': {
+    // An attack that rolls exactly its Life is reflected: it survives and strikes back
+    reflectOnExact: true,
+  },
+  'stone-monster': {
+    // On kill, every enemy card with lower Life than the victim has its Life halved (not the General)
+    onKill: function (ctx) {
+      var v = ctx.target.life, n = 0;
+      ctx.slots.forEach(function (c) {
+        if (c && !c.isGeneral && c.life < v && !KV_RULES.ab(c).immuneDebuffs) { c.life = Math.max(2, Math.ceil(c.life / 2)); n++; }
+      });
+      if (n) ctx.ev.notes.push('Stone Monster shatters ' + n + ' weaker card' + (n > 1 ? 's' : ''));
+    },
+  },
+  'tactical-alchemist': {
+    // On kill, brews +1 Life and +1 damage for itself
+    onKill: function (ctx) { ctx.attacker.life += 1; ctx.attacker.dmg = (ctx.attacker.dmg || 0) + 1; },
+  },
+  'guardian': {
+    // While alive, no other card on its team can be attacked
+    protects: function () { return true; },
+  },
   'hog-mounted-brute': {
     onAttackResolved: function (ctx) {
       if (ctx.kills && !ctx.isExtra) ctx.state.pendingExtra = { side: ctx.attacker.side, cardId: ctx.attacker.id, pattern: 'any', reason: 'Hog Mounted Brute earns a free attack on any card!' };

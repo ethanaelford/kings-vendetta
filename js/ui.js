@@ -157,7 +157,7 @@
         if (targetIds[card.id] && selCard) {
           var mo = selOpts.filter(function (o) { return o.targets.indexOf(card.id) >= 0; })[0] || {};
           var d = document.createElement('div'); d.className = 'odds';
-          d.textContent = mo.own || mo.mode === 'hailMary' ? mo.label : pct(R.hitChance(s, selCard.card, card).p);
+          d.textContent = mo.own || mo.mode === 'hailMary' || mo.mode === 'manipulate' ? mo.label : pct(R.hitChance(s, selCard.card, card).p);
           el.appendChild(d);
         }
         if (fresh && opts.dropEnemy && side !== G.view) {
@@ -191,7 +191,7 @@
     } else if (s.phase === 'battle') {
       var mine = myTurn();
       ban.className = 'banner ' + (mine ? 'mine' : 'theirs');
-      ban.textContent = mine ? (s.extra ? 'Bonus attack!' : G.mode === 'hotseat' ? s.names[G.view] + ': your turn' : 'Your turn') : opp + (s.extra ? "'s bonus attack…" : "'s turn…");
+      ban.textContent = mine ? (s.extra ? (s.extra.thenTurn !== s.extra.side ? 'Manipulated!' : 'Bonus attack!') : G.mode === 'hotseat' ? s.names[G.view] + ': your turn' : 'Your turn') : opp + (s.extra ? "'s bonus attack…" : "'s turn…");
     } else {
       ban.className = 'banner deploy';
       ban.textContent = s.winner === 'draw' ? 'Draw' : (s.winner === G.view || G.mode === 'hotseat' ? s.names[s.winner] + ' wins!' : opp + ' wins');
@@ -231,6 +231,12 @@
             var ally = R.findCard(s, opt.targets[0]).card;
             h = '<div class="info"><b>' + esc(a.name) + '</b>: ' + esc(opt.label) + ' with <b>' + esc(ally.name) + '</b> (uses your turn)</div>' +
               '<button class="btn primary" data-act="attack">' + esc(opt.label.toUpperCase()) + '</button>';
+            bar.innerHTML = h; return;
+          }
+          if (opt.mode === 'manipulate') {
+            var mv = R.findCard(s, opt.targets[0]).card;
+            h = '<div class="info"><b>' + esc(a.name) + '</b> (once per game): ' + esc(opp) + ' must use <b>' + esc(mv.name) +
+              '</b> on their next turn, or lose the turn.</div><button class="btn primary" data-act="attack">MANIPULATE</button>';
             bar.innerHTML = h; return;
           }
           if (opt.mode === 'hailMary') {

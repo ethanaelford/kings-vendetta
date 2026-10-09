@@ -308,6 +308,36 @@ t('Ranged Expert: ranged allies attack twice with +3', function () {
   eq(s2.lastEvent.rolls.length, 2);
 });
 
+console.log('batch E');
+t('Dragon Tamer destroys its mark unless killed first', function () {
+  var s = battleState(row(['dragon-tamer', 'general'], []), row(['knight', 'general'], []));
+  var kn = s.teams.p2.slots[0];
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: 0 }, LOW);
+  ok(R.hasStatus(R.findCard(s2, kn.id).card, 'doom'), 'marked');
+  var g = R.generalOf(s2, 'p2');
+  var s3 = R.act(s2, 'p2', { cardId: g.id, option: 0 }, LOW); // p2 General attacks and misses
+  ok(!R.findCard(s3, kn.id), 'destroyed at end of owner turn');
+});
+t('Guardian protects its team', function () {
+  var s = battleState(row(['catapult', 'general'], []), row(['guardian', 'general', 'militia'], []));
+  var o = R.getOptions(s, 'p1', s.teams.p1.slots[0].id);
+  eq(o.length, 1); eq(o[0].targets[0], s.teams.p2.slots[0].id);
+});
+t('Manipulator forces the enemy to use one card', function () {
+  var s = battleState(row(['the-manipulator', 'general'], []), row(['militia', 'general', 'knight'], []));
+  var o = R.getOptions(s, 'p1', s.teams.p1.slots[0].id), k = -1;
+  o.forEach(function (x, i) { if (x.mode === 'manipulate' && x.targets[0] === s.teams.p2.slots[2].id) k = i; });
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: k }, LOW);
+  eq(s2.turn, 'p2'); eq(s2.extra.cardId, s.teams.p2.slots[2].id);
+  var s3 = R.skip(s2, 'p2'); eq(s3.turn, 'p1');
+});
+t('Frost Brute reflects an exact roll', function () {
+  var s = battleState(row(['militia', 'general'], []), row(['frost-brute', 'general'], []));
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: 0 }, fixedRng([0.5, 0.9])); // 4+6 = 10? need 9
+  var s3 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: 0 }, fixedRng([0.5, 0.75])); // 4+5 = 9
+  ok(R.findCard(s3, s.teams.p2.slots[0].id), 'survives exact'); ok(s3.extra, 'strikes back');
+});
+
 console.log('deal');
 t('exactly one General per team, no duplicates (200 deals)', function () {
   for (var n = 0; n < 200; n++) {

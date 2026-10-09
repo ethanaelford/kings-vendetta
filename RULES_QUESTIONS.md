@@ -92,6 +92,22 @@ Answer in batches and I'll update the engine.
 - **Ent**: shields one neighbour (the General first) from one successful hit, once per game.
 - **Reviver**: on a kill, revives the highest-Life card from its own graveyard into an empty slot.
 
+## Batch D (movement, experts, gambles) - assumptions
+
+- **Foot Soldier**: once per game, uses its turn to switch places with a neighbouring ally (left, right, or front/back).
+- **Medic**: can attack normally, or use its turn to cleanse one ally of freeze, debuffs, poison, Life changes and marks.
+- **Lightning Ninja**: can dash to any column where it has a front-row ally (switching places), then attack that column's LOS target.
+- **Eagle Warrior**: once per game, pulls any enemy card except the General into its line of sight
+  (the pulled card switches places with the enemy card that was there), then attacks it.
+- **Unstable Bomb Expert**: normal LOS attack, or **Hail Mary**: roll exactly 7 (1 in 6) and you win the game; any other roll and you lose it.
+  Is "loses" really the whole game, or just the Bomb Expert?
+- **Cobalt Knight**: one roll against its LOS target plus every enemy card whose Life is the LOS target's Life + 1.
+- **Corrupt Commander** (6Q): attacks the 6 opposite cards with one roll. Each touching ally then makes its own roll against the same 6, with no bonuses or powers.
+- **Ranged / Melee Expert**: "ranged" = Archer, Catapult, Crossbow, Cannon, Ranger, Iron Giant, Bomb Expert. Every other non-General card is "melee".
+  - Ranged Expert gives ranged allies +1 Life, +3 to their rolls, and two attacks.
+  - Melee Expert gives melee allies +3 Life, +1 to their rolls, and makes them need 2 hits to kill (on top of Knight/Titan hits).
+  - The bonuses last while the Expert is alive. Which cards count as ranged?
+
 ## Waiting for later sessions (ready: false)
 
 - Grim Reaper (Life "D"), Bounty Hunter (Life "Inf"), Morphing Warrior (Life "?"): special-Life cards.
