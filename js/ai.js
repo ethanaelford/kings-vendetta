@@ -7,7 +7,7 @@ var KV_AI = (function () {
     return 4 + (card.baseLife || 6) + (card.rollsToKill - 1) * 3;
   }
 
-  function choose(state, side, rng) {
+  function choose(state, side, rng, nested) {
     rng = rng || Math.random;
     var best = null;
     R.legalActions(state, side).forEach(function (a) {
@@ -42,7 +42,30 @@ var KV_AI = (function () {
       score = score * (attacks > 1 ? 1.6 : 1) - risk + rng() * 1.5;
       if (!best || score > best.score) best = { score: score, cardId: a.cardId, option: a.option };
     });
+    if ((!best || best.score < 0.5) && R.canSwap(state, side) && !nested) {
+      var sw = bestSwap(state, side, rng);
+      if (sw && (!best || sw.score > best.score)) best = sw;
+    }
     return best;
+  }
+
+  // Try every switch of two of my cards; score by the best attack it sets up for my next turn.
+  function bestSwap(state, side, rng, anyway) {
+    var slots = state.teams[side].slots, best = null;
+    for (var i = 0; i < 12; i++) for (var j = i + 1; j < 12; j++) {
+      if (!slots[i] || !slots[j]) continue;
+      if (!anyway && (slots[i].isGeneral && j < 6 || slots[j].isGeneral && i < 6)) continue; // avoid pushing the General forward
+      var s2 = R.turnSwap(state, side, i, j);
+      if (!s2) continue;
+      var sc = -1;
+      if (s2.phase === 'battle') {
+        s2 = R.clone(s2); s2.turn = side; s2.extra = null;
+        var c = choose(s2, side, rng, true);
+        sc = (c ? c.score : 0) * 0.6 - 0.5 + rng() * 0.3;
+      }
+      if (!best || sc > best.score) best = { score: sc, swap: [i, j] };
+    }
+    return best || (anyway ? null : bestSwap(state, side, rng, true));
   }
 
   return { choose: choose };

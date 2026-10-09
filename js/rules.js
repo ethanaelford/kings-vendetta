@@ -853,22 +853,56 @@
     return bump(s, ev);
   }
 
-  function checkWin(s) {
-    var g1 = generalOf(s, 'p1'), g2 = generalOf(s, 'p2');
-    if (!g1 || !g2) {
-      s.phase = 'over';
-      s.winner = !g2 && g1 ? 'p1' : !g1 && g2 ? 'p2' : 'draw';
-      log(s, s.winner === 'draw' ? 'Both Generals fell - draw!' : s.names[s.winner] + ' wins! The enemy General has fallen.');
-      return true;
-    }
-    return false;
+  // A side loses when its General dies, or (WIN_BY_WIPE) when only its General is left.
+  function lossReason(s, side) {
+    if (!generalOf(s, side)) return 'general';
+    if (CFG.WIN_BY_WIPE !== false && !s.teams[side].slots.some(function (c) { return c && !c.isGeneral; })) return 'wipe';
+    return null;
+  }
+
+  function checkWin(s, actor) {
+    var l1 = lossReason(s, 'p1'), l2 = lossReason(s, 'p2');
+    if (!l1 && !l2) return false;
+    s.phase = 'over';
+    if (l1 && l2) {
+      // both Generals dead = draw; otherwise whoever just acted takes it
+      s.winner = l1 === 'general' && l2 === 'general' ? 'draw' : actor || 'draw';
+    } else s.winner = l1 ? 'p2' : 'p1';
+    var why = (s.winner === 'p1' ? l2 : l1) === 'wipe' ? 'The enemy army is wiped out - only their General remains.' : 'The enemy General has fallen.';
+    s.winReason = s.winner === 'draw' ? 'draw' : (s.winner === 'p1' ? l2 : l1);
+    log(s, s.winner === 'draw' ? 'Both Generals fell - draw!' : s.names[s.winner] + ' wins! ' + why);
+    return true;
+  }
+
+  function canSwap(s, side) {
+    if (CFG.TURN_SWAP === 'off' || s.extra) return false;
+    return s.teams[side].slots.filter(Boolean).length >= 2;
+  }
+
+  // Battle swap: instead of attacking, switch two of your own cards (uses the turn).
+  // TURN_SWAP: 'any' = any two of your cards, 'adjacent' = neighbours only, 'off'.
+  function turnSwap(state, side, a, b) {
+    if (state.phase !== 'battle' || state.turn !== side || !canSwap(state, side)) return null;
+    if (a === b || a < 0 || b < 0 || a > 11 || b > 11) return null;
+    var sl = state.teams[side].slots;
+    if (!sl[a] || !sl[b]) return null;
+    if (CFG.TURN_SWAP === 'adjacent' && neighbours(a).indexOf(b) < 0) return null;
+    var s = clone(state);
+    var t = s.teams[side].slots;
+    var ca = t[a], cb = t[b];
+    t[a] = cb; t[b] = ca;
+    var ev = { kind: 'move', side: side, rolls: [], deaths: [], moves: { p1: [], p2: [] }, notes: [ca.name + ' and ' + cb.name + ' switch places'] };
+    log(s, s.names[side] + ' - ' + ev.notes[0]);
+    s.lastActor[side] = ca.id;
+    finishTurn(s, side, ev, null);
+    return bump(s, ev);
   }
 
   function autoPass(s, ev) {
     for (var guard = 0; guard < 4; guard++) {
-      if (legalActions(s, s.turn).length) return;
+      if (legalActions(s, s.turn).length || canSwap(s, s.turn)) return;
       if (s.extra) { s.turn = s.extra.thenTurn; s.extra = null; continue; }
-      log(s, s.names[s.turn] + ' has no legal attack and passes.');
+      log(s, s.names[s.turn] + ' has no legal move and passes.');
       ev.passed = (ev.passed || []).concat(s.turn);
       s.turn = other(s.turn);
     }
@@ -891,7 +925,7 @@
       s.teams[sd].slots = res.slots;
       ev.moves[sd] = res.moves;
     });
-    if (checkWin(s)) return;
+    if (checkWin(s, side)) return;
     s.turnCount++;
     s.quietTurns = ev.deaths && ev.deaths.length ? 0 : (s.quietTurns || 0) + 1;
     if (s.quietTurns >= (CFG.STALEMATE_TURNS || 30)) {
@@ -918,7 +952,7 @@
     newGame: newGame, findCard: findCard, generalOf: generalOf, compactBoard: compactBoard,
     patternGroups: patternGroups, getOptions: getOptions, legalActions: legalActions,
     hitChance: hitChance, generalRisk: generalRisk, targetLife: targetLife,
-    swap: swap, setReady: setReady, act: act, skip: skip, emptySlot: emptySlot, deckFor: deckFor, rollsNeeded: rollsNeeded, teamBonus: teamBonus, losIndex: losIndex, checkWin: checkWin, addStatus: addStatus, hasStatus: hasStatus, neighbours: neighbours,
+    swap: swap, setReady: setReady, act: act, skip: skip, turnSwap: turnSwap, canSwap: canSwap, lossReason: lossReason, emptySlot: emptySlot, deckFor: deckFor, rollsNeeded: rollsNeeded, teamBonus: teamBonus, losIndex: losIndex, checkWin: checkWin, addStatus: addStatus, hasStatus: hasStatus, neighbours: neighbours,
   };
   root.KV_RULES = KV_RULES;
   if (isNode) module.exports = KV_RULES;

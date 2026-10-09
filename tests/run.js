@@ -371,6 +371,20 @@ t('Bounty Hunter cannot be targeted and leaves after 4 idle turns', function () 
   eq(bh.life, 99);
 });
 
+console.log('swap action & win conditions');
+t('turn swap switches two of my cards and passes the turn', function () {
+  var s = battleState(row(['militia', 'general'], ['knight']), row(['militia', 'general'], []));
+  var s2 = R.turnSwap(s, 'p1', 0, 6);
+  eq(s2.teams.p1.slots.some(function (c, i) { return c && c.cardKey === 'knight' && i < 6; }), true, 'knight moved to the front');
+  eq(s2.turn, 'p2');
+  eq(R.turnSwap(s2, 'p1', 0, 1), null, 'not my turn');
+});
+t('wiping every card except the General wins', function () {
+  var s = battleState(row(['militia', 'general'], []), row(['militia', 'general'], []));
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: 0 }, HIGH);
+  eq(s2.winner, 'p1'); eq(s2.winReason, 'wipe');
+});
+
 console.log('deal');
 t('exactly one General per team, no duplicates (200 deals)', function () {
   for (var n = 0; n < 200; n++) {

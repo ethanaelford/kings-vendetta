@@ -14,7 +14,7 @@ for (var g = 0; g < N; g++) {
   while (s.phase === 'battle' && n < 500) {
     var c = KV_AI.choose(s, s.turn);
     if (!c) { console.log('turn', s.turn, 'extra', JSON.stringify(s.extra), 'legal', R.legalActions(s, s.turn).length, s.log.slice(-3)); if (s.extra) { s = R.skip(s, s.turn); continue; } throw new Error('no choice but battle continues'); }
-    var nx = R.act(s, s.turn, { cardId: c.cardId, option: c.option });
+    var nx = c.swap ? R.turnSwap(s, s.turn, c.swap[0], c.swap[1]) : R.act(s, s.turn, { cardId: c.cardId, option: c.option });
     if (!nx) throw new Error('illegal action chosen');
     s = nx; n++;
   }

@@ -221,9 +221,15 @@
         h = '<div class="info">Tap one of your <b>glowing</b> cards to attack with it.</div>';
       } else {
         var a = R.findCard(s, G.sel).card, def = R.cardDef(a.cardKey);
+        var swapBtn = R.canSwap(s, G.view) ? '<button class="btn" data-act="swapmode">⇄ Swap</button>' : '';
+        if (G.swapMode) {
+          bar.innerHTML = '<div class="info"><b>⇄ Swap ' + esc(a.name) + '</b>: tap the card to switch places with (uses your turn).</div>' +
+            '<button class="btn" data-act="swapcancel">Cancel</button>';
+          return;
+        }
         var opts = R.getOptions(s, G.view, G.sel);
         if (!opts.length) {
-          h = '<div class="info"><b>' + esc(a.name) + '</b> has no targets from here.</div><button class="btn" data-act="info">ⓘ</button>';
+          h = '<div class="info"><b>' + esc(a.name) + '</b> has no targets from here.</div>' + swapBtn + '<button class="btn" data-act="info">ⓘ</button>';
         } else if (!G.chosen) {
           var selfBtns = '', onlySelf = true;
           opts.forEach(function (o, k) {
@@ -231,7 +237,7 @@
             else onlySelf = false;
           });
           h = '<div class="info"><b>' + esc(a.name) + '</b> ' + KV_ART.PATTERN_ICON[def.pattern] + ' ' + esc(KV_ART.PATTERN_TEXT[def.pattern]) +
-            (onlySelf ? '' : '<br>Tap a red target.') + '</div>' + selfBtns + '<button class="btn" data-act="info">ⓘ</button>';
+            (onlySelf ? '' : '<br>Tap a red target.') + '</div>' + selfBtns + swapBtn + '<button class="btn" data-act="info">ⓘ</button>';
         } else {
           var opt = opts[G.chosen.opt];
           if (opt.own) {
@@ -366,7 +372,7 @@
     if (prev && next.seq < prev.seq && G.mode === 'guest' && !next._sync) return;
     G.animating = true;
     if (isNew && (ev.kind === 'attack' || ev.kind === 'move') && prev && prev.phase === 'battle') {
-      G.sel = null; G.chosen = null;
+      G.sel = null; G.chosen = null; G.swapMode = false;
       renderBars();
       await playAttack(ev);
     }
@@ -451,6 +457,7 @@
     else if (intent.type === 'ready') res = R.setReady(s, side);
     else if (intent.type === 'action') res = R.act(s, side, intent);
     else if (intent.type === 'skip') res = R.skip(s, side);
+    else if (intent.type === 'tswap') res = R.turnSwap(s, side, intent.a, intent.b);
     else if (intent.type === 'rematch' && s.phase === 'over') {
       res = R.newGame({ names: s.names });
       res.seq = s.seq + 1; res.lastEvent = { kind: 'deal', seq: res.seq };
@@ -483,7 +490,8 @@
         aiTimer = null;
         if (G.mode !== 'ai' || G.state.turn !== 'p2' || G.state.phase !== 'battle') return;
         var c = KV_AI.choose(G.state, 'p2');
-        if (c && !(G.state.extra && c.score < 0)) commit(engineApply('p2', { type: 'action', cardId: c.cardId, option: c.option }));
+        if (c && c.swap) commit(engineApply('p2', { type: 'tswap', a: c.swap[0], b: c.swap[1] }));
+        else if (c && !(G.state.extra && c.score < 0)) commit(engineApply('p2', { type: 'action', cardId: c.cardId, option: c.option }));
         else if (G.state.extra) commit(engineApply('p2', { type: 'skip' }));
       }, C.AI_THINK_MS || 600);
     }
@@ -524,6 +532,13 @@
       return render();
     }
     if (s.phase !== 'battle' || !myTurn()) return openDetails(id);
+    if (f.side === G.view && G.sel && G.swapMode) {
+      var from = R.findCard(s, G.sel).index;
+      G.swapMode = false; G.sel = null; G.chosen = null;
+      if (id !== R.findCard(s, id).card.id || from === f.index) return render();
+      dispatch({ type: 'tswap', a: from, b: f.index });
+      return render();
+    }
     if (f.side === G.view && G.sel && G.sel !== id) {
       var ownOpts = R.getOptions(s, G.view, G.sel);
       for (var oi = 0; oi < ownOpts.length; oi++) {
@@ -531,6 +546,7 @@
       }
     }
     if (f.side === G.view) {
+      G.swapMode = false;
       if (G.sel === id) { G.sel = null; G.chosen = null; }
       else { G.sel = id; G.chosen = null; }
       return render();
@@ -565,6 +581,8 @@
       G.sel = null; G.chosen = null;
       dispatch(si); render();
     }
+    else if (act === 'swapmode') { G.swapMode = true; G.chosen = null; render(); }
+    else if (act === 'swapcancel') { G.swapMode = false; render(); }
     else if (act === 'skip') { G.sel = null; G.chosen = null; dispatch({ type: 'skip' }); }
     else if (act === 'rematch') dispatch({ type: 'rematch' });
     else if (act === 'lobby') leave();
