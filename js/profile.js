@@ -58,7 +58,10 @@ var KV_PROFILE = (function () {
     save(); return true;
   }
 
-  function tier(r) {
+  // Mythic: a Diamond rating AND a top-100 spot on the shared leaderboard.
+  var MYTHIC_RANK = 100, DIAMOND = 1400;
+  function tier(r, rank) {
+    if (r >= DIAMOND && rank && rank <= MYTHIC_RANK) return { name: 'Mythic', icon: '🔮', mythic: true, rank: rank };
     for (var i = 0; i < TIERS.length; i++) if (r >= TIERS[i][0]) return { name: TIERS[i][1], icon: TIERS[i][2] };
     return { name: 'Bronze', icon: '🥉' };
   }
@@ -110,7 +113,7 @@ var KV_PROFILE = (function () {
       var score = info.draw ? 0.5 : info.won ? 1 : 0;
       var delta = Math.round(32 * (score - exp));
       P.rating += delta; P.rankedGames++;
-      elo = { delta: delta, rating: P.rating, tier: tier(P.rating) };
+      elo = { delta: delta, rating: P.rating, tier: tier(P.rating, P.rank) };
     }
     save();
     return { chest: rollChest(info.won), elo: elo };
@@ -156,6 +159,16 @@ var KV_PROFILE = (function () {
       p_wins: P.wins, p_losses: P.losses, p_draws: P.draws, p_ranked_games: P.rankedGames })
       .then(function (r) { return !r.error && r.data === true; }, function () { return false; });
   }
+  // My global position (cached on the profile for the Mythic badge)
+  function fetchRank() {
+    var c = client();
+    if (!c || !P.rankedGames) return Promise.resolve(null);
+    return c.rpc('kv_rank', { p_client_id: P.clientId }).then(function (r) {
+      if (!r.error) { P.rank = r.data || null; save(); }
+      return P.rank;
+    }, function () { return P.rank; });
+  }
+  function myTier() { return tier(P.rating, P.rank); }
   function fetchLeaderboard() {
     var c = client();
     if (!c) return Promise.resolve([]);
@@ -163,7 +176,7 @@ var KV_PROFILE = (function () {
   }
 
   return {
-    get: function () { return P; }, syncLeaderboard: syncLeaderboard, fetchLeaderboard: fetchLeaderboard, save: save, DECK_SIZE: DECK_SIZE, RARITY_LABEL: RARITY_LABEL, CHESTS: CHESTS, THEMES: THEMES,
+    get: function () { return P; }, syncLeaderboard: syncLeaderboard, fetchRank: fetchRank, myTier: myTier, fetchLeaderboard: fetchLeaderboard, save: save, DECK_SIZE: DECK_SIZE, RARITY_LABEL: RARITY_LABEL, CHESTS: CHESTS, THEMES: THEMES,
     deckForGame: deckForGame, toggleDeck: toggleDeck, tier: tier, openChest: openChest, recordGame: recordGame,
     buyTheme: buyTheme, applyTheme: applyTheme, backupCode: backupCode, restore: restore, cards: cards,
   };

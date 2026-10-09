@@ -252,3 +252,4 @@ textarea.code { width: 100%; min-height: 70px; font: 12px monospace; border-radi
 .lbrow .nm2 small { display: block; color: var(--parch-d); font-size: 12px; }
 .lbrow .rt { font-weight: bold; }
 .lbrow.me { background: #2a3f66; border-radius: 8px; }
+.mythic { color: #e7b8ff !important; text-shadow: 0 0 6px #b45cff, 0 0 12px #7a2fd0; font-weight: bold; }

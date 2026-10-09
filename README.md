@@ -40,7 +40,8 @@ The host saves the game to localStorage after every action, so a reload resumes 
   A chest gives coins or unlocks a card you don't have yet.
 - **Rarity** = Life + ability strength (`ABILITY_WEIGHT` in `tools/build_cards.py`), split into Common, Uncommon, Rare, Epic and Legendary.
 - **Coins** buy board themes in Profile & Shop.
-- **Elo:** starts at 1000, K=32, ranked matches only. Tiers: Bronze, Silver (950), Gold (1100), Platinum (1250), Diamond (1400).
+- **Elo:** starts at 1000, K=32, ranked matches only. Tiers: Bronze, Silver (950), Gold (1100), Platinum (1250), Diamond (1400),
+  and **Mythic** = Diamond rating plus a top-100 spot on the shared leaderboard.
 - **Backup code** in Profile moves your progress to another device. iPhone Safari can erase site data after 7 days unused,
   so use Add to Home Screen.
 

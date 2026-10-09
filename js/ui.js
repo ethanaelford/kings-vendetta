@@ -460,7 +460,7 @@
         G.reward = KV_PROFILE.recordGame({ gameId: next.gameId, won: next.winner === G.view, draw: next.winner === 'draw',
           ranked: next.ranked, oppRating: (next.ratings || {})[opp] || 1000 });
         if (G.reward) KV_QUESTS.onGameOver(next, G.view);
-        if (G.reward && G.reward.elo) KV_PROFILE.syncLeaderboard(myName());
+        if (G.reward && G.reward.elo) KV_PROFILE.syncLeaderboard(myName()).then(KV_PROFILE.fetchRank).then(refreshPlayerCard);
         refreshPlayerCard();
       }
       setTimeout(function () { gameOverOverlay(); }, 400);
@@ -895,7 +895,7 @@
   function findRanked() {
     if (!KV_NET.available()) { alert('Online play is not configured yet.'); return; }
     var P = me();
-    overlay('<h2>⚔ Ranked</h2><p>' + KV_PROFILE.tier(P.rating).icon + ' ' + P.rating + '</p><div class="chest shake" style="font-size:60px">⚔</div>' +
+    overlay('<h2>⚔ Ranked</h2><p>' + KV_PROFILE.myTier().icon + ' ' + P.rating + '</p><div class="chest shake" style="font-size:60px">⚔</div>' +
       '<p id="qStatus">Searching for an opponent…</p><button class="btn big" id="qCancel">Cancel</button>');
     $('qCancel').onclick = function () { KV_NET.leaveQueue(); closeOverlay(); };
     KV_NET.queue({
@@ -1001,9 +1001,11 @@
   }
 
   function showProfile() {
-    var P = me(), t = KV_PROFILE.tier(P.rating);
+    var P = me(), t = KV_PROFILE.myTier();
     var h = '<div class="panel"><h2 style="margin:0">' + esc(myName()) + '</h2>' +
-      '<p style="font-size:20px">' + t.icon + ' ' + t.name + ' · <b>' + P.rating + '</b> Elo</p>' +
+      '<p style="font-size:20px" class="' + (t.mythic ? 'mythic' : '') + '">' + t.icon + ' ' + t.name + ' · <b>' + P.rating + '</b> Elo' +
+      (P.rank ? ' · #' + P.rank + ' worldwide' : '') + '</p>' +
+      (t.mythic ? '' : '<p class="muted" style="font-size:13px">🔮 Mythic: reach Diamond (1400) and a top-100 spot on the leaderboard.</p>') +
       '<p>Ranked games: ' + P.rankedGames + ' · Wins ' + P.wins + ' · Losses ' + P.losses + ' · Draws ' + P.draws + '</p>' +
       '<p>🪙 <b>' + P.coins + '</b> coins · 🃏 ' + P.owned.length + ' cards</p></div>';
     h += '<div class="panel"><div class="panel-title">Board themes</div><div class="themes">' + KV_PROFILE.THEMES.map(function (th) {
@@ -1061,21 +1063,23 @@
     show('leaders');
     $('lbBody').innerHTML = '<p>Loading…</p>';
     var P = me();
-    KV_PROFILE.syncLeaderboard(myName()).then(function () { return KV_PROFILE.fetchLeaderboard(); }).then(function (rows) {
+    KV_PROFILE.syncLeaderboard(myName()).then(KV_PROFILE.fetchRank).then(function () { refreshPlayerCard(); return KV_PROFILE.fetchLeaderboard(); }).then(function (rows) {
       if (!rows.length) { $('lbBody').innerHTML = '<p>No ranked games yet. Play a ⚔ Ranked match to get on the board!</p>'; return; }
       var mine = rows.findIndex(function (r) { return r.client_id === P.clientId; });
-      $('lbBody').innerHTML = (mine < 0 ? '<p>' + (P.rankedGames ? 'You are not in the top 100 yet.' : 'Play a ranked match to join the board.') + '</p>' : '') +
+      $('lbBody').innerHTML = '<p class="muted" style="font-size:13px">🔮 The top 100 Diamond players (1400+) are <b class="mythic">Mythic</b>.</p>' +
+        (mine < 0 ? '<p>' + (P.rankedGames ? 'You are #' + (P.rank || '?') + ' - not in the top 100 yet.' : 'Play a ranked match to join the board.') + '</p>' : '') +
         rows.map(function (r, i) {
-          var t = KV_PROFILE.tier(r.rating), medal = ['🥇', '🥈', '🥉'][i] || (i + 1);
+          var t = KV_PROFILE.tier(r.rating, i + 1), medal = ['🥇', '🥈', '🥉'][i] || (i + 1);
           return '<div class="lbrow' + (r.client_id === P.clientId ? ' me' : '') + '"><span class="rk">' + medal + '</span><span class="nm2">' + esc(r.name) +
-            '<small>' + t.icon + ' ' + t.name + ' · ' + r.wins + 'W ' + r.losses + 'L' + (r.draws ? ' ' + r.draws + 'D' : '') + '</small></span><span class="rt">' + r.rating + '</span></div>';
+            '<small class="' + (t.mythic ? 'mythic' : '') + '">' + t.icon + ' ' + t.name + ' · ' + r.wins + 'W ' + r.losses + 'L' + (r.draws ? ' ' + r.draws + 'D' : '') + '</small></span><span class="rt">' + r.rating + '</span></div>';
         }).join('');
     });
   }
 
   function refreshPlayerCard() {
-    var P = me(), t = KV_PROFILE.tier(P.rating);
-    $('pcTier').textContent = t.icon + ' ' + t.name;
+    var P = me(), t = KV_PROFILE.myTier();
+    $('pcTier').textContent = t.icon + ' ' + t.name + (P.rank ? ' #' + P.rank : '');
+    $('pcTier').className = t.mythic ? 'mythic' : '';
     $('pcRating').textContent = P.rating;
     $('pcCoins').textContent = '🪙 ' + P.coins;
     $('pcCards').textContent = P.owned.length + ' cards';
@@ -1124,7 +1128,7 @@
     $('lbBack').onclick = lobby;
     $('lbRefresh').onclick = showLeaders;
     $('questList').addEventListener('click', onQuestTap);
-    if (KV_PROFILE.get().rankedGames) KV_PROFILE.syncLeaderboard(myName());
+    if (KV_PROFILE.get().rankedGames) KV_PROFILE.syncLeaderboard(myName()).then(KV_PROFILE.fetchRank).then(refreshPlayerCard);
     $('profBack').onclick = lobby;
     $('colGrid').addEventListener('click', onCollectionTap);
     $('colFilter').addEventListener('click', onCollectionTap);
