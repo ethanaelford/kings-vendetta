@@ -32,3 +32,20 @@ The host saves the game to localStorage after every action, so a reload resumes 
 - `js/ai.js`: computer opponent
 - `js/art.js`: art lookup (override → sprite → SVG crest)
 - `config.js`: rule toggles + Supabase settings
+
+## Progression (stored per device)
+- New players own 20 starter cards (the 20 weakest ready cards) plus the General. Their deck is those 20.
+- **Deck & Cards:** pick up to 20 owned cards. A game deals your General plus 11 random cards from your deck.
+- **Chests** after every online or vs-computer game: Wooden, Silver or Golden. Better odds when you win.
+  A chest gives coins or unlocks a card you don't have yet.
+- **Rarity** = Life + ability strength (`ABILITY_WEIGHT` in `tools/build_cards.py`), split into Common, Uncommon, Rare, Epic and Legendary.
+- **Coins** buy board themes in Profile & Shop.
+- **Elo:** starts at 1000, K=32, ranked matches only. Tiers: Bronze, Silver (950), Gold (1100), Platinum (1250), Diamond (1400).
+- **Backup code** in Profile moves your progress to another device. iPhone Safari can erase site data after 7 days unused,
+  so use Add to Home Screen.
+
+## Rules toggles (config.js)
+- `TURN_SWAP`: switch two of your cards instead of attacking (`'any'` / `'adjacent'` / `'off'`)
+- `WIN_BY_WIPE`: you also win by killing every enemy card except their General
+- `STALEMATE_TURNS`: this many turns in a row with no kill = draw
+- The chess clock is picked in the lobby (ranked is always 10 minutes). Running out of time loses.
