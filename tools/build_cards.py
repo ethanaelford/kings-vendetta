@@ -40,6 +40,9 @@ READY = {
     'Commander', 'Captain', 'Tactical Warrior', 'Admiral', 'Wisp Captain', 'Wolf Mounted Dwarf', 'Hydra',
     'Lightning Mage', 'Fire Striker', 'Chemical Warfare Warrior', 'Redstone Warrior', 'Peasant Mob', 'Bomb Expert',
     'Ace', 'Fire Sprite', 'Samurai', 'Ent', 'Reviver',
+    # batch D
+    'Foot Soldier', 'Medic', 'Lightning Ninja', 'Eagle Warrior', 'Unstable Bomb Expert', 'Cobalt Knight',
+    'Corrupt Commander', 'Ranged Expert', 'Melee Expert',
 }
 
 # One-line "what's missing" notes for the Card Library (default: ability not built yet).

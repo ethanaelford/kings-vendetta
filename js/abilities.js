@@ -11,6 +11,9 @@
 //   successRule             - 'atLeast' (default: roll >= life) | 'under' (roll < life)
 //   onlyDiesTo              - 'snakeEyes' : only a raw 1+1 kills this card
 //   anyRow                  - can attack from the back row
+// Ranged cards (for Ranged / Melee Expert). Everything else except the General counts as melee.
+var KV_RANGED = { 'archer': 1, 'catapult': 1, 'stationary-crossbow-soldier': 1, 'cannon': 1, 'ranger': 1, 'iron-giant': 1, 'bomb-expert': 1 };
+
 var KV_ABILITIES = {
   'general': { isGeneral: true },
   'knight': { rollsRequired: function () { return 2; } },
@@ -393,10 +396,88 @@ var KV_ABILITIES = {
       ctx.ev.notes.push('Reviver raises ' + g.name + ' from the grave!');
     },
   },
+  // ---- batch D: movement, cleanse, experts, gambles ----
+  'foot-soldier': {
+    // Switch places with a neighbouring ally, once per game (uses the turn)
+    extraOptions: function (ctx) {
+      if (ctx.card.usesLeft === 0) return [];
+      return KV_RULES.neighbours(ctx.index).filter(function (i) { return ctx.mySlots[i]; })
+        .map(function (i) { return { targets: [ctx.mySlots[i].id], mode: 'swapAlly', own: true, label: 'Switch' }; });
+    },
+  },
+  'medic': {
+    // Instead of attacking, cleanse an ally of debuffs, freeze, poison and marks
+    extraOptions: function (ctx) {
+      var BAD = { frozen: 1, debuff: 1, lifeSet: 1, poison: 1, mark: 1 };
+      return ctx.mySlots.filter(function (c) { return c && (c.statuses || []).some(function (st) { return BAD[st.type]; }); })
+        .map(function (c) { return { targets: [c.id], mode: 'cleanse', own: true, label: 'Cleanse' }; });
+    },
+  },
+  'lightning-ninja': {
+    // Moves (to any column where it has a front-row ally) then attacks that column's LOS target
+    extraOptions: function (ctx) {
+      if (ctx.row !== 0) return [];
+      var out = [];
+      for (var c = 0; c < 6; c++) {
+        if (c === ctx.col || !ctx.mySlots[c]) continue;
+        var li = ctx.losIndex(ctx.enemySlots, c);
+        if (li >= 0) out.push({ targets: [ctx.enemySlots[li].id], mode: 'ninja', label: 'Move + attack' });
+      }
+      return out;
+    },
+  },
+  'eagle-warrior': {
+    // Once per game: pull any enemy card (not the General) into its line of sight, then attack it
+    extraOptions: function (ctx) {
+      if (ctx.card.usesLeft === 0 || ctx.row !== 0) return [];
+      var li = ctx.losIndex(ctx.enemySlots, ctx.col);
+      if (li < 0) return [];
+      return ctx.enemySlots.filter(function (c, i) { return c && i !== li && !c.isGeneral; })
+        .map(function (c) { return { targets: [c.id], mode: 'eagle', label: 'Pull + attack' }; });
+    },
+  },
+  'unstable-bomb-expert': {
+    // Normal LOS attack, or "Hail Mary": roll exactly 7 to win the game - anything else loses it
+    extraOptions: function (ctx) {
+      var g = ctx.enemySlots.filter(function (c) { return c && c.isGeneral; })[0];
+      return g ? [{ targets: [g.id], mode: 'hailMary', label: 'Hail Mary' }] : [];
+    },
+  },
+  'cobalt-knight': {
+    // LOS target plus every enemy card whose Life is the LOS target's Life + 1 (one roll)
+    getTargets: function (ctx) {
+      var los = ctx.patternGroups('los', ctx.enemySlots, ctx.index)[0];
+      if (!los) return [];
+      var t = ctx.enemySlots.filter(function (c) { return c && c.id === los[0]; })[0];
+      var g = [t.id];
+      ctx.enemySlots.forEach(function (c) { if (c && c.id !== t.id && c.life === t.life + 1) g.push(c.id); });
+      return [g];
+    },
+  },
+  'corrupt-commander': {
+    // Attacks the 6 opposite cards; touching allies join with their own rolls, without their powers
+    companions: function (ctx) {
+      var g = ctx.patternGroups('six', ctx.enemySlots, ctx.index % 6)[0];
+      if (!g) return [];
+      return KV_RULES.neighbours(ctx.index).filter(function (i) { return ctx.slots[i]; })
+        .map(function (i) { return { cardId: ctx.slots[i].id, targets: g, ownRoll: true, powerless: true }; });
+    },
+  },
+  'ranged-expert': {
+    // Ranged allies: +1 Life, +3 damage, attack twice
+    teamAura: function (ctx) { return KV_RANGED[ctx.card.cardKey] ? { life: 1, dmg: 3, attacks: 1 } : null; },
+  },
+  'melee-expert': {
+    // Melee allies: +3 Life, +1 damage, must be hit twice
+    teamAura: function (ctx) {
+      var k = ctx.card.cardKey;
+      return !KV_RANGED[k] && !ctx.card.isGeneral && !/expert/.test(k) ? { life: 3, dmg: 1, hits: 1 } : null;
+    },
+  },
   'hog-mounted-brute': {
     onAttackResolved: function (ctx) {
       if (ctx.kills && !ctx.isExtra) ctx.state.pendingExtra = { side: ctx.attacker.side, cardId: ctx.attacker.id, pattern: 'any', reason: 'Hog Mounted Brute earns a free attack on any card!' };
     },
   },
 };
-if (typeof module !== 'undefined') module.exports = KV_ABILITIES;
+if (typeof module !== 'undefined') { module.exports = KV_ABILITIES; global.KV_RANGED = KV_RANGED; }

@@ -340,6 +340,19 @@
     return out;
   }
 
+  // Bonuses from allies anywhere on the team (e.g. Ranged / Melee Expert): {life, dmg, hits, attacks}
+  function teamBonus(state, card) {
+    var b = { life: 0, dmg: 0, hits: 0, attacks: 0 };
+    var f = card.side && state.teams[card.side] ? state.teams[card.side].slots : [];
+    f.forEach(function (ally) {
+      if (!ally || ally.id === card.id || !ab(ally).teamAura) return;
+      var x = ab(ally).teamAura({ ally: ally, card: card }) || {};
+      b.life += x.life || 0; b.dmg += x.dmg || 0; b.hits += x.hits || 0; b.attacks += x.attacks || 0;
+    });
+    return b;
+  }
+  function rollsNeeded(state, card) { return card.rollsToKill + teamBonus(state, card).hits; }
+
   function canTarget(attacker, target, targetSlots) {
     var a = ab(target);
     if (a.canBeTargetedBy && !a.canBeTargetedBy({ attacker: attacker, target: target })) return false;
@@ -361,15 +374,17 @@
     var groups;
     var ex = state.extra;
     if (ex && (ex.side !== side || ex.cardId !== cardId)) return [];
-    if (hasStatus(card, 'frozen') || a.noAttack) return [];
-    if (ex && ex.pattern) {
+    if (hasStatus(card, 'frozen')) return [];
+    var ctx = { state: state, card: card, index: f.index, col: colOf(f.index), row: rowOf(f.index), enemySlots: enemySlots,
+      mySlots: state.teams[side].slots, patternGroups: patternGroups, losIndex: losIndex };
+    if (a.noAttack) groups = [];
+    else if (ex && ex.pattern) {
       groups = patternGroups(ex.pattern, enemySlots, f.index, {});
     } else if (a.getTargets) {
-      if (rowOf(f.index) === 1 && !a.anyRow) return [];
-      groups = a.getTargets({ state: state, card: card, index: f.index, col: colOf(f.index), row: rowOf(f.index), enemySlots: enemySlots, patternGroups: patternGroups });
+      groups = rowOf(f.index) === 1 && !a.anyRow ? [] : a.getTargets(ctx);
     } else {
-      if (rowOf(f.index) === 1 && FRONT_ONLY[def.pattern] && !a.anyRow) return [];
-      groups = patternGroups(def.pattern, enemySlots, f.index, { lastEnemyActor: state.lastActor[other(side)] });
+      groups = rowOf(f.index) === 1 && FRONT_ONLY[def.pattern] && !a.anyRow ? [] :
+        patternGroups(def.pattern, enemySlots, f.index, { lastEnemyActor: state.lastActor[other(side)] });
     }
     var byId = {};
     enemySlots.forEach(function (c) { if (c) byId[c.id] = c; });
@@ -378,6 +393,15 @@
       var t = g.filter(function (id) { return byId[id] && canTarget(card, byId[id], enemySlots); });
       if (t.length) out.push({ targets: t });
     });
+    if (a.extraOptions && !(ex && ex.pattern)) {
+      a.extraOptions(ctx).forEach(function (o) {
+        if (!o.own) {
+          o.targets = o.targets.filter(function (id) { return byId[id] && canTarget(card, byId[id], enemySlots); });
+          if (!o.targets.length) return;
+        }
+        out.push(o);
+      });
+    }
     return out;
   }
 
@@ -385,14 +409,14 @@
     var acts = [];
     state.teams[side].slots.forEach(function (c) {
       if (!c) return;
-      getOptions(state, side, c.id).forEach(function (o, k) { acts.push({ cardId: c.id, option: k, targets: o.targets }); });
+      getOptions(state, side, c.id).forEach(function (o, k) { acts.push({ cardId: c.id, option: k, targets: o.targets, mode: o.mode || null, own: !!o.own }); });
     });
     return acts;
   }
 
   // ---------- roll math ----------
   function rollModifier(state, attacker, target) {
-    var m = (attacker.dmg || 0) + (attacker.tmpBonus || 0), a = ab(attacker);
+    var m = (attacker.dmg || 0) + (attacker.tmpBonus || 0) + teamBonus(state, attacker).dmg, a = ab(attacker);
     if (a.modifyRoll) m += a.modifyRoll({ state: state, attacker: attacker, target: target });
     // passive auras from allies (e.g. Neon Wisp)
     var mine = attacker.side && state.teams[attacker.side] ? state.teams[attacker.side].slots : [];
@@ -408,7 +432,7 @@
   }
 
   function targetLife(state, target) {
-    var l = target.life, a = ab(target);
+    var l = target.life + teamBonus(state, target).life, a = ab(target);
     if (a.modifyTargetLife) l = a.modifyTargetLife({ state: state, target: target, life: l });
     var f = target.side && findCard(state, target.id);
     if (f) {
@@ -453,8 +477,8 @@
       var need = life - mod;
       text = aa.successRule === 'under' ? 'Need under ' + need : aa.successRule === 'exact' ? 'Need exactly ' + need : 'Need ' + need + '+';
     }
-    var left = target.rollsToKill - target.hitsTaken;
-    if (left > 1) text += ' (hit ' + (target.hitsTaken + 1) + ' of ' + target.rollsToKill + ')';
+    var need2 = rollsNeeded(state, target), left = need2 - target.hitsTaken;
+    if (left > 1) text += ' (hit ' + (target.hitsTaken + 1) + ' of ' + need2 + ')';
     return { p: p, text: text };
   }
 
@@ -519,7 +543,7 @@
     var wasExtra = s.extra; s.extra = null; s.pendingExtra = null;
     var att = findCard(s, intent.cardId);
     var attacker = att.card, aa = ab(attacker);
-    var attacks = aa.attacks || 1;
+    var attacks = (aa.attacks || 1) + teamBonus(s, attacker).attacks;
     var ev = { kind: 'attack', side: side, attackerId: attacker.id, attackerName: attacker.name, rolls: [], deaths: [], attackerDied: false, moves: { p1: [], p2: [] }, notes: [] };
     if (wasExtra) ev.bonus = true;
     var deaths = ev.deaths;
@@ -536,17 +560,18 @@
     }
 
     // One attacker vs a group of targets with one roll. Returns {r, kills, survivors}.
-    function strike(atk, ids, raw, base, reused) {
-      var A = ab(atk);
+    function strike(atk, ids, raw, base, reused, powerless) {
+      var A = powerless ? {} : ab(atk);
       var firstT = findCard(s, ids[0]);
-      var mod = rollModifier(s, atk, firstT && firstT.card);
+      var mod = powerless ? 0 : rollModifier(s, atk, firstT && firstT.card);
       var r = { by: atk.id === attacker.id ? null : atk.name, dice: raw, base: base, mod: mod, total: base + mod, hits: [], reused: !!reused };
       var nk = 0, survivors = [];
       var plan = ids.map(function (id) {
         var tf = findCard(s, id);
         if (!tf) return null;
         var life = targetLife(s, tf.card);
-        return { id: id, life: life, ok: isSuccess(atk, tf.card, raw, base + rollModifier(s, atk, tf.card), life) };
+        var tot = base + (powerless ? 0 : rollModifier(s, atk, tf.card));
+        return { id: id, life: life, ok: powerless ? (ab(tf.card).onlyDiesTo ? isSuccess({}, tf.card, raw, tot, life) : tot >= life) : isSuccess(atk, tf.card, raw, tot, life) };
       }).filter(Boolean);
       if (A.allOrNothing && plan.some(function (x) { return !x.ok; })) plan.forEach(function (x) { x.ok = false; });
       plan.forEach(function (x) {
@@ -559,7 +584,7 @@
         }
         if (x.ok) {
           t.hitsTaken++;
-          if (t.hitsTaken >= t.rollsToKill) {
+          if (t.hitsTaken >= rollsNeeded(s, t)) {
             killed = true; nk++;
             var tIndex = tf.index, tSide = tf.side;
             killCard(s, tf, deaths);
@@ -590,10 +615,51 @@
       return { r: r, kills: nk, survivors: survivors };
     }
 
-    if (aa.customAction) {
+    var noRoll = !!aa.customAction;
+    if (aa.customAction && !opt.mode) {
       aa.customAction({ state: s, attacker: attacker, targets: alive.map(function (id) { return findCard(s, id).card; }), ev: ev, addStatus: addStatus });
-      ev.notes.forEach(function (n) { log(s, s.names[side] + ' - ' + n); });
     }
+    if (opt.mode === 'swapAlly' || opt.mode === 'cleanse') {
+      noRoll = true; ev.kind = 'move';
+      var ally = findCard(s, alive[0]), me = findCard(s, attacker.id);
+      if (opt.mode === 'swapAlly') {
+        var sl = s.teams[side].slots, tmp = sl[me.index]; sl[me.index] = sl[ally.index]; sl[ally.index] = tmp;
+        attacker.usesLeft = 0;
+        ev.notes.push(attacker.name + ' switches places with ' + ally.card.name);
+      } else {
+        ally.card.statuses = (ally.card.statuses || []).filter(function (st) { return !BAD[st.type]; });
+        ev.notes.push(attacker.name + ' cleanses ' + ally.card.name);
+      }
+      alive = [];
+    }
+    if (opt.mode === 'ninja' || opt.mode === 'eagle') {
+      var meF = findCard(s, attacker.id), tF = findCard(s, alive[0]);
+      if (opt.mode === 'ninja') {
+        // move into the front slot of the target's column (switching with whoever is there)
+        var mySl = s.teams[side].slots, dest = colOf(tF.index);
+        var t2 = mySl[dest]; mySl[dest] = attacker; mySl[meF.index] = t2;
+        ev.notes.push(attacker.name + ' dashes to column ' + (dest + 1));
+      } else {
+        // pull the target into my line of sight (it switches with the card there)
+        var enSl = s.teams[other(side)].slots, losI = losIndex(enSl, colOf(meF.index));
+        if (losI >= 0 && losI !== tF.index) { var t3 = enSl[losI]; enSl[losI] = enSl[tF.index]; enSl[tF.index] = t3; }
+        attacker.usesLeft = 0;
+        ev.notes.push(attacker.name + ' drags ' + tF.card.name + ' into its sights');
+      }
+    }
+    if (opt.mode === 'hailMary') {
+      noRoll = true;
+      var hm = [rollDie(rng), rollDie(rng)];
+      s.lastRoll = { raw: hm.slice(), sum: hm[0] + hm[1] };
+      var won = hm[0] + hm[1] === 7;
+      ev.rolls.push({ dice: hm, base: hm[0] + hm[1], mod: 0, total: hm[0] + hm[1], hits: [{ id: alive[0], name: 'Hail Mary', life: 7, success: won, killed: won }] });
+      var loser = won ? other(side) : side, g = generalOf(s, loser);
+      if (g) killCard(s, findCard(s, g.id), deaths);
+      ev.notes.push(won ? 'HAIL MARY! A 7 - the enemy General falls!' : 'Hail Mary missed - ' + s.names[side] + '’s General falls!');
+      log(s, s.names[side] + ' - ' + attacker.name + ' Hail Mary rolls ' + (hm[0] + hm[1]) + (won ? ': WIN' : ': LOSE'));
+      alive = [];
+    }
+    ev.notes.forEach(function (n) { log(s, s.names[side] + ' - ' + n); });
 
     // auto-chosen mode (e.g. Wolf Mounted Dwarf: attack twice or +2)
     if (aa.plan) {
@@ -604,7 +670,7 @@
     }
 
     var lastRaw = null, lastBase = 0;
-    for (var k = 0; k < attacks && alive.length && !doomed[attacker.id] && !aa.customAction; k++) {
+    for (var k = 0; k < attacks && alive.length && !doomed[attacker.id] && !noRoll; k++) {
       var rolled = rollFor(attacker, s, rng);
       if (!rolled.reused) s.lastRoll = { raw: rolled.raw.slice(), sum: rolled.raw.length === 2 ? rolled.raw[0] + rolled.raw[1] : rolled.raw[0] * 2 };
       lastRaw = rolled.raw; lastBase = rolled.base;
@@ -615,7 +681,7 @@
     attacker.tmpBonus = 0;
 
     // companions attack with the same roll (Commander, Captain, Admiral, ...)
-    if (aa.companions && lastRaw && !aa.customAction) {
+    if (aa.companions && lastRaw && !noRoll) {
       var aIdx = findCard(s, attacker.id);
       var comp = aIdx ? aa.companions({ state: s, attacker: attacker, index: aIdx.index, slots: s.teams[side].slots, enemySlots: s.teams[other(side)].slots, patternGroups: patternGroups }) : [];
       comp.forEach(function (c) {
@@ -624,7 +690,9 @@
         var enemy = s.teams[other(side)].slots;
         var ids = c.targets.filter(function (id) { var tf = findCard(s, id); return tf && canTarget(cf.card, tf.card, enemy); });
         if (!ids.length) return;
-        var rc = strike(cf.card, ids, lastRaw, lastBase, false);
+        var rw = lastRaw, rb = lastBase;
+        if (c.ownRoll) { rw = [rollDie(rng), rollDie(rng)]; rb = rw[0] + rw[1]; }
+        var rc = strike(cf.card, ids, rw, rb, false, c.powerless);
         kills += rc.kills;
       });
     }
@@ -753,7 +821,7 @@
     newGame: newGame, findCard: findCard, generalOf: generalOf, compactBoard: compactBoard,
     patternGroups: patternGroups, getOptions: getOptions, legalActions: legalActions,
     hitChance: hitChance, generalRisk: generalRisk, targetLife: targetLife,
-    swap: swap, setReady: setReady, act: act, skip: skip, checkWin: checkWin, addStatus: addStatus, hasStatus: hasStatus, neighbours: neighbours,
+    swap: swap, setReady: setReady, act: act, skip: skip, rollsNeeded: rollsNeeded, teamBonus: teamBonus, losIndex: losIndex, checkWin: checkWin, addStatus: addStatus, hasStatus: hasStatus, neighbours: neighbours,
   };
   root.KV_RULES = KV_RULES;
   if (isNode) module.exports = KV_RULES;

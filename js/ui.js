@@ -155,8 +155,9 @@
         el.className = cls;
         var old = el.querySelector('.odds'); if (old) old.remove();
         if (targetIds[card.id] && selCard) {
-          var hc = R.hitChance(s, selCard.card, card);
-          var d = document.createElement('div'); d.className = 'odds'; d.textContent = pct(hc.p);
+          var mo = selOpts.filter(function (o) { return o.targets.indexOf(card.id) >= 0; })[0] || {};
+          var d = document.createElement('div'); d.className = 'odds';
+          d.textContent = mo.own || mo.mode === 'hailMary' ? mo.label : pct(R.hitChance(s, selCard.card, card).p);
           el.appendChild(d);
         }
         if (fresh && opts.dropEnemy && side !== G.view) {
@@ -226,13 +227,26 @@
             '<br>Tap a red target.</div><button class="btn" data-act="info">ⓘ</button>';
         } else {
           var opt = opts[G.chosen.opt];
+          if (opt.own) {
+            var ally = R.findCard(s, opt.targets[0]).card;
+            h = '<div class="info"><b>' + esc(a.name) + '</b>: ' + esc(opt.label) + ' with <b>' + esc(ally.name) + '</b> (uses your turn)</div>' +
+              '<button class="btn primary" data-act="attack">' + esc(opt.label.toUpperCase()) + '</button>';
+            bar.innerHTML = h; return;
+          }
+          if (opt.mode === 'hailMary') {
+            h = '<div class="info"><b>HAIL MARY</b>: roll exactly <b>7</b> (16.7%) and you <b>win the game</b>.<br>' +
+              '<span class="risk">⚠ Any other roll and YOU LOSE the game.</span></div>' +
+              '<button class="btn danger" data-act="attack">GAMBLE</button>';
+            bar.innerHTML = h; return;
+          }
           var lines = opt.targets.map(function (id) {
             var t = R.findCard(s, id).card, hc = R.hitChance(s, a, t);
             return esc(t.name) + ': ' + hc.text + ' → <b>' + pct(hc.p) + '</b>';
           });
           var risk = opt.targets.some(function (id) { return R.generalRisk(a, R.findCard(s, id).card); });
           var extra = (R.ab(a).attacks || 1) > 1 ? ' (attacks ' + R.ab(a).attacks + '×)' : '';
-          h = '<div class="info"><b>' + esc(a.name) + '</b>' + extra + ' → ' + lines.join('<br>') +
+          var modeTxt = opt.mode === 'ninja' ? ' (moves first)' : opt.mode === 'eagle' ? ' (pulls it into range, once per game)' : '';
+          h = '<div class="info"><b>' + esc(a.name) + '</b>' + extra + modeTxt + ' → ' + lines.join('<br>') +
             (risk ? '<br><span class="risk">⚠ If this misses the General, ' + esc(a.name) + ' dies!</span>' : '') + '</div>' +
             '<button class="btn primary" data-act="attack">ATTACK</button>';
         }
@@ -331,7 +345,7 @@
     var isNew = ev.seq != null && ev.seq > G.shownSeq;
     if (prev && next.seq < prev.seq && G.mode === 'guest' && !next._sync) return;
     G.animating = true;
-    if (isNew && ev.kind === 'attack' && prev && prev.phase === 'battle') {
+    if (isNew && (ev.kind === 'attack' || ev.kind === 'move') && prev && prev.phase === 'battle') {
       G.sel = null; G.chosen = null;
       renderBars();
       await playAttack(ev);
@@ -490,6 +504,12 @@
       return render();
     }
     if (s.phase !== 'battle' || !myTurn()) return openDetails(id);
+    if (f.side === G.view && G.sel && G.sel !== id) {
+      var ownOpts = R.getOptions(s, G.view, G.sel);
+      for (var oi = 0; oi < ownOpts.length; oi++) {
+        if (ownOpts[oi].own && ownOpts[oi].targets[0] === id) { G.chosen = { opt: oi, targetId: id }; return render(); }
+      }
+    }
     if (f.side === G.view) {
       if (G.sel === id) { G.sel = null; G.chosen = null; }
       else { G.sel = id; G.chosen = null; }

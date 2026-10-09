@@ -113,8 +113,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Moves then attacks",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -243,8 +243,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Can move an enemy and attack in one turn (x1)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -295,8 +295,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Attacks each card with LOS life (+1)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -438,8 +438,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Switch with Adjacent Cards (x1)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -958,8 +958,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "All ranged cards in handare granted Life (+1) and Damage(+3) and can attack twice in a turn.",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -971,8 +971,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "All Melee cards in hand are granted Life (+3) and Damage (+1) and have be rolled twice to die.",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1023,8 +1023,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Normal Attack. If chooses to do 'Hail Marry' attack, then he has to roll a 7, if fails then losses, if succeds then wins",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1166,8 +1166,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Chooses card in hand and cleasens card of all debufs and targets (i.e. BE's bomb)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1192,8 +1192,8 @@ var KV_CARDS = [
   "code": "6Q",
   "pattern": "six",
   "text": "All Touching cards attack with him, the 6 opposite cards. They don’t use their powedrse in that attack.",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {

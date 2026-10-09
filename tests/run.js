@@ -268,6 +268,46 @@ t('Ent shields its ward from one hit', function () {
   ok(R.generalOf(s2, 'p2'), 'shield saved the General');
 });
 
+console.log('batch D: movement, experts, gambles');
+function optIndex(s, side, cardId, mode) { var o = R.getOptions(s, side, cardId); for (var i = 0; i < o.length; i++) if (o[i].mode === mode) return i; return -1; }
+t('Foot Soldier switches with a neighbour once', function () {
+  var s = battleState(row(['foot-soldier', 'general'], ['militia']), row(['militia', 'general'], []));
+  var fs = s.teams.p1.slots[0];
+  var k = optIndex(s, 'p1', fs.id, 'swapAlly'); ok(k >= 0, 'has switch option');
+  var s2 = R.act(s, 'p1', { cardId: fs.id, option: k }, LOW);
+  eq(R.findCard(s2, fs.id).index !== 0, true); eq(optIndex(s2, 'p1', fs.id, 'swapAlly'), -1);
+});
+t('Medic cleanses a frozen ally', function () {
+  var s = battleState(row(['medic', 'militia'], ['general']), row(['militia', 'general'], []));
+  var m = s.teams.p1.slots[1]; R.addStatus(s, m, { type: 'frozen', turns: 2 });
+  var k = optIndex(s, 'p1', s.teams.p1.slots[0].id, 'cleanse'); ok(k >= 0);
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: k }, LOW);
+  ok(!R.hasStatus(R.findCard(s2, m.id).card, 'frozen'));
+});
+t('Lightning Ninja moves then attacks', function () {
+  var s = battleState(row(['lightning-ninja', 'militia', 'general'], []), row(['militia', 'knight', 'general'], []));
+  var ln = s.teams.p1.slots[0];
+  var k = optIndex(s, 'p1', ln.id, 'ninja'); ok(k >= 0);
+  var s2 = R.act(s, 'p1', { cardId: ln.id, option: k }, HIGH);
+  ok(s2.lastEvent.rolls.length === 1);
+});
+t('Hail Mary: 7 wins, anything else loses', function () {
+  var s = battleState(row(['unstable-bomb-expert', 'general'], []), row(['militia', 'general'], []));
+  var k = optIndex(s, 'p1', s.teams.p1.slots[0].id, 'hailMary');
+  eq(R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: k }, fixedRng([0.1, 0.9])).winner, 'p1'); // 1+6
+  eq(R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: k }, LOW).winner, 'p2');
+});
+t('Melee Expert: melee allies need 2 hits and get +3 Life', function () {
+  var s = battleState(row(['militia', 'general'], ['melee-expert']), row(['militia', 'general'], []));
+  var m = s.teams.p1.slots[0];
+  eq(R.rollsNeeded(s, m), 2); eq(R.targetLife(s, m), 6);
+});
+t('Ranged Expert: ranged allies attack twice with +3', function () {
+  var s = battleState(row(['archer', 'general'], ['ranged-expert']), row(['knight', 'general'], []));
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: 0 }, HIGH);
+  eq(s2.lastEvent.rolls.length, 2);
+});
+
 console.log('deal');
 t('exactly one General per team, no duplicates (200 deals)', function () {
   for (var n = 0; n < 200; n++) {

@@ -69,6 +69,29 @@ Answer in batches and I'll update the engine.
   Elf Blitz "can't kill partial column": if the roll doesn't kill every card in the column, none die.
 - **Hog Mounted Brute**: after a kill, one free attack on any enemy card (no chaining).
 
+## Batch C (companions, poison, marks) - assumptions
+
+- **"Attacks with him" cards use the leader's roll.** Each companion attacks its own LOS target, keeps its own bonuses, and is subject to the General rule.
+  - **Commander**: the left and right neighbours in its row join in.
+  - **Captain**: every Horse Mounted Troop joins (attacking its column). If there are none, one neighbour joins.
+  - **Tactical Warrior**: the card behind it attacks the enemy card behind its opponent.
+  - **Admiral**: every other card in its row joins.
+  - **Wisp Captain**: every other Wisp attacks the enemy card in its identical slot.
+- **Wolf Mounted Dwarf**: the game auto-picks "attack twice" or "+2", whichever has the better kill chance. Should the player choose?
+- **Poison** = -1 Life per turn for 3 turns (never below 2).
+  - **Hydra**: 3 hits to kill, +2 on its rolls. Anyone who fails against it, or survives its attack, is poisoned.
+  - **Lightning Mage**: the target's neighbours get poisoned.
+  - **Chemical Warfare Warrior** (Any): no roll; the target is poisoned and paralyzed for 3 turns.
+- **Fire Striker**: a target that survives gets -2 on its rolls for 2 turns.
+- **Redstone Warrior**: the 3rd time it attacks the same card, that card dies automatically (not the General).
+- **Peasant Mob**: best of 3 rolls, but not the same total it picked last time.
+- **Bomb Expert**: attacks any card, plus every card it failed to kill in the last 3 turns, with one roll.
+- **Ace**: one roll; every enemy card with exactly that Life dies. The General is excluded. Should it be?
+- **Fire Sprite**: cards with any roll bonus (Minotaur, Spartan, Wisps, ...) can't attack it.
+- **Samurai**: after each attack, armours one neighbour (+1 hit to kill), the General first, else the highest Life. Permanent.
+- **Ent**: shields one neighbour (the General first) from one successful hit, once per game.
+- **Reviver**: on a kill, revives the highest-Life card from its own graveyard into an empty slot.
+
 ## Waiting for later sessions (ready: false)
 
 - Grim Reaper (Life "D"), Bounty Hunter (Life "Inf"), Morphing Warrior (Life "?"): special-Life cards.

@@ -13,6 +13,11 @@ var KV_AI = (function () {
     R.legalActions(state, side).forEach(function (a) {
       var att = R.findCard(state, a.cardId).card;
       var score = 0, risk = 0, expKills = 0;
+      if (a.mode === 'hailMary' || a.mode === 'swapAlly' || a.mode === 'cleanse') {
+        var fixed = a.mode === 'hailMary' ? -60 : a.mode === 'cleanse' ? 4 + rng() : -5;
+        if (!best || fixed > best.score) best = { score: fixed, cardId: a.cardId, option: a.option };
+        return;
+      }
       a.targets.forEach(function (id) {
         var t = R.findCard(state, id).card;
         var hc = R.hitChance(state, att, t);
