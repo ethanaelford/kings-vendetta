@@ -1097,6 +1097,14 @@
       (t.mythic ? '' : '<p class="muted" style="font-size:13px">🔮 Mythic: reach Diamond (1400) and a top-100 spot on the leaderboard.</p>') +
       '<p>Ranked games: ' + P.rankedGames + ' · Wins ' + P.wins + ' · Losses ' + P.losses + ' · Draws ' + P.draws + '</p>' +
       '<p>🪙 <b>' + P.coins + '</b> coins · 🃏 ' + P.owned.length + ' cards</p></div>';
+    var acc = KV_PROFILE.account();
+    h += '<div class="panel"><div class="panel-title">Account</div>' + (acc.user
+      ? '<p>☁ Signed in as <b>' + esc(acc.user.email || acc.user.name) + '</b><br><small>' + ({ synced: 'Progress saved to the cloud', syncing: 'Saving…', error: 'Could not reach the cloud - will retry' }[acc.status] || '') + '</small></p>' +
+        '<button class="btn" id="accSync">Sync now</button> <button class="btn" id="accOut">Sign out</button>'
+      : !C.GOOGLE_SIGNIN ? '<p>Accounts are coming soon. Until then use the backup code below to move your progress.</p>'
+      : '<p>Sign in to keep your cards, coins and rating safe and use them on any device.</p>' +
+        '<button class="btn primary big" id="accIn"><b>G</b>&nbsp; Sign in with Google</button>' +
+        '<p class="muted" style="font-size:12px">On iPhone, sign in from Safari. If you play from a Home Screen icon, sign in there too.</p>') + '</div>';
     h += '<div class="panel"><div class="panel-title">Board themes</div><div class="themes">' + KV_PROFILE.THEMES.map(function (th) {
       var owned = P.themes.indexOf(th.id) >= 0;
       return '<div class="theme theme-' + th.id + (P.theme === th.id ? ' on' : '') + '" data-theme="' + th.id + '"><b>' + esc(th.name) + '</b><br>' +
@@ -1109,6 +1117,9 @@
     show('profile');
   }
   function onProfileTap(e) {
+    if (e.target.closest('#accIn')) { KV_PROFILE.signInGoogle(); return; }
+    if (e.target.closest('#accOut')) { KV_PROFILE.signOut().then(showProfile); return; }
+    if (e.target.closest('#accSync')) { KV_PROFILE.syncNow().then(showProfile); return; }
     var th = e.target.closest('[data-theme]');
     if (th) {
       var id = th.dataset.theme, t = KV_PROFILE.THEMES.filter(function (x) { return x.id === id; })[0], P = me();
@@ -1171,7 +1182,7 @@
     $('pcTier').className = t.mythic ? 'mythic' : '';
     $('pcRating').textContent = P.rating;
     $('pcCoins').textContent = '🪙 ' + P.coins;
-    $('pcCards').textContent = P.owned.length + ' cards';
+    $('pcCards').textContent = P.owned.length + ' cards' + (KV_PROFILE.account().user ? ' · ☁' : '');
   }
 
   // ---------------- lobby ----------------
@@ -1228,6 +1239,19 @@
     $('clockSelect').value = String(LS.get('kv-clock') == null ? 10 : LS.get('kv-clock'));
     $('clockSelect').onchange = function () { LS.set('kv-clock', +this.value); };
     KV_PROFILE.applyTheme();
+    KV_PROFILE.initAuth(function (acc) {
+      if (acc.user && acc.user.name && !$('nameInput').value) { $('nameInput').value = acc.user.name.split(' ')[0].slice(0, 16); LS.set('kv-name', myName()); }
+      refreshPlayerCard();
+      if (!$('lobby').classList.contains('hidden')) renderQuests();
+      if (!$('profile').classList.contains('hidden')) showProfile();
+    }, function (c) {
+      overlay('<h2>☁ Cloud save found</h2><p>This account already has saved progress. Which one do you want to keep?</p>' +
+        '<div class="panel"><b>Cloud save</b><br>' + c.cloud.cards + ' cards · ' + c.cloud.rating + ' Elo · 🪙' + c.cloud.coins + ' · campaign ' + c.cloud.campaign + '/8</div>' +
+        '<div class="panel"><b>This phone</b><br>' + c.local.cards + ' cards · ' + c.local.rating + ' Elo · 🪙' + c.local.coins + ' · campaign ' + c.local.campaign + '/8</div>' +
+        '<button class="btn primary big" id="cfCloud">Use cloud save</button><button class="btn big" id="cfLocal">Keep this phone (overwrites cloud)</button>');
+      $('cfCloud').onclick = function () { closeOverlay(); c.useCloud(); refreshPlayerCard(); };
+      $('cfLocal').onclick = function () { if (confirm('Replace the cloud save with this phone?')) { closeOverlay(); c.useLocal(); } };
+    });
     $('libBack').onclick = lobby;
     $('menuBtn').onclick = openMenu;
     $('logBtn').onclick = function () { if (G.state) openLog(); };

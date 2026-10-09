@@ -18,9 +18,7 @@ var KV_NET = (function () {
   }
 
   function subscribe() {
-    if (!client) client = window.supabase.createClient(KV_CONFIG.SUPABASE_URL, KV_CONFIG.SUPABASE_ANON_KEY, {
-      realtime: { params: { eventsPerSecond: 20 } },
-    });
+    if (!client) client = KV_SB();
     if (channel) { try { client.removeChannel(channel); } catch (e) {} }
     setStatus('connecting');
     var ch = client.channel('kv-room-' + opts.room, {
@@ -57,7 +55,7 @@ var KV_NET = (function () {
   // ---- ranked matchmaking: everyone searching sits in one presence channel; the two longest-waiting pair up ----
   var queueCh = null, queueOpts = null, queueJoined = 0;
   function ensureClient() {
-    if (!client) client = window.supabase.createClient(KV_CONFIG.SUPABASE_URL, KV_CONFIG.SUPABASE_ANON_KEY, { realtime: { params: { eventsPerSecond: 20 } } });
+    if (!client) client = KV_SB();
   }
   function queue(o) {
     ensureClient();

@@ -43,7 +43,10 @@ var KV_PROFILE = (function () {
     return p;
   }
   var P = load();
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {} }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {}
+    if (account && account.user && !applying) { P.dirty = true; schedulePush(); }
+  }
   save();
 
   // Deck used for a game: the chosen cards, topped up from the collection if fewer than 11 are picked
@@ -179,11 +182,91 @@ var KV_PROFILE = (function () {
     } catch (e) { return false; }
   }
 
+  // ---- accounts: Google sign-in + cloud save (kv_profiles, one row per user, RLS-protected) ----
+  var account = { user: null, status: 'signed-out', onChange: null, onConflict: null };
+  var applying = false, pushTimer = null;
+  var SYNC_FIELDS = ['owned', 'deck', 'coins', 'rating', 'wins', 'losses', 'draws', 'rankedGames', 'themes', 'theme',
+    'copies', 'levels', 'campaign', 'clientId', 'secret', 'rank'];
+  function exportData() { var d = {}; SYNC_FIELDS.forEach(function (k) { d[k] = P[k]; }); return d; }
+  function importData(d) {
+    applying = true;
+    SYNC_FIELDS.forEach(function (k) { if (d[k] !== undefined) P[k] = d[k]; });
+    try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {}
+    P = load();
+    try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {}
+    applying = false;
+    applyTheme();
+  }
+  function untouched() {
+    return !P.wins && !P.losses && !P.draws && !P.coins && !P.campaign && P.owned.length <= starters().length && !Object.keys(P.levels || {}).length;
+  }
+  function setStatus(st) { account.status = st; account.onChange && account.onChange(account); }
+
+  function schedulePush() {
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(push, 1500);
+  }
+  function push() {
+    var c = KV_SB();
+    if (!c || !account.user) return Promise.resolve(false);
+    setStatus('syncing');
+    return c.from('kv_profiles').upsert({ user_id: account.user.id, data: exportData(), updated_at: new Date().toISOString() })
+      .then(function (r) {
+        if (r.error) { setStatus('error'); return false; }
+        P.dirty = false; P.cloudUser = account.user.id;
+        try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {}
+        setStatus('synced'); return true;
+      }, function () { setStatus('error'); return false; });
+  }
+  function pull() {
+    var c = KV_SB();
+    if (!c || !account.user) return;
+    setStatus('syncing');
+    c.from('kv_profiles').select('data, updated_at').eq('user_id', account.user.id).maybeSingle().then(function (r) {
+      if (r.error) return setStatus('error');
+      var uid = account.user.id;
+      if (!r.data) { P.cloudUser = uid; return push(); }                       // first sign-in anywhere: upload this phone
+      if (P.cloudUser === uid && P.dirty) return push();                       // this phone has unsynced changes
+      if (P.cloudUser === uid || untouched()) { importData(r.data.data); P.cloudUser = uid; P.dirty = false; save(); return setStatus('synced'); }
+      // this phone has its own progress and the account already has a save: let the player choose
+      var cloud = r.data.data;
+      if (account.onConflict) account.onConflict({
+        cloud: { cards: (cloud.owned || []).length, rating: cloud.rating, coins: cloud.coins, campaign: cloud.campaign || 0 },
+        local: { cards: P.owned.length, rating: P.rating, coins: P.coins, campaign: P.campaign || 0 },
+        useCloud: function () { importData(cloud); P.cloudUser = uid; P.dirty = false; save(); setStatus('synced'); },
+        useLocal: function () { P.cloudUser = uid; push(); },
+      });
+    }, function () { setStatus('error'); });
+  }
+  function initAuth(onChange, onConflict) {
+    account.onChange = onChange; account.onConflict = onConflict;
+    var c = KV_SB();
+    if (!c) return;
+    c.auth.onAuthStateChange(function (event, session) {
+      var u = session && session.user;
+      var was = account.user && account.user.id;
+      account.user = u ? { id: u.id, email: u.email, name: (u.user_metadata || {}).full_name || (u.user_metadata || {}).name || '' } : null;
+      if (!u) { setStatus('signed-out'); return; }
+      if (was !== u.id) pull();
+      // tidy the ?code=... left in the URL by the Google redirect
+      if (/[?&]code=/.test(location.search)) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
+    });
+  }
+  function signInGoogle() {
+    var c = KV_SB();
+    if (!c) return Promise.resolve();
+    return c.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+  }
+  function signOut() {
+    var c = KV_SB();
+    var done = function () { account.user = null; P.cloudUser = null; save(); setStatus('signed-out'); };
+    return c ? (P.dirty ? push() : Promise.resolve()).then(function () { return c.auth.signOut(); }).then(done, done) : Promise.resolve(done());
+  }
+
   // ---- shared leaderboard (Supabase RPCs; the table itself is locked) ----
   var sb = null;
   function client() {
-    if (!sb && window.supabase && KV_CONFIG.SUPABASE_URL) sb = window.supabase.createClient(KV_CONFIG.SUPABASE_URL, KV_CONFIG.SUPABASE_ANON_KEY);
-    return sb;
+    return KV_SB();
   }
   function syncLeaderboard(name) {
     var c = client();
@@ -209,7 +292,7 @@ var KV_PROFILE = (function () {
   }
 
   return {
-    get: function () { return P; }, syncLeaderboard: syncLeaderboard, fetchRank: fetchRank, myTier: myTier, fetchLeaderboard: fetchLeaderboard, save: save, DECK_SIZE: DECK_SIZE, RARITY_LABEL: RARITY_LABEL, CHESTS: CHESTS, THEMES: THEMES,
+    get: function () { return P; }, account: function () { return account; }, initAuth: initAuth, signInGoogle: signInGoogle, signOut: signOut, syncNow: push, syncLeaderboard: syncLeaderboard, fetchRank: fetchRank, myTier: myTier, fetchLeaderboard: fetchLeaderboard, save: save, DECK_SIZE: DECK_SIZE, RARITY_LABEL: RARITY_LABEL, CHESTS: CHESTS, THEMES: THEMES,
     deckForGame: deckForGame, level: level, upgradeCost: upgradeCost, canUpgrade: canUpgrade, upgrade: upgrade,
     levelsForGame: levelsForGame, MAX_LEVEL: MAX_LEVEL, campaignWin: campaignWin, toggleDeck: toggleDeck, tier: tier, openChest: openChest, recordGame: recordGame,
     buyTheme: buyTheme, applyTheme: applyTheme, backupCode: backupCode, restore: restore, cards: cards,
