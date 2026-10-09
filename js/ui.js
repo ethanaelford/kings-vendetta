@@ -243,6 +243,10 @@
     if (G.netStatus !== 'online') txt = 'Reconnecting…';
     else if (!G.oppPresent) txt = (G.mode === 'host' && G.state && G.state.names.p2 === 'Opponent' ? 'Room ' + G.room + ' · waiting for opponent to join…' : 'Opponent disconnected, waiting…');
     else { txt = '● ' + oppName() + ' connected · room ' + G.room; ok = true; }
+    if (G.mode === 'guest' && G.hostBuild && G.hostBuild !== C.BUILD) {
+      txt = 'Game updated: tap here to reload (' + G.hostBuild + ')'; ok = false;
+      nb.onclick = function () { location.reload(); };
+    } else nb.onclick = null;
     nb.textContent = txt;
     nb.className = 'netbar' + (ok ? ' ok' : '');
   }
@@ -414,7 +418,7 @@
   function broadcastState(st, sync) {
     st = st || G.pendingState || G.state;
     if (!st) return;
-    KV_NET.send({ type: 'state', seq: st.seq, state: st, sync: !!sync });
+    KV_NET.send({ type: 'state', seq: st.seq, state: st, sync: !!sync, build: C.BUILD });
   }
 
   var aiTimer = null;
@@ -651,6 +655,7 @@
       onOpen: hello,
       onMessage: function (m) {
         if (!m || m.type !== 'state' || !m.state) return;
+        if (m.build && m.build !== C.BUILD && G.hostBuild !== m.build) { G.hostBuild = m.build; renderNet(); }
         var latest = G.pendingState || G.state;
         if (latest && m.state.seq <= latest.seq && !(m.sync && m.state.seq < latest.seq)) return;
         if (latest && m.state.seq < latest.seq && m.sync) m.state._sync = true;

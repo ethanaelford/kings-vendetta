@@ -154,7 +154,7 @@ var KV_CARDS = [
   "text": "Can kill LOS or Diag",
   "ready": true,
   "note": "",
-  "art": "images/cards/blood-hound.png"
+  "art": null
  },
  {
   "key": "captain",
@@ -518,7 +518,7 @@ var KV_CARDS = [
   "text": "Attacks column",
   "ready": true,
   "note": "",
-  "art": "images/cards/brute.png"
+  "art": null
  },
  {
   "key": "general",

@@ -18,7 +18,10 @@
   function ab(card) { return (card && ABIL[card.cardKey]) || {}; }
   function colOf(i) { return i % 6; }
   function rowOf(i) { return i < 6 ? 0 : 1; }
-  function cardDef(key) { return CARD_BY_KEY[key]; }
+  // Unknown keys (e.g. a newer build's card on an older client) get a plain LOS stub instead of crashing.
+  function cardDef(key) {
+    return CARD_BY_KEY[key] || { key: key, name: key, pattern: 'los', text: 'Reload the page to see this card.', life: null, ready: false, lifeRaw: '?' };
+  }
 
   // ---------- dice ----------
   function rollDie(rng) { return 1 + Math.floor((rng || Math.random)() * 6); }
