@@ -311,7 +311,11 @@
     }
     G.state = next;
     G.shownSeq = Math.max(G.shownSeq, ev.seq || 0);
-    if (ev.kind === 'deal' && prev && prev !== next) { Object.keys(els).forEach(function (id) { els[id].remove(); delete els[id]; }); }
+    if (ev.kind === 'deal' && prev && prev !== next) {
+      Object.keys(els).forEach(function (id) { els[id].remove(); delete els[id]; });
+      closeOverlay(); // rematch started by the other player
+      $('rollText').textContent = '';
+    }
     // hot-seat: pick who views
     if (G.mode === 'hotseat') {
       var want = next.phase === 'deploy' ? (!next.ready.p1 ? 'p1' : 'p2') : next.phase === 'battle' ? next.turn : G.view;
