@@ -537,6 +537,83 @@ var KV_ABILITIES = {
     // While alive, no other card on its team can be attacked
     protects: function () { return true; },
   },
+  // ---- batch F: charges, summons, recruits ----
+  'attack-wagon': {
+    // Attack normally, or shove any enemy card (not the General) into its line of sight, switching it with the card there
+    extraOptions: function (ctx) {
+      if (ctx.row !== 0) return [];
+      var li = ctx.losIndex(ctx.enemySlots, ctx.col);
+      if (li < 0) return [];
+      return ctx.enemySlots.filter(function (c, i) { return c && i !== li && !c.isGeneral; })
+        .map(function (c) { return { targets: [c.id], mode: 'wagonSwitch', label: 'Switch' }; });
+    },
+  },
+  'centurion': {
+    // Once per game: call 2 random troops from the deck (cards never dealt to you) into empty slots
+    extraOptions: function (ctx) {
+      if (ctx.card.usesLeft === 0 || KV_RULES.emptySlot(ctx.mySlots) < 0 || !KV_RULES.deckFor(ctx.state, ctx.card.side).length) return [];
+      return [{ targets: [ctx.card.id], mode: 'summon', own: true, self: true, label: 'Call 2 troops' }];
+    },
+  },
+  'field-marshall': {
+    // Uses its turn to recruit an enemy card (not the General) into one of its empty slots
+    extraOptions: function (ctx) {
+      if (KV_RULES.emptySlot(ctx.mySlots) < 0) return [];
+      return ctx.enemySlots.filter(function (c) { return c && !c.isGeneral; })
+        .map(function (c) { return { targets: [c.id], mode: 'steal', label: 'Recruit' }; });
+    },
+  },
+  'phoenix': {
+    // On a roll of 7: draws 3 random cards, picks one, and every matching enemy card dies
+    onAttackResolved: function (ctx) {
+      var r = ctx.ev.rolls[0];
+      if (!r || r.dice.length !== 2 || r.dice[0] + r.dice[1] !== 7) return;
+      var pool = KV_RULES.readyPool().slice(), picks = [];
+      for (var i = 0; i < 3 && pool.length; i++) picks.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+      var enemy = ctx.state.teams[KV_RULES.other(ctx.attacker.side)].slots;
+      var best = null;
+      picks.forEach(function (k) {
+        var hit = enemy.filter(function (c) { return c && c.cardKey === k; })[0];
+        if (hit && (!best || hit.life > best.life)) best = hit;
+      });
+      var names = picks.map(function (k) { return KV_RULES.cardDef(k).name; }).join(', ');
+      if (best) {
+        ctx.ev.notes.push('Phoenix rises! Drew ' + names + ' - ' + best.name + ' burns!');
+        ctx.ev.extraKills = (ctx.ev.extraKills || []).concat(best.id);
+      } else ctx.ev.notes.push('Phoenix rises! Drew ' + names + ' - no match');
+    },
+  },
+  'kings-knight': {
+    // Charges for two turns (doing nothing), then rolls once: every enemy card with Life <= roll dies
+    anyRow: true,
+    init: function (card) { card.charges = 0; },
+    getTargets: function (ctx) {
+      if ((ctx.card.charges || 0) < 2) return [];
+      var g = ctx.enemySlots.filter(Boolean).map(function (c) { return c.id; });
+      return g.length ? [g] : [];
+    },
+    extraOptions: function (ctx) {
+      return (ctx.card.charges || 0) < 2 ? [{ targets: [ctx.card.id], mode: 'charge', own: true, self: true, label: 'Charge' }] : [];
+    },
+    onAttackResolved: function (ctx) { if (ctx.ev.rolls.length) ctx.attacker.charges = 0; },
+  },
+  'general-s-guard': {
+    // If it dies, its General has 4 turns to make a kill - then it is resurrected
+    onKilled: function (ctx) {
+      ctx.state.guardPending = ctx.state.guardPending || {};
+      ctx.state.guardPending[ctx.target.side] = { turns: 4, key: ctx.target.cardKey };
+      ctx.ev.notes.push("General's Guard falls - his General has 4 turns to avenge him");
+    },
+  },
+  'bounty-hunter': {
+    // Infinite Life (can't be targeted), but must kill a card every 4 turns or it leaves the field
+    fixedLife: 99,
+    lifeLabel: '∞',
+    init: function (card) { card.bounty = 4; },
+    canBeTargetedBy: function () { return false; },
+    getTargets: function (ctx) { return ctx.patternGroups('los', ctx.enemySlots, ctx.index); },
+    onAttackResolved: function (ctx) { if (ctx.kills) ctx.attacker.bounty = 5; },
+  },
   'hog-mounted-brute': {
     onAttackResolved: function (ctx) {
       if (ctx.kills && !ctx.isExtra) ctx.state.pendingExtra = { side: ctx.attacker.side, cardId: ctx.attacker.id, pattern: 'any', reason: 'Hog Mounted Brute earns a free attack on any card!' };

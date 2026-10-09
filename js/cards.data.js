@@ -204,8 +204,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Can attack or switch opponent with another opponent",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -256,8 +256,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Can call 2 rnd troops from deck (x1)",
-  "ready": false,
-  "note": "Summons from deck - later session",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -581,8 +581,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "On Roll (7), Picks 1 of 3 rnd cards and all matching opponent cards die",
-  "ready": false,
-  "note": "Card-pick kill - later session",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -737,8 +737,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Fills empty slot with opponent card",
-  "ready": false,
-  "note": "Fills slots with enemy cards - later session",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -919,8 +919,8 @@ var KV_CARDS = [
   "code": "TD",
   "pattern": "special",
   "text": "Must kill a card every 4 turns or removed",
-  "ready": false,
-  "note": "Special Life value (Inf) - later session",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -997,8 +997,8 @@ var KV_CARDS = [
   "code": "<=RV",
   "pattern": "special",
   "text": "After Charge is complete (for two turn (does not have to be in a row) use charge were nothing happens) KK rolls, and all cards on enemy board that have life = or < roll die.",
-  "ready": false,
-  "note": "Multi-turn charge - later session",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1062,8 +1062,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "If he dies, then the general has 4 turns to kill another card. If that is done, the GG is resurected.",
-  "ready": false,
-  "note": "Multi-turn resurrection - later session",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {

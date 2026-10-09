@@ -46,7 +46,12 @@ READY = {
     # batch E
     'Joker', 'Unskilled Warrior', 'The Manipulator', 'Dragon Tamer', 'Frost Brute', 'Stone Monster',
     'Tactical Alchemist', 'Guardian',
+    # batch F
+    'Attack Wagon', 'Centurion', 'Field Marshall', 'Phoenix', 'Kings Knight', "General's Guard", 'Bounty Hunter',
 }
+
+# Special-Life cards whose Life is handled by their ability (js/abilities.js)
+READY_SPECIAL_LIFE = {'Bounty Hunter'}
 
 # One-line "what's missing" notes for the Card Library (default: ability not built yet).
 LATER = {
@@ -110,7 +115,7 @@ def main():
         except ValueError:
             life = None
         pattern = PATTERNS.get(code.lower(), 'special')
-        ready = name in READY and life is not None
+        ready = name in READY and (life is not None or name in READY_SPECIAL_LIFE)
         if ready:
             note = ''
         elif life is None:

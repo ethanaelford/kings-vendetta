@@ -105,9 +105,26 @@
       statuses: [], usesLeft: null, cooldowns: {},
     };
     var a = ABIL[key] || {};
+    if (a.fixedLife) { card.life = card.baseLife = a.fixedLife; }
     if (a.rollsRequired) card.rollsToKill = a.rollsRequired(card);
     if (a.isGeneral) card.isGeneral = true;
+    if (a.init) a.init(card);
     return card;
+  }
+
+  // Best empty slot for a new card: behind an existing front card first, else a new column (compaction tidies up).
+  function emptySlot(slots) {
+    for (var c = 0; c < 6; c++) if (slots[c] && !slots[c + 6]) return c + 6;
+    for (var c2 = 0; c2 < 6; c2++) if (!slots[c2] && !slots[c2 + 6]) return c2;
+    return -1;
+  }
+
+  // Ready cards never dealt to this side (not on the board, not in its graveyard).
+  function deckFor(s, side) {
+    var used = {};
+    s.teams[side].slots.forEach(function (c) { if (c) used[c.cardKey] = 1; });
+    s.graves[side].forEach(function (g) { used[g.cardKey] = 1; });
+    return readyPool().filter(function (k) { return !used[k]; });
   }
 
   function readyPool() {
@@ -333,6 +350,7 @@
         if (st.turns <= 0 && st.type === 'doom' && findCard(s, st.src)) destroyed.push(c.id);
         return st.turns > 0;
       });
+      if (c.bounty != null && --c.bounty <= 0) destroyed.push(c.id);
       Object.keys(c.cooldowns || {}).forEach(function (k) { if (c.cooldowns[k] > 0) c.cooldowns[k]--; });
     });
     return destroyed;
@@ -660,6 +678,45 @@
         ev.notes.push(attacker.name + ' drags ' + tF.card.name + ' into its sights');
       }
     }
+    if (opt.mode === 'charge') {
+      noRoll = true; ev.kind = 'move';
+      attacker.charges = (attacker.charges || 0) + 1;
+      ev.notes.push(attacker.name + ' charges (' + attacker.charges + '/2)');
+      alive = [];
+    }
+    if (opt.mode === 'summon') {
+      noRoll = true; ev.kind = 'move';
+      attacker.usesLeft = 0;
+      var deck = deckFor(s, side), mySlots = s.teams[side].slots, called = [];
+      for (var n = 0; n < 2 && deck.length; n++) {
+        var spot = emptySlot(mySlots);
+        if (spot < 0) break;
+        var key = deck.splice(Math.floor((rng || Math.random)() * deck.length), 1)[0];
+        mySlots[spot] = makeCard(key, side, rng);
+        called.push(mySlots[spot].name);
+      }
+      ev.notes.push(attacker.name + ' calls in ' + (called.join(' and ') || 'nobody'));
+      alive = [];
+    }
+    if (opt.mode === 'steal') {
+      noRoll = true; ev.kind = 'move';
+      var st = findCard(s, alive[0]), mine = s.teams[side].slots, sp = emptySlot(mine);
+      if (st && sp >= 0) {
+        s.teams[st.side].slots[st.index] = null;
+        st.card.side = side;
+        mine[sp] = st.card;
+        ev.notes.push(attacker.name + ' recruits ' + st.card.name + ' from the enemy!');
+      }
+      alive = [];
+    }
+    if (opt.mode === 'wagonSwitch') {
+      noRoll = true; ev.kind = 'move';
+      var wf = findCard(s, attacker.id), wt = findCard(s, alive[0]);
+      var es = s.teams[other(side)].slots, li = losIndex(es, colOf(wf.index));
+      if (li >= 0 && wt) { var tmpw = es[li]; es[li] = es[wt.index]; es[wt.index] = tmpw; }
+      ev.notes.push(attacker.name + ' shoves ' + wt.card.name + ' into a new position');
+      alive = [];
+    }
     if (opt.mode === 'manipulate') {
       noRoll = true; ev.kind = 'move';
       var mt = findCard(s, alive[0]);
@@ -720,6 +777,7 @@
 
     if (!doomed[attacker.id] && aa.mustKill && kills < aa.mustKill) doomed[attacker.id] = 'needed ' + aa.mustKill + ' kills';
     if (aa.onAttackResolved) aa.onAttackResolved({ state: s, attacker: attacker, kills: kills, isExtra: !!wasExtra, ev: ev, targets: opt.targets, survivors: alive, addStatus: addStatus });
+    (ev.extraKills || []).forEach(function (id) { kill(id); });
     if (doomed[attacker.id] || ev.selfDestruct) {
       ev.attackerDied = !!doomed[attacker.id];
       ev.dieReason = doomed[attacker.id];
@@ -749,6 +807,16 @@
         if (c && ab(c).onAnyKill) ab(c).onAnyKill({ state: s, card: c, count: enemyDeaths });
       });
     });
+    if (attacker.isGeneral && kills && s.guardPending && s.guardPending[side]) {
+      var gs = s.teams[side].slots, gsp = emptySlot(gs);
+      if (gsp >= 0) {
+        gs[gsp] = makeCard(s.guardPending[side].key, side, rng);
+        s.graves[side] = s.graves[side].filter(function (g) { return g.cardKey !== s.guardPending[side].key; });
+        ev.notes.push("The General avenges his Guard - General's Guard returns!");
+        log(s, "General's Guard is resurrected!");
+        delete s.guardPending[side];
+      }
+    }
     s.lastActor[side] = attacker.id;
     finishTurn(s, side, ev, wasExtra);
     return bump(s, ev);
@@ -811,8 +879,13 @@
   function finishTurn(s, side, ev, wasExtra) {
     tickStatuses(s, side).forEach(function (id) {
       var f = findCard(s, id);
-      if (f) { killCard(s, f, ev.deaths); log(s, f.card.name + ' is destroyed by the dragon!'); (ev.notes = ev.notes || []).push(f.card.name + ' is destroyed!'); }
+      if (f) { killCard(s, f, ev.deaths); log(s, f.card.name + ' is destroyed!'); (ev.notes = ev.notes || []).push(f.card.name + ' is destroyed!'); }
     });
+    // General's Guard: the General's window to earn the resurrection runs down
+    if (s.guardPending && s.guardPending[side] && --s.guardPending[side].turns <= 0) {
+      log(s, s.names[side] + "'s General's Guard stays in the grave.");
+      delete s.guardPending[side];
+    }
     SIDES.forEach(function (sd) {
       var res = compactBoard(s.teams[sd], CFG);
       s.teams[sd].slots = res.slots;
@@ -845,7 +918,7 @@
     newGame: newGame, findCard: findCard, generalOf: generalOf, compactBoard: compactBoard,
     patternGroups: patternGroups, getOptions: getOptions, legalActions: legalActions,
     hitChance: hitChance, generalRisk: generalRisk, targetLife: targetLife,
-    swap: swap, setReady: setReady, act: act, skip: skip, rollsNeeded: rollsNeeded, teamBonus: teamBonus, losIndex: losIndex, checkWin: checkWin, addStatus: addStatus, hasStatus: hasStatus, neighbours: neighbours,
+    swap: swap, setReady: setReady, act: act, skip: skip, emptySlot: emptySlot, deckFor: deckFor, rollsNeeded: rollsNeeded, teamBonus: teamBonus, losIndex: losIndex, checkWin: checkWin, addStatus: addStatus, hasStatus: hasStatus, neighbours: neighbours,
   };
   root.KV_RULES = KV_RULES;
   if (isNode) module.exports = KV_RULES;

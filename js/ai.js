@@ -13,8 +13,10 @@ var KV_AI = (function () {
     R.legalActions(state, side).forEach(function (a) {
       var att = R.findCard(state, a.cardId).card;
       var score = 0, risk = 0, expKills = 0;
-      if (a.mode === 'hailMary' || a.mode === 'swapAlly' || a.mode === 'cleanse' || a.mode === 'manipulate') {
-        var fixed = a.mode === 'hailMary' ? -60 : a.mode === 'cleanse' ? 4 + rng() : a.mode === 'manipulate' ? 1 + rng() : -5;
+      var FIXED = { hailMary: -60, cleanse: 4, manipulate: 1, swapAlly: -5, wagonSwitch: -3, charge: 3, summon: 8 };
+      if (a.mode === 'steal') FIXED.steal = value(R.findCard(state, a.targets[0]).card) * 0.8;
+      if (a.mode && FIXED[a.mode] != null) {
+        var fixed = FIXED[a.mode] + rng();
         if (!best || fixed > best.score) best = { score: fixed, cardId: a.cardId, option: a.option };
         return;
       }

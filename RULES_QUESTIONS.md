@@ -108,6 +108,20 @@ Answer in batches and I'll update the engine.
   - Melee Expert gives melee allies +3 Life, +1 to their rolls, and makes them need 2 hits to kill (on top of Knight/Titan hits).
   - The bonuses last while the Expert is alive. Which cards count as ranged?
 
+## Batch E - assumptions
+
+- **Joker** "If not attacked gets free attack on Any after Roll": if the Joker wasn't targeted during the enemy's last turn,
+  then after it attacks it gets a free attack on any card.
+- **Unskilled Warrior** "Roll kills rnd card": rolls against a random enemy card (not the General). You don't choose the target.
+- **The Manipulator** "Make any opponent card use the turn (x1)": once per game, pick an enemy card. The opponent's next turn
+  must be taken with that card (or skipped).
+- **Dragon Tamer** "Marks opponent card for Destruction": no roll. The marked card (not the General) is destroyed at the end of
+  its owner's next turn, unless they kill the Dragon Tamer first. Dragon Ninja is immune.
+- **Frost Brute** "roll = to life attacks back": an attack that rolls exactly its Life (9) doesn't kill it; it strikes back instead.
+- **Stone Monster**: on a kill, every enemy card with lower Life than the victim has its Life halved (not the General, min 2).
+- **Tactical Alchemist**: on a kill, gives itself +1 Life and +1 damage. Should the player pick a card to buff, or an enemy to debuff?
+- **Guardian**: while it's alive, no other card on its team can be targeted. (It can cause passes; the 30-turn stalemate rule covers that.)
+
 ## Waiting for later sessions (ready: false)
 
 - Grim Reaper (Life "D"), Bounty Hunter (Life "Inf"), Morphing Warrior (Life "?"): special-Life cards.

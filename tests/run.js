@@ -338,6 +338,39 @@ t('Frost Brute reflects an exact roll', function () {
   ok(R.findCard(s3, s.teams.p2.slots[0].id), 'survives exact'); ok(s3.extra, 'strikes back');
 });
 
+console.log('batch F');
+t('Kings Knight charges twice then sweeps', function () {
+  var s = battleState(row(['kings-knight', 'general'], []), row(['militia', 'front-lineman', 'general'], []));
+  var kk = s.teams.p1.slots[0];
+  eq(R.getOptions(s, 'p1', kk.id).length, 1);
+  s = R.act(s, 'p1', { cardId: kk.id, option: 0 }, LOW); s.turn = 'p1';
+  s = R.act(s, 'p1', { cardId: kk.id, option: 0 }, LOW); s.turn = 'p1';
+  var o = R.getOptions(s, 'p1', kk.id); eq(o.length, 1); eq(o[0].targets.length, 3);
+  var s2 = R.act(s, 'p1', { cardId: kk.id, option: 0 }, fixedRng([0.4, 0.2])); // 3+2 = 5: kills militia + lineman, fails vs General
+  eq(s2.lastEvent.deaths.length, 3);
+});
+t('Field Marshall recruits an enemy card', function () {
+  var s = battleState(row(['field-marshall', 'general'], []), row(['knight', 'general'], []));
+  var kn = s.teams.p2.slots[0];
+  var o = R.getOptions(s, 'p1', s.teams.p1.slots[0].id), k = -1;
+  o.forEach(function (x, i) { if (x.mode === 'steal') k = i; });
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: k }, LOW);
+  eq(R.findCard(s2, kn.id).side, 'p1');
+});
+t('Centurion calls 2 troops once', function () {
+  var s = battleState(row(['centurion', 'general'], []), row(['knight', 'general'], []));
+  var o = R.getOptions(s, 'p1', s.teams.p1.slots[0].id), k = -1;
+  o.forEach(function (x, i) { if (x.mode === 'summon') k = i; });
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: k }, Math.random);
+  eq(s2.teams.p1.slots.filter(Boolean).length, 4);
+});
+t('Bounty Hunter cannot be targeted and leaves after 4 idle turns', function () {
+  var s = battleState(row(['bounty-hunter', 'general', 'militia'], []), row(['catapult', 'general'], []));
+  var bh = s.teams.p1.slots[0];
+  ok(R.getOptions(s, 'p2', s.teams.p2.slots[0].id).every(function (o) { return o.targets.indexOf(bh.id) < 0; }), 'untargetable');
+  eq(bh.life, 99);
+});
+
 console.log('deal');
 t('exactly one General per team, no duplicates (200 deals)', function () {
   for (var n = 0; n < 200; n++) {

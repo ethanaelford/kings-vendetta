@@ -93,7 +93,9 @@
   function cardInner(card) {
     var def = R.cardDef(shownKey(card));
     var h = '<div class="art">' + KV_ART.html(def) + '</div>';
-    h += '<div class="life">' + card.life + '</div>';
+    h += '<div class="life">' + (R.ab(card).lifeLabel || card.life) + '</div>';
+    if (card.charges) h += '<div class="dmg" style="top:40px">⚡' + card.charges + '/2</div>';
+    if (card.bounty != null) h += '<div class="dmg" style="top:40px;background:#7a5a2f">⏳' + card.bounty + '</div>';
     h += '<div class="pat">' + (KV_ART.PATTERN_ICON[def.pattern] || '') + '</div>';
     if (card.rollsToKill > 1) {
       h += '<div class="pips">';
@@ -124,7 +126,7 @@
       R.legalActions(s, G.view).forEach(function (a) { actable[a.cardId] = true; });
       if (G.sel) {
         selOpts = R.getOptions(s, G.view, G.sel);
-        selOpts.forEach(function (o) { o.targets.forEach(function (t) { targetIds[t] = true; }); });
+        selOpts.forEach(function (o) { if (!o.self) o.targets.forEach(function (t) { targetIds[t] = true; }); });
         if (G.chosen && selOpts[G.chosen.opt]) selOpts[G.chosen.opt].targets.forEach(function (t) { chosenIds[t] = true; });
       }
     }
@@ -143,7 +145,7 @@
           board.appendChild(el);
           els[card.id] = el;
         }
-        var sig = shownKey(card) + '|' + card.life + '|' + card.hitsTaken + '|' + (card.dmg || 0) + '|' + JSON.stringify(card.statuses);
+        var sig = shownKey(card) + '|' + card.charges + '|' + card.bounty + '|' + card.life + '|' + card.hitsTaken + '|' + (card.dmg || 0) + '|' + JSON.stringify(card.statuses);
         if (el._sig !== sig) { el.innerHTML = cardInner(card); el._sig = sig; }
         var cls = 'card ' + (side === G.view ? 'mine' : 'enemy');
         if (card.isGeneral) cls += ' general';
@@ -157,7 +159,7 @@
         if (targetIds[card.id] && selCard) {
           var mo = selOpts.filter(function (o) { return o.targets.indexOf(card.id) >= 0; })[0] || {};
           var d = document.createElement('div'); d.className = 'odds';
-          d.textContent = mo.own || mo.mode === 'hailMary' || mo.mode === 'manipulate' ? mo.label : pct(R.hitChance(s, selCard.card, card).p);
+          d.textContent = mo.own || /hailMary|manipulate|steal|wagonSwitch/.test(mo.mode || '') ? mo.label : pct(R.hitChance(s, selCard.card, card).p);
           el.appendChild(d);
         }
         if (fresh && opts.dropEnemy && side !== G.view) {
@@ -223,13 +225,25 @@
         if (!opts.length) {
           h = '<div class="info"><b>' + esc(a.name) + '</b> has no targets from here.</div><button class="btn" data-act="info">ⓘ</button>';
         } else if (!G.chosen) {
+          var selfBtns = '', onlySelf = true;
+          opts.forEach(function (o, k) {
+            if (o.self) selfBtns += '<button class="btn primary" data-act="self" data-opt="' + k + '">' + esc(o.label) + '</button>';
+            else onlySelf = false;
+          });
           h = '<div class="info"><b>' + esc(a.name) + '</b> ' + KV_ART.PATTERN_ICON[def.pattern] + ' ' + esc(KV_ART.PATTERN_TEXT[def.pattern]) +
-            '<br>Tap a red target.</div><button class="btn" data-act="info">ⓘ</button>';
+            (onlySelf ? '' : '<br>Tap a red target.') + '</div>' + selfBtns + '<button class="btn" data-act="info">ⓘ</button>';
         } else {
           var opt = opts[G.chosen.opt];
           if (opt.own) {
             var ally = R.findCard(s, opt.targets[0]).card;
             h = '<div class="info"><b>' + esc(a.name) + '</b>: ' + esc(opt.label) + ' with <b>' + esc(ally.name) + '</b> (uses your turn)</div>' +
+              '<button class="btn primary" data-act="attack">' + esc(opt.label.toUpperCase()) + '</button>';
+            bar.innerHTML = h; return;
+          }
+          if (opt.mode === 'steal' || opt.mode === 'wagonSwitch') {
+            var tt = R.findCard(s, opt.targets[0]).card;
+            h = '<div class="info"><b>' + esc(a.name) + '</b>: ' + (opt.mode === 'steal' ? 'recruit <b>' + esc(tt.name) + '</b> onto your side' :
+              'switch <b>' + esc(tt.name) + '</b> into your line of sight') + ' (uses your turn)</div>' +
               '<button class="btn primary" data-act="attack">' + esc(opt.label.toUpperCase()) + '</button>';
             bar.innerHTML = h; return;
           }
@@ -546,6 +560,11 @@
     }
     else if (act === 'info' && G.sel) openDetails(G.sel);
     else if (act === 'log') openLog();
+    else if (act === 'self' && G.sel) {
+      var si = { type: 'action', cardId: G.sel, option: +b.dataset.opt };
+      G.sel = null; G.chosen = null;
+      dispatch(si); render();
+    }
     else if (act === 'skip') { G.sel = null; G.chosen = null; dispatch({ type: 'skip' }); }
     else if (act === 'rematch') dispatch({ type: 'rematch' });
     else if (act === 'lobby') leave();
