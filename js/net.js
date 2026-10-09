@@ -13,8 +13,8 @@ var KV_NET = (function () {
     if (!channel || !opts) return;
     var st = channel.presenceState();
     var otherRole = opts.role === 'host' ? 'guest' : 'host';
-    var other = st[otherRole] && st[otherRole][0];
-    opts.onPresence && opts.onPresence(!!other, other && other.name);
+    var others = st[otherRole] || [];
+    opts.onPresence && opts.onPresence(!!others.length, others[0] && others[0].name, others);
   }
 
   function subscribe() {
@@ -35,7 +35,7 @@ var KV_NET = (function () {
         if (ch !== channel) return;
         if (s === 'SUBSCRIBED') {
           setStatus('online');
-          ch.track({ name: opts.name, role: opts.role, t: Date.now() });
+          ch.track({ name: opts.name, role: opts.role, clientId: opts.clientId, t: Date.now() });
           opts.onOpen && opts.onOpen();
         } else if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' || s === 'CLOSED') {
           setStatus('offline');
@@ -52,6 +52,50 @@ var KV_NET = (function () {
   function connect(o) {
     opts = o; wantOpen = true;
     subscribe();
+  }
+
+  // ---- ranked matchmaking: everyone searching sits in one presence channel; the two longest-waiting pair up ----
+  var queueCh = null, queueOpts = null, queueJoined = 0;
+  function ensureClient() {
+    if (!client) client = window.supabase.createClient(KV_CONFIG.SUPABASE_URL, KV_CONFIG.SUPABASE_ANON_KEY, { realtime: { params: { eventsPerSecond: 20 } } });
+  }
+  function queue(o) {
+    ensureClient();
+    leaveQueue();
+    queueOpts = o; queueJoined = Date.now();
+    var ch = client.channel('kv-matchmaking', { config: { broadcast: { self: false }, presence: { key: o.clientId } } });
+    queueCh = ch;
+    function evaluate() {
+      if (ch !== queueCh) return;
+      var st = ch.presenceState(), list = [];
+      Object.keys(st).forEach(function (k) { if (st[k][0]) list.push(st[k][0]); });
+      list.sort(function (a, b) { return a.t - b.t || (a.clientId < b.clientId ? -1 : 1); });
+      o.onCount && o.onCount(list.length);
+      var i = list.findIndex(function (m) { return m.clientId === o.clientId; });
+      if (i < 0) return;
+      var partner = list[i % 2 === 0 ? i + 1 : i - 1];
+      if (partner && i % 2 === 0 && !queueOpts.sent) {
+        // I waited longer: I host and invite the partner
+        queueOpts.sent = true;
+        var room = o.makeRoom();
+        ch.send({ type: 'broadcast', event: 'match', payload: { to: partner.clientId, from: o.clientId, room: room } });
+        setTimeout(function () { leaveQueue(); o.onMatch({ room: room, role: 'host', opponent: partner }); }, 400);
+      }
+    }
+    ch.on('presence', { event: 'sync' }, evaluate)
+      .on('broadcast', { event: 'match' }, function (m) {
+        var p = m.payload || {};
+        if (ch !== queueCh || p.to !== o.clientId) return;
+        leaveQueue();
+        o.onMatch({ room: p.room, role: 'guest' });
+      })
+      .subscribe(function (st) {
+        if (st === 'SUBSCRIBED') ch.track({ clientId: o.clientId, name: o.name, rating: o.rating, t: queueJoined });
+      });
+  }
+  function leaveQueue() {
+    if (queueCh && client) { try { client.removeChannel(queueCh); } catch (e) {} }
+    queueCh = null;
   }
 
   function send(payload) {
@@ -75,5 +119,5 @@ var KV_NET = (function () {
   });
   window.addEventListener('online', function () { if (wantOpen && status !== 'online') subscribe(); });
 
-  return { available: available, connect: connect, send: send, close: close, status: function () { return status; } };
+  return { available: available, connect: connect, send: send, close: close, queue: queue, leaveQueue: leaveQueue, status: function () { return status; } };
 })();

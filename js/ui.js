@@ -39,7 +39,7 @@
 
   // ---------------- screens ----------------
   function show(id) {
-    ['lobby', 'game', 'library'].forEach(function (s) { $(s).classList.toggle('hidden', s !== id); });
+    ['lobby', 'game', 'library', 'collection', 'profile'].forEach(function (s) { $(s).classList.toggle('hidden', s !== id); });
     if (id === 'game') { layout(); requestWake(); }
   }
 
@@ -147,7 +147,7 @@
         }
         var sig = shownKey(card) + '|' + card.charges + '|' + card.bounty + '|' + card.life + '|' + card.hitsTaken + '|' + (card.dmg || 0) + '|' + JSON.stringify(card.statuses);
         if (el._sig !== sig) { el.innerHTML = cardInner(card); el._sig = sig; }
-        var cls = 'card ' + (side === G.view ? 'mine' : 'enemy');
+        var cls = 'card ' + (side === G.view ? 'mine' : 'enemy') + ' rar-' + (R.cardDef(shownKey(card)).rarity || 'common');
         if (card.isGeneral) cls += ' general';
         if (G.sel === card.id) cls += ' sel';
         if (actable[card.id] && G.sel !== card.id) cls += ' can-act';
@@ -300,8 +300,56 @@
     nb.className = 'netbar' + (ok ? ' ok' : '');
   }
 
+  function fmt(ms) {
+    ms = Math.max(0, ms);
+    var t = Math.ceil(ms / 1000), m = Math.floor(t / 60), sec = t % 60;
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+  function remaining(st, side) {
+    if (!st || !st.clock) return 0;
+    var r = st.clock[side];
+    if (st.phase === 'battle' && st.turn === side && st.clock.turnStart) {
+      var start = st.clock.turnStart + (G.mode === 'guest' ? (G.clockOffset || 0) : 0);
+      r -= Date.now() - start;
+    }
+    return r;
+  }
+  function renderClocks() {
+    var st = G.pendingState || G.state, el = $('clocks');
+    if (!st || !st.clock) { el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    var meS = G.view, opS = R.other(G.view);
+    var mr = remaining(st, meS), or = remaining(st, opS);
+    $('clockMe').textContent = '⏱ ' + (G.mode === 'hotseat' ? st.names[meS] : 'You') + ' ' + fmt(mr);
+    $('clockOpp').textContent = '⏱ ' + st.names[opS] + ' ' + fmt(or);
+    $('clockMe').className = st.phase === 'battle' && st.turn === meS ? (mr < 60000 ? 'low' : 'on') : '';
+    $('clockOpp').className = st.phase === 'battle' && st.turn === opS ? (or < 60000 ? 'low' : 'on') : '';
+  }
+  var lastTick = Date.now();
+  setInterval(function () {
+    var now = Date.now(), gap = now - lastTick; lastTick = now;
+    if (!G.mode || $('game').classList.contains('hidden')) return;
+    var cur = G.pendingState || G.state;
+    if (cur && cur.clock && cur.phase === 'battle' && cur.clock.turnStart && G.mode !== 'guest') {
+      // pause the clock while this device slept, or while the online opponent is disconnected on their turn
+      var pause = gap > 3000 ? gap : (G.mode === 'host' && !G.oppPresent && cur.turn === 'p2' ? gap : 0);
+      if (pause) {
+        cur.clock.turnStart += pause;
+        if (G.state && G.state !== cur && G.state.clock && G.state.gameId === cur.gameId) G.state.clock.turnStart = cur.clock.turnStart;
+        if (G.mode === 'host' && gap > 3000) broadcastState(null, true);
+      }
+      if (remaining(cur, cur.turn) <= 0 && !G.timingOut) {
+        G.timingOut = true;
+        commit(R.timeout(cur, cur.turn));
+        setTimeout(function () { G.timingOut = false; }, 1000);
+      }
+    }
+    renderClocks();
+  }, 250);
+
   function render(opts) {
     if (!G.state) return;
+    renderClocks();
     renderBoard(opts);
     renderBars();
     renderNet();
@@ -403,7 +451,16 @@
       $('die1').classList.add('hidden2'); $('die2').classList.add('hidden2');
     }
     if (isNew && ev.passed) toast(ev.passed.map(function (sd) { return next.names[sd]; }).join(', ') + ' had no legal attack');
-    if (next.phase === 'over' && isNew) setTimeout(function () { gameOverOverlay(); }, 400);
+    if (next.phase === 'over' && isNew) {
+      G.reward = null;
+      if (G.mode === 'host' || G.mode === 'guest' || G.mode === 'ai') {
+        var opp = R.other(G.view);
+        G.reward = KV_PROFILE.recordGame({ gameId: next.gameId, won: next.winner === G.view, draw: next.winner === 'draw',
+          ranked: next.ranked, oppRating: (next.ratings || {})[opp] || 1000 });
+        refreshPlayerCard();
+      }
+      setTimeout(function () { gameOverOverlay(); }, 400);
+    }
     maybeAI();
   }
 
@@ -418,17 +475,42 @@
     var s = G.state;
     var won = s.winner === G.view;
     var title = s.winner === 'draw' ? 'Draw' : G.mode === 'hotseat' ? s.names[s.winner] + ' wins!' : won ? 'Victory!' : 'Defeat';
-    overlay('<h2>' + esc(title) + '</h2><p>' + esc(s.log[s.log.length - 1] || '') + '</p>' +
-      '<button class="btn primary big" id="ovRematch">Rematch</button><button class="btn big" id="ovClose">View board</button><button class="btn big" id="ovLobby">Lobby</button>');
+    var rw = G.reward, extra = '';
+    if (rw && rw.elo) extra += '<div class="elo ' + (rw.elo.delta >= 0 ? 'up' : 'down') + '">' + rw.elo.tier.icon + ' ' + rw.elo.rating +
+      ' (' + (rw.elo.delta >= 0 ? '+' : '') + rw.elo.delta + ')</div>';
+    if (rw && rw.chest) extra += '<button class="btn primary big" id="ovChest">' + KV_PROFILE.CHESTS[rw.chest].icon + ' Open ' + KV_PROFILE.CHESTS[rw.chest].name + '</button>';
+    overlay('<h2>' + esc(title) + '</h2>' + (s.ranked ? '<div>⚔ Ranked match</div>' : '') + '<p>' + esc(s.log[s.log.length - 1] || '') + '</p>' + extra +
+      '<button class="btn ' + (rw && rw.chest ? '' : 'primary ') + 'big" id="ovRematch">Rematch</button><button class="btn big" id="ovClose">View board</button><button class="btn big" id="ovLobby">Lobby</button>');
+    if ($('ovChest')) $('ovChest').onclick = function () { openChestOverlay(rw.chest, function () { G.reward.chest = null; gameOverOverlay(); }); };
     $('ovRematch').onclick = function () { closeOverlay(); dispatch({ type: 'rematch' }); };
     $('ovClose').onclick = closeOverlay;
     $('ovLobby').onclick = function () { closeOverlay(); leave(); };
   }
 
+  function ccardHtml(c, cls) {
+    return '<div class="ccard rar-' + c.rarity + ' ' + (cls || '') + '" data-key="' + c.key + '"><div class="cart">' + KV_ART.html(c) + '</div>' +
+      '<div class="clife">' + esc(c.lifeRaw === 'Inf' ? '∞' : c.life) + '</div><div class="cnm">' + esc(c.name) + '<br><span class="rtag">' +
+      KV_PROFILE.RARITY_LABEL[c.rarity] + '</span></div></div>';
+  }
+
+  function openChestOverlay(type, done) {
+    var ch = KV_PROFILE.CHESTS[type];
+    overlay('<h2>' + esc(ch.name) + '</h2><div class="chest shake">' + ch.icon + '</div><p>Opening…</p>');
+    setTimeout(function () {
+      var r = KV_PROFILE.openChest(type);
+      var body = r.kind === 'card'
+        ? '<p>New card unlocked!</p><div class="reward">' + ccardHtml(KV_RULES.cardDef(r.key)) + '</div><p>It was added to your deck if there was room.</p>'
+        : '<div class="reward chest">🪙</div><p><b>+' + r.coins + ' coins</b> (spend them in the Shop)</p>';
+      overlay('<h2>' + esc(ch.name) + '</h2>' + body + '<button class="btn primary big" id="ovChestOk">Nice!</button>');
+      refreshPlayerCard();
+      $('ovChestOk').onclick = function () { closeOverlay(); done && done(); };
+    }, 1600);
+  }
+
   // ---------------- intents ----------------
   function dispatch(intent) {
     if (G.mode === 'guest') {
-      if (!KV_NET.send({ type: 'intent', intent: intent })) toast('Not connected — retrying…');
+      if (!KV_NET.send({ type: 'intent', intent: intent, clientId: me().clientId })) toast('Not connected — retrying…');
       // If the host's phone was asleep the intent is lost: re-send actions/ready (never swaps, they'd undo).
       if (intent.type !== 'swap') {
         var seq0 = (G.pendingState || G.state || {}).seq;
@@ -437,7 +519,7 @@
         var check = function () {
           var cur = (G.pendingState || G.state || {}).seq;
           if (cur !== seq0 || G.mode !== 'guest' || ++tries > 10) return;
-          KV_NET.send({ type: 'intent', intent: intent });
+          KV_NET.send({ type: 'intent', intent: intent, clientId: me().clientId });
           KV_NET.send({ type: 'sync-request' });
           toast('Waiting for ' + oppName() + '’s phone…');
           G.resendTimer = setTimeout(check, 4000);
@@ -459,14 +541,30 @@
     else if (intent.type === 'skip') res = R.skip(s, side);
     else if (intent.type === 'tswap') res = R.turnSwap(s, side, intent.a, intent.b);
     else if (intent.type === 'rematch' && s.phase === 'over') {
-      res = R.newGame({ names: s.names });
+      res = R.newGame({ names: s.names, decks: s.decks, ranked: s.ranked, ratings: s.ratings, clockMs: s.clock ? s.clock.limit : 0 });
+      res.guestClient = s.guestClient;
       res.seq = s.seq + 1; res.lastEvent = { kind: 'deal', seq: res.seq };
     }
     return res;
   }
 
+  function clockMs() { var m = +(LS.get('kv-clock') == null ? 10 : LS.get('kv-clock')); return m > 0 ? m * 60000 : 0; }
+
+  // Charge the elapsed time to whoever's turn it was, and start the next turn's clock.
+  function stampClock(prev, next) {
+    if (!next || !next.clock) return;
+    var now = Date.now();
+    if (prev && prev.clock && prev.phase === 'battle' && prev.clock.turnStart && prev.gameId === next.gameId) {
+      var spent = now - prev.clock.turnStart;
+      next.clock[prev.turn] = Math.max(0, prev.clock[prev.turn] - spent);
+      next.clock[R.other(prev.turn)] = prev.clock[R.other(prev.turn)];
+    }
+    next.clock.turnStart = next.phase === 'battle' ? now : null;
+  }
+
   function commit(next) {
     if (!next) { if (G.mode === 'host') broadcastState(); return; }
+    if (G.mode !== 'guest') stampClock(G.pendingState || G.state, next);
     if (G.mode === 'host') { LS.set('kv-state-' + G.room, next); }
     if (G.mode === 'ai' || G.mode === 'hotseat') LS.set('kv-local', { mode: G.mode, state: next });
     G.pendingState = next;
@@ -477,7 +575,7 @@
   function broadcastState(st, sync) {
     st = st || G.pendingState || G.state;
     if (!st) return;
-    KV_NET.send({ type: 'state', seq: st.seq, state: st, sync: !!sync, build: C.BUILD });
+    KV_NET.send({ type: 'state', seq: st.seq, state: st, sync: !!sync, build: C.BUILD, hostNow: Date.now() });
   }
 
   var aiTimer = null;
@@ -666,7 +764,9 @@
       LS.set('kv-name2', names.p2);
     }
     show('game');
-    commit(resume || R.newGame({ names: names }));
+    var opts = { names: names, clockMs: clockMs() };
+    if (mode === 'ai') opts.decks = { p1: KV_PROFILE.deckForGame(), p2: null };
+    commit(resume || R.newGame(opts));
   }
 
   function randomCode() {
@@ -681,43 +781,66 @@
     try { history.replaceState(null, '', code ? '?room=' + code : location.pathname); } catch (e) {}
   }
 
-  function startHost(code, resume) {
+  function me() { return KV_PROFILE.get(); }
+
+  function startHost(code, resume, ranked) {
     if (!KV_NET.available()) { alert('Online play is not configured yet.'); return; }
     resetBoard();
     G.mode = 'host'; G.room = code; G.view = 'p1';
-    LS.set('kv-session', { room: code, role: 'host' });
+    LS.set('kv-session', { room: code, role: 'host', ranked: !!ranked });
     setUrlRoom(code);
     show('game');
     var saved = resume && LS.get('kv-state-' + code);
-    var st = saved || R.newGame({ names: { p1: myName(), p2: 'Opponent' } });
+    var st = saved || R.newGame({ names: { p1: myName(), p2: 'Opponent' }, decks: { p1: KV_PROFILE.deckForGame(), p2: null },
+      ranked: !!ranked, ratings: { p1: me().rating }, clockMs: ranked ? 10 * 60000 : clockMs() });
     if (saved) { st.seq++; st.lastEvent = Object.assign({}, st.lastEvent, { seq: st.seq, kind: 'resume' }); }
     commit(st);
     KV_NET.connect({
-      room: code, role: 'host', name: myName(),
+      room: code, role: 'host', name: myName(), clientId: me().clientId,
       onStatus: function (s) { G.netStatus = s; renderNet(); },
-      onPresence: function (present) {
-        var was = G.oppPresent; G.oppPresent = present; renderNet();
-        if (present && !was) broadcastState(null, true);
+      onPresence: function (present, name, metas) {
+        var cur = G.pendingState || G.state;
+        var reg = cur && cur.guestClient;
+        G.guestMetas = metas || [];
+        var regHere = !reg || G.guestMetas.some(function (m) { return m.clientId === reg; });
+        var was = G.oppPresent; G.oppPresent = present && regHere; renderNet();
+        if (G.oppPresent && !was) broadcastState(null, true);
       },
       onOpen: function () { broadcastState(null, true); },
       onMessage: hostOnMessage,
     });
-    if (!saved) shareOverlay(code);
+    if (!saved && !ranked) shareOverlay(code);
+  }
+
+  // Room is host + one guest. The first guest's device id is locked in; others get "room full"
+  // (unless the registered guest is gone, e.g. a new phone - then the newcomer takes the seat).
+  function guestAllowed(clientId) {
+    var cur = G.pendingState || G.state;
+    if (!cur || !clientId || !cur.guestClient || cur.guestClient === clientId) return true;
+    var regHere = (G.guestMetas || []).some(function (x) { return x.clientId === cur.guestClient; });
+    return !regHere;
   }
 
   function hostOnMessage(m) {
     if (!m || !G.state) return;
+    if (m.clientId && !guestAllowed(m.clientId)) { KV_NET.send({ type: 'full', to: m.clientId }); return; }
     if (m.type === 'hello') {
       var cur = G.pendingState || G.state;
-      if (m.name && cur.names.p2 !== m.name) {
-        var s = R.clone(cur);
-        s.names.p2 = String(m.name).slice(0, 16);
-        s.seq++; s.lastEvent = { kind: 'names', seq: s.seq };
-        commit(s);
-      } else broadcastState(null, true);
+      var s = R.clone(cur), changed = false;
+      if (m.clientId && s.guestClient !== m.clientId) { s.guestClient = m.clientId; changed = true; }
+      if (m.name && s.names.p2 !== m.name) { s.names.p2 = String(m.name).slice(0, 16); changed = true; }
+      if (m.rating && (s.ratings || {}).p2 !== m.rating) { s.ratings = s.ratings || {}; s.ratings.p2 = +m.rating; changed = true; }
+      if (m.deck && s.phase === 'deploy' && !s.ready.p2 && JSON.stringify(s.decks.p2) !== JSON.stringify(m.deck)) {
+        var rd = R.redeal(s, 'p2', m.deck.slice(0, 40));
+        if (rd) { s = rd; changed = true; }
+      }
+      if (changed) { s.seq++; s.lastEvent = { kind: s.lastEvent && s.lastEvent.kind === 'deal' ? 'deal' : 'names', seq: s.seq }; commit(s); }
+      else broadcastState(null, true);
     } else if (m.type === 'sync-request') {
       broadcastState(null, true);
     } else if (m.type === 'intent' && m.intent) {
+      var c2 = G.pendingState || G.state;
+      if (c2.guestClient && m.clientId && m.clientId !== c2.guestClient) return;
       commit(engineApply('p2', m.intent));
     }
   }
@@ -732,14 +855,24 @@
     show('game');
     $('banner').textContent = 'Joining ' + code + '…';
     $('actionbar').innerHTML = '<div class="info">Connecting to room <b>' + code + '</b>…</div>';
-    var hello = function () { KV_NET.send({ type: 'hello', name: myName() }); KV_NET.send({ type: 'sync-request' }); };
+    var hello = function () {
+      KV_NET.send({ type: 'hello', name: myName(), clientId: me().clientId, rating: me().rating, deck: KV_PROFILE.deckForGame() });
+      KV_NET.send({ type: 'sync-request', clientId: me().clientId });
+    };
     KV_NET.connect({
-      room: code, role: 'guest', name: myName(),
+      room: code, role: 'guest', name: myName(), clientId: me().clientId,
       onStatus: function (s) { G.netStatus = s; renderNet(); },
       onPresence: function (present) { var was = G.oppPresent; G.oppPresent = present; renderNet(); if (present && !was) hello(); },
       onOpen: hello,
       onMessage: function (m) {
+        if (m && m.type === 'full' && m.to === me().clientId) {
+          KV_NET.close(); LS.del('kv-session'); G.mode = null; setUrlRoom(null);
+          overlay('<h2>Room full</h2><p>Room ' + esc(code) + ' already has two players.</p><button class="btn primary big" id="ovFull">Back to lobby</button>');
+          $('ovFull').onclick = function () { closeOverlay(); lobby(); };
+          return;
+        }
         if (!m || m.type !== 'state' || !m.state) return;
+        if (m.hostNow) G.clockOffset = Date.now() - m.hostNow;
         if (m.build && m.build !== C.BUILD && G.hostBuild !== m.build) { G.hostBuild = m.build; renderNet(); }
         var latest = G.pendingState || G.state;
         if (latest && m.state.seq <= latest.seq && !(m.sync && m.state.seq < latest.seq)) return;
@@ -753,6 +886,23 @@
       if (G.mode !== 'guest') return clearInterval(syncTimer);
       if (!G.state && KV_NET.status() === 'online') hello();
     }, 3000);
+  }
+
+  function findRanked() {
+    if (!KV_NET.available()) { alert('Online play is not configured yet.'); return; }
+    var P = me();
+    overlay('<h2>⚔ Ranked</h2><p>' + KV_PROFILE.tier(P.rating).icon + ' ' + P.rating + '</p><div class="chest shake" style="font-size:60px">⚔</div>' +
+      '<p id="qStatus">Searching for an opponent…</p><button class="btn big" id="qCancel">Cancel</button>');
+    $('qCancel').onclick = function () { KV_NET.leaveQueue(); closeOverlay(); };
+    KV_NET.queue({
+      clientId: P.clientId, name: myName(), rating: P.rating, makeRoom: randomCode,
+      onCount: function (n) { var e = $('qStatus'); if (e) e.textContent = n > 1 ? 'Opponent found - connecting…' : 'Searching for an opponent… (you are the only one waiting)'; },
+      onMatch: function (m) {
+        closeOverlay();
+        if (m.role === 'host') startHost(m.room, false, true);
+        else startGuest(m.room);
+      },
+    });
   }
 
   function shareOverlay(code) {
@@ -805,8 +955,94 @@
     show('library');
   }
 
+  // ---------------- collection / deck ----------------
+  var colFilter = 'all';
+  function showCollection() {
+    var P = me(), all = KV_PROFILE.cards();
+    var order = { legendary: 0, epic: 1, rare: 2, uncommon: 3, common: 4 };
+    var list = all.filter(function (c) {
+      var owned = P.owned.indexOf(c.key) >= 0;
+      return colFilter === 'all' || (colFilter === 'deck' ? P.deck.indexOf(c.key) >= 0 : colFilter === 'owned' ? owned : colFilter === 'locked' ? !owned : c.rarity === colFilter);
+    }).sort(function (a, b) {
+      var oa = P.owned.indexOf(a.key) >= 0 ? 0 : 1, ob = P.owned.indexOf(b.key) >= 0 ? 0 : 1;
+      return oa - ob || order[a.rarity] - order[b.rarity] || a.name.localeCompare(b.name);
+    });
+    $('colCount').innerHTML = 'Deck <b>' + P.deck.length + '/' + KV_PROFILE.DECK_SIZE + '</b>' + (P.deck.length < KV_PROFILE.DECK_SIZE ? ' <span style="color:#f0b36a">(tap owned cards to add)</span>' : '');
+    $('colOwned').textContent = P.owned.length + ' / ' + all.length + ' owned';
+    $('colFilter').innerHTML = ['all', 'deck', 'owned', 'locked', 'common', 'uncommon', 'rare', 'epic', 'legendary'].map(function (f) {
+      return '<button data-f="' + f + '" class="' + (f === colFilter ? 'on' : '') + '">' + f[0].toUpperCase() + f.slice(1) + '</button>';
+    }).join('');
+    $('colGrid').innerHTML = list.map(function (c) {
+      var owned = P.owned.indexOf(c.key) >= 0;
+      return ccardHtml(c, (owned ? '' : 'locked') + (P.deck.indexOf(c.key) >= 0 ? ' indeck' : ''));
+    }).join('');
+    $('colTitle').textContent = 'Deck & Cards';
+    show('collection');
+  }
+  function onCollectionTap(e) {
+    var f = e.target.closest('[data-f]');
+    if (f) { colFilter = f.dataset.f; return showCollection(); }
+    var cc = e.target.closest('.ccard'); if (!cc) return;
+    var key = cc.dataset.key, P = me(), c = KV_RULES.cardDef(key);
+    if (P.owned.indexOf(key) < 0) {
+      openSheet('<h2 style="margin:0">' + esc(c.name) + ' 🔒</h2><p>' + KV_PROFILE.RARITY_LABEL[c.rarity] + ' · Life ' + esc(c.lifeRaw) +
+        '</p><div class="ability">' + esc(c.text) + '</div><p>Unlock it from chests - win or lose a game to earn one.</p>');
+      return;
+    }
+    if (!KV_PROFILE.toggleDeck(key)) toast('');
+    if (P.deck.indexOf(key) < 0 && P.deck.length >= KV_PROFILE.DECK_SIZE && !cc.classList.contains('indeck')) {
+      openSheet('<p>Your deck is full (' + KV_PROFILE.DECK_SIZE + '). Tap a card with a ✓ to remove it first.</p>');
+    }
+    var y = window.scrollY; showCollection(); window.scrollTo(0, y);
+  }
+
+  function showProfile() {
+    var P = me(), t = KV_PROFILE.tier(P.rating);
+    var h = '<div class="panel"><h2 style="margin:0">' + esc(myName()) + '</h2>' +
+      '<p style="font-size:20px">' + t.icon + ' ' + t.name + ' · <b>' + P.rating + '</b> Elo</p>' +
+      '<p>Ranked games: ' + P.rankedGames + ' · Wins ' + P.wins + ' · Losses ' + P.losses + ' · Draws ' + P.draws + '</p>' +
+      '<p>🪙 <b>' + P.coins + '</b> coins · 🃏 ' + P.owned.length + ' cards</p></div>';
+    h += '<div class="panel"><div class="panel-title">Board themes</div><div class="themes">' + KV_PROFILE.THEMES.map(function (th) {
+      var owned = P.themes.indexOf(th.id) >= 0;
+      return '<div class="theme theme-' + th.id + (P.theme === th.id ? ' on' : '') + '" data-theme="' + th.id + '"><b>' + esc(th.name) + '</b><br>' +
+        (P.theme === th.id ? 'Equipped' : owned ? 'Tap to equip' : '🪙 ' + th.price) + '</div>';
+    }).join('') + '</div></div>';
+    h += '<div class="panel"><div class="panel-title">Backup</div><p>Your cards, coins and rating live on this device. Copy this code to move them to another phone:</p>' +
+      '<textarea class="code" readonly id="bkCode">' + KV_PROFILE.backupCode() + '</textarea>' +
+      '<button class="btn" id="bkCopy">Copy code</button> <button class="btn" id="bkRestore">Restore from code…</button></div>';
+    $('profBody').innerHTML = h;
+    show('profile');
+  }
+  function onProfileTap(e) {
+    var th = e.target.closest('[data-theme]');
+    if (th) {
+      var id = th.dataset.theme, t = KV_PROFILE.THEMES.filter(function (x) { return x.id === id; })[0], P = me();
+      if (P.themes.indexOf(id) < 0 && !confirm('Buy ' + t.name + ' for ' + t.price + ' coins?')) return;
+      if (!KV_PROFILE.buyTheme(id)) alert('Not enough coins yet - open chests to earn more.');
+      return showProfile();
+    }
+    if (e.target.id === 'bkCopy') {
+      var ta = $('bkCode'); ta.select();
+      if (navigator.clipboard) navigator.clipboard.writeText(ta.value).then(function () { alert('Copied!'); });
+      else document.execCommand('copy');
+    }
+    if (e.target.id === 'bkRestore') {
+      var code = prompt('Paste your backup code:');
+      if (code) { alert(KV_PROFILE.restore(code) ? 'Restored!' : 'That code did not work.'); refreshPlayerCard(); showProfile(); }
+    }
+  }
+
+  function refreshPlayerCard() {
+    var P = me(), t = KV_PROFILE.tier(P.rating);
+    $('pcTier').textContent = t.icon + ' ' + t.name;
+    $('pcRating').textContent = P.rating;
+    $('pcCoins').textContent = '🪙 ' + P.coins;
+    $('pcCards').textContent = P.owned.length + ' cards';
+  }
+
   // ---------------- lobby ----------------
   function lobby() {
+    refreshPlayerCard();
     show('lobby');
     var code = new URLSearchParams(location.search).get('room');
     $('joinBanner').classList.toggle('hidden', !code);
@@ -838,6 +1074,17 @@
     $('hotseatBtn').onclick = function () { if (needName()) startLocal('hotseat'); };
     $('aiBtn').onclick = function () { if (needName()) startLocal('ai'); };
     $('libraryBtn').onclick = showLibrary;
+    $('rankedBtn').onclick = function () { if (needName()) findRanked(); };
+    $('collectionBtn').onclick = function () { colFilter = 'all'; showCollection(); };
+    $('profileBtn').onclick = function () { if (needName()) showProfile(); };
+    $('colBack').onclick = lobby;
+    $('profBack').onclick = lobby;
+    $('colGrid').addEventListener('click', onCollectionTap);
+    $('colFilter').addEventListener('click', onCollectionTap);
+    $('profBody').addEventListener('click', onProfileTap);
+    $('clockSelect').value = String(LS.get('kv-clock') == null ? 10 : LS.get('kv-clock'));
+    $('clockSelect').onchange = function () { LS.set('kv-clock', +this.value); };
+    KV_PROFILE.applyTheme();
     $('libBack').onclick = lobby;
     $('menuBtn').onclick = openMenu;
     $('logBtn').onclick = function () { if (G.state) openLog(); };

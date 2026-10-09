@@ -141,9 +141,15 @@
   }
 
   // General + 11 distinct random ready cards. General starts at GENERAL_SLOT.
-  function dealTeam(side, rng) {
+  // deck: optional list of card keys to draw from (a player's 20-card deck); falls back to the full ready pool
+  function dealTeam(side, rng, deck) {
     var size = CFG.TEAM_SIZE || 12;
-    var pool = shuffle(readyPool(), rng).slice(0, size - 1);
+    var ready = readyPool(), src = ready;
+    if (deck && deck.length) {
+      src = deck.filter(function (k, i) { return ready.indexOf(k) >= 0 && deck.indexOf(k) === i; });
+      if (src.length < size - 1) src = src.concat(shuffle(ready.filter(function (k) { return src.indexOf(k) < 0; }), rng).slice(0, size - 1 - src.length));
+    }
+    var pool = shuffle(src, rng).slice(0, size - 1);
     var slots = new Array(12).fill(null);
     var gSlot = CFG.GENERAL_SLOT == null ? 8 : CFG.GENERAL_SLOT;
     slots[gSlot] = makeCard('general', side, rng);
@@ -158,17 +164,40 @@
   function newGame(opts) {
     opts = opts || {};
     var rng = opts.rng || Math.random;
+    var decks = opts.decks || {};
     var s = {
-      v: 1, seq: 0, phase: 'deploy', turn: null, first: null, winner: null, turnCount: 0,
+      v: 1, seq: 0, phase: 'deploy',
+      gameId: Math.floor(rng() * 1e9).toString(36) + Date.now().toString(36),
+      ranked: !!opts.ranked, decks: { p1: decks.p1 || null, p2: decks.p2 || null }, ratings: opts.ratings || {},
+      clock: opts.clockMs ? { limit: opts.clockMs, p1: opts.clockMs, p2: opts.clockMs, turnStart: null } : null, turn: null, first: null, winner: null, turnCount: 0,
       names: opts.names || { p1: 'Player 1', p2: 'Player 2' },
       ready: { p1: false, p2: false },
-      teams: { p1: dealTeam('p1', rng), p2: dealTeam('p2', rng) },
+      teams: { p1: dealTeam('p1', rng, decks.p1), p2: dealTeam('p2', rng, decks.p2) },
       graves: { p1: [], p2: [] },
       lastActor: { p1: null, p2: null },
       log: ['Cards dealt. Arrange your troops, then press Ready.'],
       lastEvent: { kind: 'deal' },
     };
     return s;
+  }
+
+  // Re-deal one side from a new deck (e.g. when the guest's deck arrives during deploy)
+  function redeal(state, side, deck, rng) {
+    if (state.phase !== 'deploy' || state.ready[side]) return null;
+    var s = clone(state);
+    s.decks[side] = deck;
+    s.teams[side] = dealTeam(side, rng, deck);
+    return bump(s, { kind: 'deal' });
+  }
+
+  // Chess clock ran out
+  function timeout(state, side) {
+    if (state.phase !== 'battle') return null;
+    var s = clone(state);
+    if (s.clock) s.clock[side] = 0;
+    s.phase = 'over'; s.winner = other(side); s.winReason = 'time';
+    log(s, s.names[side] + "'s clock ran out - " + s.names[s.winner] + ' wins on time!');
+    return bump(s, { kind: 'timeout', side: side, deaths: [], moves: { p1: [], p2: [] } });
   }
 
   // ---------- board helpers ----------
@@ -952,7 +981,7 @@
     newGame: newGame, findCard: findCard, generalOf: generalOf, compactBoard: compactBoard,
     patternGroups: patternGroups, getOptions: getOptions, legalActions: legalActions,
     hitChance: hitChance, generalRisk: generalRisk, targetLife: targetLife,
-    swap: swap, setReady: setReady, act: act, skip: skip, turnSwap: turnSwap, canSwap: canSwap, lossReason: lossReason, emptySlot: emptySlot, deckFor: deckFor, rollsNeeded: rollsNeeded, teamBonus: teamBonus, losIndex: losIndex, checkWin: checkWin, addStatus: addStatus, hasStatus: hasStatus, neighbours: neighbours,
+    swap: swap, setReady: setReady, act: act, skip: skip, redeal: redeal, timeout: timeout, turnSwap: turnSwap, canSwap: canSwap, lossReason: lossReason, emptySlot: emptySlot, deckFor: deckFor, rollsNeeded: rollsNeeded, teamBonus: teamBonus, losIndex: losIndex, checkWin: checkWin, addStatus: addStatus, hasStatus: hasStatus, neighbours: neighbours,
   };
   root.KV_RULES = KV_RULES;
   if (isNode) module.exports = KV_RULES;

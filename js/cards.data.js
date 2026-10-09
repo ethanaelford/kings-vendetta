@@ -11,7 +11,10 @@ var KV_CARDS = [
   "text": "Can attack anyone on the board",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "common",
+  "starter": false
  },
  {
   "key": "grim-reaper",
@@ -24,7 +27,10 @@ var KV_CARDS = [
   "text": "Attacks remaing cards by number for lowest roll; if 11, lowest card; if 12, General",
   "ready": false,
   "note": "Special Life value (D) - later session",
-  "art": null
+  "art": null,
+  "power": 3,
+  "rarity": "common",
+  "starter": false
  },
  {
   "key": "stealth-warrior",
@@ -37,7 +43,10 @@ var KV_CARDS = [
   "text": "Can't be killed by opponent with 6 or less",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 10,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "frost-giant",
@@ -50,7 +59,10 @@ var KV_CARDS = [
   "text": "If attacked and not killed, gets a free turn",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 11,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "titan",
@@ -63,7 +75,10 @@ var KV_CARDS = [
   "text": "Must be attacked 3 times and if unsuccessful then gets to switch positions with another card",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 11,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "chariot-warrior",
@@ -76,7 +91,10 @@ var KV_CARDS = [
   "text": "Can fill empty card slots - consumes turn",
   "ready": false,
   "note": "Ability not implemented yet",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "common",
+  "starter": false
  },
  {
   "key": "iron-giant",
@@ -89,7 +107,10 @@ var KV_CARDS = [
   "text": "Attacks end cards of opponent's facing row",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "berserker-warrior",
@@ -102,7 +123,10 @@ var KV_CARDS = [
   "text": "Attacks twice",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 14,
+  "rarity": "epic",
+  "starter": false
  },
  {
   "key": "lightning-ninja",
@@ -115,7 +139,10 @@ var KV_CARDS = [
   "text": "Moves then attacks",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 11,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "samurai",
@@ -128,7 +155,10 @@ var KV_CARDS = [
   "text": "Puts armour on adjacent card adding 1 to Roll Buff (e.g. Knight requires 2 rolls - becomes 3)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 10,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "hammer-dwarf",
@@ -141,7 +171,10 @@ var KV_CARDS = [
   "text": "Must kill at least 2 or die",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "blood-hound",
@@ -154,7 +187,10 @@ var KV_CARDS = [
   "text": "Can kill LOS or Diag",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 7,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "captain",
@@ -167,7 +203,10 @@ var KV_CARDS = [
   "text": "Horse Mounted Troops attack with him",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 7,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "elf-rampager",
@@ -180,7 +219,10 @@ var KV_CARDS = [
   "text": "Can keep attacking if successful",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 11,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "tactical-warrior",
@@ -193,7 +235,10 @@ var KV_CARDS = [
   "text": "Card behind attacks card behind opponent",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 8,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "attack-wagon",
@@ -206,7 +251,10 @@ var KV_CARDS = [
   "text": "Can attack or switch opponent with another opponent",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 11,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "ranger",
@@ -219,7 +267,10 @@ var KV_CARDS = [
   "text": "Attacks in right angle (7 or reverse 7) with required to defeat 2 or death",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "fire-sentinel",
@@ -232,7 +283,10 @@ var KV_CARDS = [
   "text": "Killing opponent is killed (exc. General); Can't be moved by General",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 14,
+  "rarity": "epic",
+  "starter": false
  },
  {
   "key": "eagle-warrior",
@@ -245,7 +299,10 @@ var KV_CARDS = [
   "text": "Can move an enemy and attack in one turn (x1)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "common",
+  "starter": false
  },
  {
   "key": "centurion",
@@ -258,7 +315,10 @@ var KV_CARDS = [
   "text": "Can call 2 rnd troops from deck (x1)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 12,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "cannon",
@@ -271,7 +331,10 @@ var KV_CARDS = [
   "text": "Attacks 2 to right or left of LOS.",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 7,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "avenger",
@@ -284,7 +347,10 @@ var KV_CARDS = [
   "text": "Attacks last opponent",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "common",
+  "starter": false
  },
  {
   "key": "cobalt-knight",
@@ -297,7 +363,10 @@ var KV_CARDS = [
   "text": "Attacks each card with LOS life (+1)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 11,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "bomb-expert",
@@ -310,7 +379,10 @@ var KV_CARDS = [
   "text": "Attacks any card + previous failed attacked cards(reset: 3)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "common",
+  "starter": false
  },
  {
   "key": "venom-warrior",
@@ -323,7 +395,10 @@ var KV_CARDS = [
   "text": "On kill, marks adjacent cards with half life (reset: 1)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 11,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "elephant-mounted-warrior",
@@ -336,7 +411,10 @@ var KV_CARDS = [
   "text": "If killed, opponent's life (=4) (reset: 2)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 7,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "heavily-armored-soldier",
@@ -349,7 +427,10 @@ var KV_CARDS = [
   "text": "Attack (-5)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 8,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "stationary-crossbow-soldier",
@@ -362,7 +443,10 @@ var KV_CARDS = [
   "text": "Can't be moved by enemy.",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "joker",
@@ -375,7 +459,10 @@ var KV_CARDS = [
   "text": "If not attacked gets free attack on Any after Roll",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 12,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "morphing-warrior",
@@ -388,7 +475,10 @@ var KV_CARDS = [
   "text": "Round Start: Morphs into any card (exc. General)",
   "ready": false,
   "note": "Special Life value (?) - later session",
-  "art": null
+  "art": null,
+  "power": 3,
+  "rarity": "common",
+  "starter": false
  },
  {
   "key": "militia",
@@ -401,7 +491,10 @@ var KV_CARDS = [
   "text": "",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 3,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "front-lineman",
@@ -414,7 +507,10 @@ var KV_CARDS = [
   "text": "",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 4,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "horse-mounted-troop",
@@ -427,7 +523,10 @@ var KV_CARDS = [
   "text": "Jump and attack card and card behind",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "foot-soldier",
@@ -440,7 +539,10 @@ var KV_CARDS = [
   "text": "Switch with Adjacent Cards (x1)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 6,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "archer",
@@ -453,7 +555,10 @@ var KV_CARDS = [
   "text": "Attack choice from column",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 8,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "knight",
@@ -466,7 +571,10 @@ var KV_CARDS = [
   "text": "Must be attacked (x2)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 11,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "minotaur",
@@ -479,7 +587,10 @@ var KV_CARDS = [
   "text": "Roll (+1)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "wizard",
@@ -492,7 +603,10 @@ var KV_CARDS = [
   "text": "Attacks all cards with same life on row.",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 12,
+  "rarity": "epic",
+  "starter": false
  },
  {
   "key": "ent",
@@ -505,7 +619,10 @@ var KV_CARDS = [
   "text": "Shields 1 surrounding card while Ent is alive",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 12,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "brute",
@@ -518,7 +635,10 @@ var KV_CARDS = [
   "text": "Attacks column",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 13,
+  "rarity": "epic",
+  "starter": false
  },
  {
   "key": "general",
@@ -531,7 +651,10 @@ var KV_CARDS = [
   "text": "Opponent dies with unsuccessful attack; If killed Round is won by opponent",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "rarity": "legendary",
+  "power": 99,
+  "starter": true
  },
  {
   "key": "commander",
@@ -544,7 +667,10 @@ var KV_CARDS = [
   "text": "(+) Both adjacent cards attack",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 12,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "reviver",
@@ -557,7 +683,10 @@ var KV_CARDS = [
   "text": "On kill, gets to revive any gravestone",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "unskilled-warrior",
@@ -570,7 +699,10 @@ var KV_CARDS = [
   "text": "Roll kills rnd card",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "phoenix",
@@ -583,7 +715,10 @@ var KV_CARDS = [
   "text": "On Roll (7), Picks 1 of 3 rnd cards and all matching opponent cards die",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 14,
+  "rarity": "legendary",
+  "starter": false
  },
  {
   "key": "dwarf-blitzer",
@@ -596,7 +731,10 @@ var KV_CARDS = [
   "text": "Can't be attacked by opponent Life (5+) (exc. General)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 12,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "lightning-wizard",
@@ -609,7 +747,10 @@ var KV_CARDS = [
   "text": "75% chance to debuff (-4) each turn until debuff fail (reset life)",
   "ready": false,
   "note": "Ability not implemented yet",
-  "art": null
+  "art": null,
+  "power": 12,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "thunder-warrior",
@@ -622,7 +763,10 @@ var KV_CARDS = [
   "text": "Debuff (-8) for 2 turns; Death with use",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 7,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "elf-blitz-warrior",
@@ -635,7 +779,10 @@ var KV_CARDS = [
   "text": "Can keep attacking if successful; Can't kill partial column",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 10,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "peasant-mob",
@@ -648,7 +795,10 @@ var KV_CARDS = [
   "text": "Pick from 3 rolls; Can't pick previous roll",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "apprentice",
@@ -661,7 +811,10 @@ var KV_CARDS = [
   "text": "Can use last roll",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 10,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "the-manipulator",
@@ -674,7 +827,10 @@ var KV_CARDS = [
   "text": "Make any opponent card use the turn (x1)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 11,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "blade-dancer",
@@ -687,7 +843,10 @@ var KV_CARDS = [
   "text": "Rolls one dice - double the value",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "common",
+  "starter": false
  },
  {
   "key": "dragon-ninja",
@@ -700,7 +859,10 @@ var KV_CARDS = [
   "text": "Can't be affected by Destruction or Debuffs",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 10,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "dragon-tamer",
@@ -713,7 +875,10 @@ var KV_CARDS = [
   "text": "Marks opponent card for Destruction",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 15,
+  "rarity": "legendary",
+  "starter": false
  },
  {
   "key": "lightning-mage",
@@ -726,7 +891,10 @@ var KV_CARDS = [
   "text": "Surrounding cards are poisoned (-1 x 3)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 8,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "field-marshall",
@@ -739,7 +907,10 @@ var KV_CARDS = [
   "text": "Fills empty slot with opponent card",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 15,
+  "rarity": "legendary",
+  "starter": false
  },
  {
   "key": "spy",
@@ -752,7 +923,10 @@ var KV_CARDS = [
   "text": "Disguised as militia. Instant kill General",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 10,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "major",
@@ -765,7 +939,10 @@ var KV_CARDS = [
   "text": "All cards with same life of killer die",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 12,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "admiral",
@@ -778,7 +955,10 @@ var KV_CARDS = [
   "text": "Whole row attacks",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 15,
+  "rarity": "legendary",
+  "starter": false
  },
  {
   "key": "chemical-warfare-warrior",
@@ -791,7 +971,10 @@ var KV_CARDS = [
   "text": "Poisoned and Paralyzed (x3)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 12,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "redstone-warrior",
@@ -804,7 +987,10 @@ var KV_CARDS = [
   "text": "Opponent dies on third attack if not killed (doesn't consume turn)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 10,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "fire-striker",
@@ -817,7 +1003,10 @@ var KV_CARDS = [
   "text": "Flame Debuff (-2) (x2)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 8,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "shadow-warrior",
@@ -830,7 +1019,10 @@ var KV_CARDS = [
   "text": "Greater roll kills; Less roll subtracts life; Other attackers must attack orig life",
   "ready": false,
   "note": "Partial life damage - later session",
-  "art": null
+  "art": null,
+  "power": 13,
+  "rarity": "epic",
+  "starter": false
  },
  {
   "key": "royal-assassin",
@@ -843,7 +1035,10 @@ var KV_CARDS = [
   "text": "+5 on Royals",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 8,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "magma-knight",
@@ -856,7 +1051,10 @@ var KV_CARDS = [
   "text": "1/3 roll added to roll",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 11,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "frost-brute",
@@ -869,7 +1067,10 @@ var KV_CARDS = [
   "text": "roll = to life attacks back",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 11,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "tactical-ninja",
@@ -882,7 +1083,10 @@ var KV_CARDS = [
   "text": "3 rolls for one attack",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "armored-warrior",
@@ -895,7 +1099,10 @@ var KV_CARDS = [
   "text": "Dies with opponent's snake eyes",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "common",
+  "starter": false
  },
  {
   "key": "the-supplier",
@@ -908,7 +1115,10 @@ var KV_CARDS = [
   "text": "Surrounding cards get +2 damage/+1 life to Max",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 11,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "bounty-hunter",
@@ -921,7 +1131,10 @@ var KV_CARDS = [
   "text": "Must kill a card every 4 turns or removed",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 14,
+  "rarity": "epic",
+  "starter": false
  },
  {
   "key": "juggernaut",
@@ -934,7 +1147,10 @@ var KV_CARDS = [
   "text": "Roll < opponent life to kill it",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 13,
+  "rarity": "epic",
+  "starter": false
  },
  {
   "key": "hydra",
@@ -947,7 +1163,10 @@ var KV_CARDS = [
   "text": "Have to roll the number 3 times to kill. If the card faills to kill the card, of if Hydra fails to kill card, then card is poisned (x3). Attack +2 Damage",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 12,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "ranged-expert",
@@ -960,7 +1179,10 @@ var KV_CARDS = [
   "text": "All ranged cards in handare granted Life (+1) and Damage(+3) and can attack twice in a turn.",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 15,
+  "rarity": "legendary",
+  "starter": false
  },
  {
   "key": "melee-expert",
@@ -973,7 +1195,10 @@ var KV_CARDS = [
   "text": "All Melee cards in hand are granted Life (+3) and Damage (+1) and have be rolled twice to die.",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 17,
+  "rarity": "legendary",
+  "starter": false
  },
  {
   "key": "ace",
@@ -986,7 +1211,10 @@ var KV_CARDS = [
   "text": "Rolls number, all cards with that number of life die.",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "common",
+  "starter": false
  },
  {
   "key": "kings-knight",
@@ -999,7 +1227,10 @@ var KV_CARDS = [
   "text": "After Charge is complete (for two turn (does not have to be in a row) use charge were nothing happens) KK rolls, and all cards on enemy board that have life = or < roll die.",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 15,
+  "rarity": "legendary",
+  "starter": false
  },
  {
   "key": "rookie",
@@ -1012,7 +1243,10 @@ var KV_CARDS = [
   "text": "If he rolls doubles then General auto dies, if he fails, then he dies",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 8,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "unstable-bomb-expert",
@@ -1025,7 +1259,10 @@ var KV_CARDS = [
   "text": "Normal Attack. If chooses to do 'Hail Marry' attack, then he has to roll a 7, if fails then losses, if succeds then wins",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 8,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "stone-monster",
@@ -1038,7 +1275,10 @@ var KV_CARDS = [
   "text": "All cards that he killed, cards that have < life in hand = 1/2 of life.",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 11,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "tactical-alchemist",
@@ -1051,7 +1291,10 @@ var KV_CARDS = [
   "text": "If he kills a card, able to buff own card (+1 Health / Damage) or debuff enemy card (-1 Healht / Damage)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 11,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "general-s-guard",
@@ -1064,7 +1307,10 @@ var KV_CARDS = [
   "text": "If he dies, then the general has 4 turns to kill another card. If that is done, the GG is resurected.",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 10,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "generals-bodyguard",
@@ -1077,7 +1323,10 @@ var KV_CARDS = [
   "text": "You are not able to attack the General untill this card is killed.",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 13,
+  "rarity": "epic",
+  "starter": false
  },
  {
   "key": "guardian",
@@ -1090,7 +1339,10 @@ var KV_CARDS = [
   "text": "You are not able to kill any card in hand until this card is dead.",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 14,
+  "rarity": "epic",
+  "starter": false
  },
  {
   "key": "ice-sentinel",
@@ -1103,7 +1355,10 @@ var KV_CARDS = [
   "text": "If attacker fails, then attacker, and card behind, are frozen (paralized) for the next two turns",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 13,
+  "rarity": "epic",
+  "starter": false
  },
  {
   "key": "lava-guardian",
@@ -1116,7 +1371,10 @@ var KV_CARDS = [
   "text": "If attacker fails, then for next turn card has -1 damage, and for that round, LG has +1 damage ()",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 9,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "fallen-knight",
@@ -1129,7 +1387,10 @@ var KV_CARDS = [
   "text": "Every time he gets a kill, his life (+1).",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 11,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "dark-knight",
@@ -1142,7 +1403,10 @@ var KV_CARDS = [
   "text": "If he survives to the second round then he gets +3 Damage, and +3 Life",
   "ready": false,
   "note": "Rounds - later session",
-  "art": null
+  "art": null,
+  "power": 12,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "strategic-warrior",
@@ -1155,7 +1419,10 @@ var KV_CARDS = [
   "text": "Has to choicse, one: forfit round, save alive cards and get empty slots filled. Two: If wins round, does not get the card refil, but all cards on deck stay 'alone' but are buffed (+2 Damage + 1 Health, +1 'roll to kill')",
   "ready": false,
   "note": "Round-based choice - later session",
-  "art": null
+  "art": null,
+  "power": 8,
+  "rarity": "common",
+  "starter": false
  },
  {
   "key": "medic",
@@ -1168,7 +1435,10 @@ var KV_CARDS = [
   "text": "Chooses card in hand and cleasens card of all debufs and targets (i.e. BE's bomb)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 6,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "war-captain",
@@ -1181,7 +1451,10 @@ var KV_CARDS = [
   "text": "Every round he fill 4 empty slots (fills two w/Knights, 2/Rnd). When he dies, his 'tombstone' is filled with a FLM",
   "ready": false,
   "note": "Rounds / summons - later session",
-  "art": null
+  "art": null,
+  "power": 10,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "corrupt-commander",
@@ -1194,7 +1467,10 @@ var KV_CARDS = [
   "text": "All Touching cards attack with him, the 6 opposite cards. They don’t use their powedrse in that attack.",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 13,
+  "rarity": "epic",
+  "starter": false
  },
  {
   "key": "unstable-titan",
@@ -1207,7 +1483,10 @@ var KV_CARDS = [
   "text": "Every time he fails to kill a card, he gets +1 attack on card and Damage.",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 12,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "hog-mounted-brute",
@@ -1220,7 +1499,10 @@ var KV_CARDS = [
   "text": "Attacks column. If succeeds, then he gets a free attack on any card.",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 10,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "stone-golem",
@@ -1233,7 +1515,10 @@ var KV_CARDS = [
   "text": "Normal Attack. If he is the only card left in the formation (other than the General) then the other enemy formation automaticaly dies (except for general)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 11,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "elite-assasin",
@@ -1246,7 +1531,10 @@ var KV_CARDS = [
   "text": "Auto-kill all cards that he attacks with < life.",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 10,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "spartan",
@@ -1259,7 +1547,10 @@ var KV_CARDS = [
   "text": "Every time a enemy card is killed, Spartan is given +1 Damage (Damage does not reset.)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 11,
+  "rarity": "rare",
+  "starter": false
  },
  {
   "key": "light-dragon",
@@ -1272,7 +1563,10 @@ var KV_CARDS = [
   "text": "Attacks quadrant. Keeps on attack Quads until it fails.",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 14,
+  "rarity": "epic",
+  "starter": false
  },
  {
   "key": "wolf-mounted-dwarf",
@@ -1285,7 +1579,10 @@ var KV_CARDS = [
   "text": "Gets to choose, either (gets to attack twice on a turn) or (+2 Damage.)",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 12,
+  "rarity": "epic",
+  "starter": false
  },
  {
   "key": "fire-sprite",
@@ -1298,7 +1595,10 @@ var KV_CARDS = [
   "text": "All attack damage cards cant attack him",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 8,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "wisp",
@@ -1311,7 +1611,10 @@ var KV_CARDS = [
   "text": "Attack +(Number of wisp on field) damage",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 7,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "neon-wisp",
@@ -1324,7 +1627,10 @@ var KV_CARDS = [
   "text": "Gives +2 Damage to all wisps",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 8,
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "wisp-captain",
@@ -1337,7 +1643,10 @@ var KV_CARDS = [
   "text": "All wisp attack their identical place on formation. All attackers maintain damage boost",
   "ready": true,
   "note": "",
-  "art": null
+  "art": null,
+  "power": 10,
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "wisp-major",
@@ -1350,7 +1659,10 @@ var KV_CARDS = [
   "text": "While allive, fills all empty slots with Wisp. Infinite while alive.",
   "ready": false,
   "note": "Summons / refills - later session",
-  "art": null
+  "art": null,
+  "power": 12,
+  "rarity": "rare",
+  "starter": false
  }
 ];
 if (typeof module !== 'undefined') module.exports = KV_CARDS;
