@@ -358,6 +358,21 @@
   function dispatch(intent) {
     if (G.mode === 'guest') {
       if (!KV_NET.send({ type: 'intent', intent: intent })) toast('Not connected — retrying…');
+      // If the host's phone was asleep the intent is lost: re-send actions/ready (never swaps, they'd undo).
+      if (intent.type !== 'swap') {
+        var seq0 = (G.pendingState || G.state || {}).seq;
+        clearTimeout(G.resendTimer);
+        var tries = 0;
+        var check = function () {
+          var cur = (G.pendingState || G.state || {}).seq;
+          if (cur !== seq0 || G.mode !== 'guest' || ++tries > 10) return;
+          KV_NET.send({ type: 'intent', intent: intent });
+          KV_NET.send({ type: 'sync-request' });
+          toast('Waiting for ' + oppName() + '’s phone…');
+          G.resendTimer = setTimeout(check, 4000);
+        };
+        G.resendTimer = setTimeout(check, 4000);
+      }
       return;
     }
     var side = G.mode === 'hotseat' ? G.view : 'p1';

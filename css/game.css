@@ -67,7 +67,7 @@ h1 { margin: 6px 0 0; font-size: 32px; color: var(--gold); letter-spacing: 1px; 
 .netbar { text-align: center; font-size: 13px; padding: 4px; background: #5a2a20; color: #ffd9c9; }
 .netbar.ok { background: #20402a; color: #c9ffd6; }
 #boardWrap { flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-#board { position: relative; }
+#board { position: relative; touch-action: none; }
 
 /* ---------- cards ---------- */
 .card {
