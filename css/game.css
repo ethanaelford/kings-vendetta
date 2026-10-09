@@ -100,6 +100,7 @@ h1 { margin: 6px 0 0; font-size: 32px; color: var(--gold); letter-spacing: 1px; 
 .card .pips { position: absolute; left: 2px; bottom: 18px; display: flex; gap: 2px; }
 .card .pips i { width: 7px; height: 7px; border-radius: 50%; background: #fff; border: 1px solid #000; }
 .card .pips i.hit { background: var(--bad); }
+.card .dmg { position: absolute; right: 2px; top: 22px; font: bold 10px sans-serif; color: #fff; background: #2f7a3a; border-radius: 4px; padding: 0 3px; }
 .card .st { position: absolute; right: 2px; bottom: 18px; font-size: 10px; }
 .card.general { box-shadow: 0 0 0 2px var(--gold) inset; }
 .card.general::after {

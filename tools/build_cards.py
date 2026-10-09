@@ -28,6 +28,10 @@ READY = {
     'General', 'Militia', 'Front Lineman', 'Knight', 'Titan', 'Minotaur', 'Heavily Armored Soldier',
     'Stealth Warrior', 'Juggernaut', 'Armored Warrior', 'Blade Dancer', 'Catapult',
     'Stationary Crossbow Soldier', 'Brute', 'Iron Giant', 'Archer', 'Berserker Warrior',
+    # tier 2/3
+    'Blood Hound', 'Cannon', 'Avenger', 'Dwarf Blitzer', 'Royal Assassin', 'Rookie', 'Fallen Knight', 'Spartan',
+    'Unstable Titan', 'Elite Assasin', 'Fire Sentinel', 'Wizard', 'Horse Mounted Troop', 'Hammer Dwarf', 'Ranger',
+    'Generals Bodyguard', 'Wisp', 'Neon Wisp',
 }
 
 # One-line "what's missing" notes for the Card Library (default: ability not built yet).

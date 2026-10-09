@@ -12,15 +12,19 @@ var KV_AI = (function () {
     var best = null;
     R.legalActions(state, side).forEach(function (a) {
       var att = R.findCard(state, a.cardId).card;
-      var score = 0, risk = 0;
+      var score = 0, risk = 0, expKills = 0;
       a.targets.forEach(function (id) {
         var t = R.findCard(state, id).card;
         var hc = R.hitChance(state, att, t);
         var left = t.rollsToKill - t.hitsTaken;
         var pKill = left > 1 ? hc.p * 0.35 : hc.p;
         score += pKill * value(t);
+        expKills += pKill;
         if (R.generalRisk(att, t)) risk = Math.max(risk, (1 - hc.p) * value(att) * 1.2);
+        if (R.ab(t).onKilled && !att.isGeneral) risk += pKill * value(att); // e.g. Fire Sentinel takes killer down
       });
+      var need = R.ab(att).mustKill;
+      if (need && expKills < need) risk += value(att) * (1 - expKills / need);
       var attacks = (R.ab(att).attacks || 1);
       score = score * (attacks > 1 ? 1.6 : 1) - risk + rng() * 1.5;
       if (!best || score > best.score) best = { score: score, cardId: a.cardId, option: a.option };

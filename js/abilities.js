@@ -36,5 +36,67 @@ var KV_ABILITIES = {
       return out;
     },
   },
+
+  // ---- tier 2/3 ----
+  // Blood Hound (LUR), Cannon (Lean), Avenger (Last): pattern only, no extra ability.
+  'blood-hound': {},
+  'cannon': {},
+  'avenger': {},
+  'dwarf-blitzer': {
+    // Can't be attacked by opponent Life 5+ (except the General)
+    canBeTargetedBy: function (ctx) { return ctx.attacker.isGeneral || ctx.attacker.baseLife < 5; },
+  },
+  'royal-assassin': {
+    // +5 on Royals (assumed: the General)
+    modifyRoll: function (ctx) { return ctx.target && ctx.target.isGeneral ? 5 : 0; },
+  },
+  'rookie': { successRule: 'doubles' },          // targets the General; doubles kill it, a miss kills Rookie (General rule)
+  'fallen-knight': {
+    onKill: function (ctx) { ctx.attacker.life += 1; },
+  },
+  'spartan': {
+    // +1 damage (permanent) every time an enemy card is killed
+    onAnyKill: function (ctx) { ctx.card.dmg = (ctx.card.dmg || 0) + ctx.count; },
+  },
+  'unstable-titan': {
+    onAttackResolved: function (ctx) { if (!ctx.kills) ctx.attacker.dmg = (ctx.attacker.dmg || 0) + 1; },
+  },
+  'elite-assasin': {
+    // Auto-kill cards with lower Life than him
+    autoKill: function (ctx) { return !ctx.target.isGeneral && ctx.target.life < ctx.attacker.life; },
+  },
+  'fire-sentinel': {
+    onKilled: function () { return 'killerDies'; },
+  },
+  'wizard': {
+    // LOS target plus every card in that row with the same Life (one roll)
+    getTargets: function (ctx) {
+      var los = ctx.patternGroups('los', ctx.enemySlots, ctx.index)[0];
+      if (!los) return [];
+      var idx = ctx.enemySlots.findIndex(function (c) { return c && c.id === los[0]; });
+      var life = ctx.enemySlots[idx].life, r0 = idx < 6 ? 0 : 6, g = [los[0]];
+      for (var i = r0; i < r0 + 6; i++) { var c = ctx.enemySlots[i]; if (c && c.id !== los[0] && c.life === life) g.push(c.id); }
+      return [g];
+    },
+  },
+  'horse-mounted-troop': {
+    // Jumps a card: attacks the card in its column and the card behind it, from either row
+    anyRow: true,
+    getTargets: function (ctx) { return ctx.patternGroups('column', ctx.enemySlots, ctx.col); },
+  },
+  'hammer-dwarf': { mustKill: 2 },
+  'ranger': { mustKill: 2 },
+  'generals-bodyguard': {
+    protects: function (ctx) { return ctx.target.isGeneral; },
+  },
+  'wisp': {
+    // +1 per Wisp-family card on my side (including itself)
+    modifyRoll: function (ctx) {
+      return ctx.state.teams[ctx.attacker.side].slots.filter(function (c) { return c && /wisp/.test(c.cardKey); }).length;
+    },
+  },
+  'neon-wisp': {
+    passiveAura: function (ctx) { return /wisp/.test(ctx.attacker.cardKey) ? 2 : 0; },
+  },
 };
 if (typeof module !== 'undefined') module.exports = KV_ABILITIES;

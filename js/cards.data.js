@@ -139,8 +139,8 @@ var KV_CARDS = [
   "code": "Quad",
   "pattern": "quad",
   "text": "Must kill at least 2 or die",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -152,8 +152,8 @@ var KV_CARDS = [
   "code": "LUR",
   "pattern": "forD",
   "text": "Can kill LOS or Diag",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": "images/cards/blood-hound.png"
  },
  {
@@ -217,8 +217,8 @@ var KV_CARDS = [
   "code": "7",
   "pattern": "L",
   "text": "Attacks in right angle (7 or reverse 7) with required to defeat 2 or death",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -230,8 +230,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Killing opponent is killed (exc. General); Can't be moved by General",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -269,8 +269,8 @@ var KV_CARDS = [
   "code": "Lean",
   "pattern": "lean",
   "text": "Attacks 2 to right or left of LOS.",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -282,8 +282,8 @@ var KV_CARDS = [
   "code": "Last",
   "pattern": "lema",
   "text": "Attacks last opponent",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -425,8 +425,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Jump and attack card and card behind",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -490,8 +490,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Attacks all cards with same life on row.",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -594,8 +594,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Can't be attacked by opponent Life (5+) (exc. General)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -841,8 +841,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "+5 on Royals",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1010,8 +1010,8 @@ var KV_CARDS = [
   "code": "Gen",
   "pattern": "general",
   "text": "If he rolls doubles then General auto dies, if he fails, then he dies",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1075,8 +1075,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "You are not able to attack the General untill this card is killed.",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1127,8 +1127,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Every time he gets a kill, his life (+1).",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1205,8 +1205,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Every time he fails to kill a card, he gets +1 attack on card and Damage.",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1244,8 +1244,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Auto-kill all cards that he attacks with < life.",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1257,8 +1257,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Every time a enemy card is killed, Spartan is given +1 Damage (Damage does not reset.)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1309,8 +1309,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Attack +(Number of wisp on field) damage",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {
@@ -1322,8 +1322,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Gives +2 Damage to all wisps",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null
  },
  {

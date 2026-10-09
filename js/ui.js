@@ -94,6 +94,7 @@
       for (var i = 0; i < card.rollsToKill; i++) h += '<i class="' + (i < card.hitsTaken ? 'hit' : '') + '"></i>';
       h += '</div>';
     }
+    if (card.dmg) h += '<div class="dmg">+' + card.dmg + '</div>';
     if (card.statuses && card.statuses.length) h += '<div class="st">' + card.statuses.map(function (s) { return s.icon || '•'; }).join('') + '</div>';
     h += '<div class="nm">' + esc(shortName(def.name)) + '</div>';
     return h;
@@ -136,7 +137,7 @@
           board.appendChild(el);
           els[card.id] = el;
         }
-        var sig = card.cardKey + '|' + card.life + '|' + card.hitsTaken + '|' + JSON.stringify(card.statuses);
+        var sig = card.cardKey + '|' + card.life + '|' + card.hitsTaken + '|' + (card.dmg || 0) + '|' + JSON.stringify(card.statuses);
         if (el._sig !== sig) { el.innerHTML = cardInner(card); el._sig = sig; }
         var cls = 'card ' + (side === G.view ? 'mine' : 'enemy');
         if (card.isGeneral) cls += ' general';
@@ -285,10 +286,15 @@
       r.hits.forEach(function (h) { var el = els[h.id]; if (el) el.classList.remove('flash-hit', 'target'); });
     }
     if (ev.attackerDied && att) {
-      rt.className = 'bad'; rt.textContent = 'General’s defense! Attacker dies';
-      att.classList.add('dead'); att.insertAdjacentHTML('beforeend', '<div class="tomb">⚰</div>');
-      await sleep(900);
+      rt.className = 'bad';
+      rt.textContent = /General/.test(ev.dieReason || 'General') ? 'General’s defense! Attacker dies' : ev.attackerName + ' dies: ' + ev.dieReason;
     }
+    var extra = false;
+    (ev.deaths || []).forEach(function (d) {
+      var el = els[d.id];
+      if (el && !el.classList.contains('dead')) { el.classList.add('dead'); el.insertAdjacentHTML('beforeend', '<div class="tomb">⚰</div>'); extra = true; }
+    });
+    if (extra || ev.attackerDied) await sleep(900);
     if (att) att.classList.remove('attacker');
     await sleep(150);
   }

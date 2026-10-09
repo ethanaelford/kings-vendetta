@@ -17,6 +17,9 @@ Answer in batches and I'll update the engine.
 
 ## Other assumptions in play
 
+- **Stalemates.** Two Heavily Armored Soldiers facing each other can never kill each other (max roll 7 vs Life 11).
+  *Added:* 30 turns in a row with no deaths ends in a draw (`STALEMATE_TURNS` in config.js). Is there a real rule for this?
+
 - **Berserker Warrior** (Column, "Attacks twice"): two separate rolls against its column. The second roll hits whoever survived the first.
 - **Archer** ("Attack choice from column"): picks either enemy card in its column (front or back) and can attack from either row.
 - **Stealth Warrior** ("Can't be killed by opponent with 6 or less"): cards with base Life <= 6 can't target it at all.
@@ -26,6 +29,23 @@ Answer in batches and I'll update the engine.
 - **Column shifting**: the back card advances first, then empty columns compact toward the center (configurable in `config.js`).
 - **No legal attack**: a player with no legal attack passes automatically. If neither player can attack, the game is a draw.
 - **Who goes first**: random, announced on both screens.
+
+## Tier 2/3 cards added (assumptions)
+
+- **Royal Assassin** "+5 on Royals": +5 only when attacking the **General** (the only royal in play right now).
+- **Rookie** (Gen): targets the enemy General directly. Doubles kill it; anything else is a miss, so Rookie dies (General rule).
+- **Fallen Knight**: +1 Life after each kill (Life goes up, so it gets harder to kill).
+- **Spartan**: permanent +1 to its rolls for every enemy card killed by anyone on its team.
+- **Unstable Titan**: permanent +1 to its rolls each time it attacks without killing anything.
+- **Elite Assassin** "Auto-kill all cards he attacks with < life": automatically kills any non-General target with lower Life than the Assassin (6).
+- **Fire Sentinel** "Killing opponent is killed (exc. General)": whoever kills it also dies, unless the killer is a General.
+- **Wizard**: one roll against its LOS target plus every card in that same row with the same Life.
+- **Horse Mounted Troop** "Jump and attack card and card behind": attacks both cards in its column with one roll, and can attack from the back row.
+- **Hammer Dwarf** (Quad) / **Ranger** (7): one roll against the whole shape. If it kills fewer than 2 cards, the attacker dies.
+- **General's Bodyguard**: while it's alive, the enemy can't target your General.
+- **Wisp**: +1 to its roll per Wisp-family card on its side (including itself). **Neon Wisp**: +2 to every Wisp-family attacker on its side.
+- **Blood Hound** (LUR), **Cannon** (Lean), **Avenger** (Last): pattern only.
+- **Guardian** was left out: "can't kill any card until this card is dead" combined with LOS could leave a player with no legal attack for many turns.
 
 ## Waiting for later sessions (ready: false)
 

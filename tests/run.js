@@ -140,6 +140,42 @@ t('back-row LOS card cannot attack', function () {
   eq(R.getOptions(s, 'p1', s.teams.p1.slots[6].id).length, 0);
 });
 
+console.log('tier 2/3 abilities');
+t('Fire Sentinel takes its killer with it', function () {
+  var s = battleState(row(['militia', 'general'], []), row(['fire-sentinel', 'general'], []));
+  var att = s.teams.p1.slots[0];
+  var s2 = R.act(s, 'p1', { cardId: att.id, option: 0 }, HIGH);
+  ok(!R.findCard(s2, s.teams.p2.slots[0].id), 'sentinel dead'); ok(!R.findCard(s2, att.id), 'killer dead');
+});
+t('Hammer Dwarf dies if it kills fewer than 2', function () {
+  var s = battleState(row(['general', 'hammer-dwarf'], []), row(['knight', 'titan', 'militia'], ['general']));
+  var hd = s.teams.p1.slots[1];
+  var s2 = R.act(s, 'p1', { cardId: hd.id, option: 0 }, HIGH); // quad: knight+titan+general? left block = cols 0,1
+  ok(!R.findCard(s2, hd.id) || s2.lastEvent.rolls[0].hits.filter(function (h) { return h.killed; }).length >= 2, 'mustKill enforced');
+});
+t('General\'s Bodyguard protects the General', function () {
+  var s = battleState(row(['catapult', 'general'], []), row(['generals-bodyguard', 'general'], []));
+  var opts = R.getOptions(s, 'p1', s.teams.p1.slots[0].id);
+  eq(opts.length, 1, 'only the bodyguard is targetable');
+});
+t('Rookie kills the General on doubles', function () {
+  var s = battleState(row(['rookie', 'general'], []), row(['militia', 'general'], []));
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: 0 }, LOW); // 1+1 = doubles
+  eq(s2.winner, 'p1');
+});
+t('Royal Assassin +5 only vs the General', function () {
+  var s = battleState(row(['royal-assassin', 'general'], []), row(['militia', 'general'], []));
+  var ra = s.teams.p1.slots[0];
+  ok(Math.abs(R.hitChance(s, ra, s.teams.p2.slots[1]).p - R.probAtLeast(6)) < 1e-9, 'vs General');
+  ok(Math.abs(R.hitChance(s, ra, s.teams.p2.slots[0]).p - R.probAtLeast(3)) < 1e-9, 'vs Militia');
+});
+t('Spartan gains +1 per enemy kill', function () {
+  var s = battleState(row(['militia', 'spartan', 'general'], []), row(['militia', 'militia', 'general'], []));
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: 0 }, HIGH);
+  var sp = R.findCard(s2, s.teams.p1.slots[1].id).card;
+  eq(sp.dmg, 1);
+});
+
 console.log('deal');
 t('exactly one General per team, no duplicates (200 deals)', function () {
   for (var n = 0; n < 200; n++) {
