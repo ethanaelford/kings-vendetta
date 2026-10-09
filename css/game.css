@@ -236,6 +236,19 @@ textarea.code { width: 100%; min-height: 70px; font: 12px monospace; border-radi
 [data-board="midnight"] #boardWrap { background: radial-gradient(ellipse at center, #1c2a5a 0%, #080c1c 75%); }
 [data-board="gold"] #boardWrap { background: radial-gradient(ellipse at center, #6b5420 0%, #1b1408 75%); }
 
+/* ---------- campaign & upgrades ---------- */
+.stage { display: flex; gap: 12px; align-items: center; padding: 12px; margin: 8px 0; border-radius: 12px; background: var(--bg2); border: 2px solid #4a3a2a; cursor: pointer; }
+.stage .si { font-size: 34px; width: 48px; text-align: center; }
+.stage .sm { flex: 1; }
+.stage .sm small { display: block; color: var(--parch-d); }
+.stage.cleared { border-color: var(--ok); }
+.stage.next { border-color: var(--gold); box-shadow: 0 0 12px rgba(212,166,58,.4); }
+.stage.locked { opacity: .45; }
+.stage.boss { background: linear-gradient(135deg, #3a1212, #2a1f17); }
+.card .lvl { position: absolute; top: 2px; left: 26px; font: bold 10px sans-serif; color: #ffd76a; text-shadow: 0 0 2px #000; }
+.ccard .clvl { position: absolute; top: 3px; right: 26px; font: bold 12px sans-serif; color: #ffd76a; text-shadow: 0 0 3px #000; }
+.upg { margin-top: 10px; padding: 10px; border-radius: 10px; background: #efe2c2; }
+
 /* ---------- quests & leaderboard ---------- */
 .muted { color: #8a7a60; font-size: 11px; letter-spacing: 0; text-transform: none; }
 .quest { display: flex; align-items: center; gap: 8px; text-align: left; padding: 6px 0; border-bottom: 1px solid #3a2c20; }

@@ -2,6 +2,9 @@
 var KV_AI = (function () {
   var R = KV_RULES;
 
+  var noise = 1.5; // randomness in the AI's choices (campaign: high = easy, low = sharp)
+  function setNoise(n) { noise = n == null ? 1.5 : n; }
+
   function value(card) {
     if (card.isGeneral) return 100;
     return 4 + (card.baseLife || 6) + (card.rollsToKill - 1) * 3;
@@ -39,7 +42,7 @@ var KV_AI = (function () {
       }
       if (R.ab(att).randomTarget && a.targets.length) { score /= a.targets.length; expKills /= a.targets.length; }
       var attacks = (R.ab(att).attacks || 1);
-      score = score * (attacks > 1 ? 1.6 : 1) - risk + rng() * 1.5;
+      score = score * (attacks > 1 ? 1.6 : 1) - risk + rng() * noise;
       if (!best || score > best.score) best = { score: score, cardId: a.cardId, option: a.option };
     });
     if ((!best || best.score < 0.5) && R.canSwap(state, side) && !nested) {
@@ -68,5 +71,5 @@ var KV_AI = (function () {
     return best || (anyway ? null : bestSwap(state, side, rng, true));
   }
 
-  return { choose: choose };
+  return { choose: choose, setNoise: setNoise };
 })();

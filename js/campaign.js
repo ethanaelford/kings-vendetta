@@ -1,0 +1,38 @@
+// Single-player campaign: 8 themed opponents, ending with a boss. Your deck vs theirs.
+// noise = AI randomness (higher = easier). genLevel = enemy General level (each level = +1 Life).
+// cardLevel = level of every enemy card.
+var KV_CAMPAIGN = [
+  { name: 'The Border Keep', foe: 'Captain Brann', icon: '🏰', noise: 5, genLevel: 1, cardLevel: 1,
+    story: 'A lazy garrison guards the border. Show them what a real army looks like.',
+    deck: ['militia', 'front-lineman', 'archer', 'blood-hound', 'cannon', 'foot-soldier', 'captain', 'horse-mounted-troop', 'rookie', 'medic', 'tactical-warrior', 'thunder-warrior'],
+    reward: { coins: 60, chest: 'wood' } },
+  { name: 'Goblin Pass', foe: 'Warchief Grot', icon: '👺', noise: 4, genLevel: 1, cardLevel: 1,
+    story: 'Brutes and beasts hold the mountain pass. They hit hard but think slowly.',
+    deck: ['brute', 'hog-mounted-brute', 'frost-brute', 'minotaur', 'berserker-warrior', 'wolf-mounted-dwarf', 'hammer-dwarf', 'dwarf-blitzer', 'unskilled-warrior', 'peasant-mob', 'blood-hound', 'avenger'],
+    reward: { coins: 80, chest: 'wood' } },
+  { name: 'The Wisp Marsh', foe: 'The Will-o-Mother', icon: '👻', noise: 3, genLevel: 1, cardLevel: 1,
+    story: 'Lights dance over the swamp. The more wisps you leave alive, the stronger they get.',
+    deck: ['wisp', 'neon-wisp', 'wisp-captain', 'fire-sprite', 'ent', 'lightning-mage', 'chemical-warfare-warrior', 'hydra', 'the-supplier', 'venom-warrior', 'apprentice', 'redstone-warrior'],
+    reward: { coins: 100, chest: 'silver' } },
+  { name: 'The Iron Foundry', foe: 'Forgemaster Hale', icon: '⚙', noise: 2.5, genLevel: 2, cardLevel: 1,
+    story: 'Armour, more armour, and machines of war. Bring cards that can crack a shell.',
+    deck: ['knight', 'titan', 'heavily-armored-soldier', 'armored-warrior', 'juggernaut', 'iron-giant', 'stone-golem', 'catapult', 'stationary-crossbow-soldier', 'samurai', 'generals-bodyguard', 'attack-wagon'],
+    reward: { coins: 120, chest: 'silver' } },
+  { name: "The Assassins' Guild", foe: 'The Faceless One', icon: '🗡', noise: 2, genLevel: 2, cardLevel: 1,
+    story: 'Nothing here is what it seems. Watch out for the Militia... it might be a Spy.',
+    deck: ['spy', 'royal-assassin', 'elite-assasin', 'stealth-warrior', 'lightning-ninja', 'tactical-ninja', 'dragon-ninja', 'blade-dancer', 'eagle-warrior', 'joker', 'the-manipulator', 'bomb-expert'],
+    reward: { coins: 150, chest: 'silver' } },
+  { name: 'The Frozen Peaks', foe: 'Jarl Frostmane', icon: '❄', noise: 1.5, genLevel: 2, cardLevel: 2,
+    story: 'Ice freezes the careless. Every card here has been hardened by the cold (+1 Life).',
+    deck: ['ice-sentinel', 'frost-giant', 'frost-brute', 'hydra', 'stone-monster', 'major', 'elephant-mounted-warrior', 'ranger', 'archer', 'unstable-titan', 'fallen-knight', 'spartan'],
+    reward: { coins: 180, chest: 'gold' } },
+  { name: "The Dragon's Roost", foe: 'Drakewarden Sol', icon: '🐉', noise: 1.2, genLevel: 3, cardLevel: 2,
+    story: 'Fire from the sky. Kill the Dragon Tamer before its marks come due.',
+    deck: ['dragon-tamer', 'light-dragon', 'phoenix', 'fire-sentinel', 'magma-knight', 'fire-striker', 'lava-guardian', 'elf-rampager', 'elf-blitz-warrior', 'cobalt-knight', 'tactical-alchemist', 'reviver'],
+    reward: { coins: 220, chest: 'gold' } },
+  { name: 'The Usurper King', foe: 'King Malgrave', icon: '👑', noise: 0.6, genLevel: 4, cardLevel: 2, boss: true,
+    story: 'The false king sits on your throne with his finest army. His General is armoured (Life 14). End this.',
+    deck: ['kings-knight', 'melee-expert', 'field-marshall', 'guardian', 'reviver', 'berserker-warrior', 'corrupt-commander', 'admiral', 'commander', 'wizard', 'centurion', "general-s-guard"],
+    reward: { coins: 500, chest: 'gold' } },
+];
+if (typeof module !== 'undefined') module.exports = KV_CAMPAIGN;

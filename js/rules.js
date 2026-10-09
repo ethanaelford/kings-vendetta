@@ -95,7 +95,8 @@
 
   // ---------- cards ----------
   var idCounter = 0;
-  function makeCard(key, side, rng) {
+  // lvl: card level from the owner's collection (each level above 1 = +1 Life)
+  function makeCard(key, side, rng, lvl) {
     var def = cardDef(key);
     idCounter++;
     var id = side + '-' + key + '-' + Math.floor((rng || Math.random)() * 1e6).toString(36) + idCounter.toString(36);
@@ -106,6 +107,7 @@
     };
     var a = ABIL[key] || {};
     if (a.fixedLife) { card.life = card.baseLife = a.fixedLife; }
+    else if (lvl > 1 && card.life != null) { card.life += lvl - 1; card.baseLife = card.life; card.level = lvl; }
     if (a.rollsRequired) card.rollsToKill = a.rollsRequired(card);
     if (a.isGeneral) card.isGeneral = true;
     if (a.init) a.init(card);
@@ -142,7 +144,8 @@
 
   // General + 11 distinct random ready cards. General starts at GENERAL_SLOT.
   // deck: optional list of card keys to draw from (a player's 20-card deck); falls back to the full ready pool
-  function dealTeam(side, rng, deck) {
+  function dealTeam(side, rng, deck, levels) {
+    levels = levels || {};
     var size = CFG.TEAM_SIZE || 12;
     var ready = readyPool(), src = ready;
     if (deck && deck.length) {
@@ -152,11 +155,12 @@
     var pool = shuffle(src, rng).slice(0, size - 1);
     var slots = new Array(12).fill(null);
     var gSlot = CFG.GENERAL_SLOT == null ? 8 : CFG.GENERAL_SLOT;
-    slots[gSlot] = makeCard('general', side, rng);
+    slots[gSlot] = makeCard('general', side, rng, levels.general);
     var k = 0;
     for (var i = 0; i < 12 && k < pool.length; i++) {
       if (i === gSlot) continue;
-      slots[i] = makeCard(pool[k++], side, rng);
+      var key = pool[k++];
+      slots[i] = makeCard(key, side, rng, levels[key]);
     }
     return { slots: slots };
   }
@@ -164,15 +168,16 @@
   function newGame(opts) {
     opts = opts || {};
     var rng = opts.rng || Math.random;
-    var decks = opts.decks || {};
+    var decks = opts.decks || {}, levels = opts.levels || {};
     var s = {
       v: 1, seq: 0, phase: 'deploy',
       gameId: Math.floor(rng() * 1e9).toString(36) + Date.now().toString(36),
       ranked: !!opts.ranked, decks: { p1: decks.p1 || null, p2: decks.p2 || null }, ratings: opts.ratings || {},
+      levels: { p1: levels.p1 || null, p2: levels.p2 || null }, campaign: opts.campaign || null,
       clock: opts.clockMs ? { limit: opts.clockMs, p1: opts.clockMs, p2: opts.clockMs, turnStart: null } : null, turn: null, first: null, winner: null, turnCount: 0,
       names: opts.names || { p1: 'Player 1', p2: 'Player 2' },
       ready: { p1: false, p2: false },
-      teams: { p1: dealTeam('p1', rng, decks.p1), p2: dealTeam('p2', rng, decks.p2) },
+      teams: { p1: dealTeam('p1', rng, decks.p1, levels.p1), p2: dealTeam('p2', rng, decks.p2, levels.p2) },
       graves: { p1: [], p2: [] },
       lastActor: { p1: null, p2: null },
       log: ['Cards dealt. Arrange your troops, then press Ready.'],
@@ -182,12 +187,23 @@
   }
 
   // Re-deal one side from a new deck (e.g. when the guest's deck arrives during deploy)
-  function redeal(state, side, deck, rng) {
+  function redeal(state, side, deck, rng, levels) {
     if (state.phase !== 'deploy' || state.ready[side]) return null;
     var s = clone(state);
     s.decks[side] = deck;
-    s.teams[side] = dealTeam(side, rng, deck);
+    s.levels = s.levels || {};
+    if (levels) s.levels[side] = levels;
+    s.teams[side] = dealTeam(side, rng, deck, s.levels[side]);
     return bump(s, { kind: 'deal' });
+  }
+
+  // A player left the game: they lose
+  function forfeit(state, side) {
+    if (state.phase === 'over') return null;
+    var s = clone(state);
+    s.phase = 'over'; s.winner = other(side); s.winReason = 'forfeit';
+    log(s, s.names[side] + ' left the game - ' + s.names[s.winner] + ' wins!');
+    return bump(s, { kind: 'forfeit', side: side, deaths: [], moves: { p1: [], p2: [] } });
   }
 
   // Chess clock ran out
@@ -981,7 +997,7 @@
     newGame: newGame, findCard: findCard, generalOf: generalOf, compactBoard: compactBoard,
     patternGroups: patternGroups, getOptions: getOptions, legalActions: legalActions,
     hitChance: hitChance, generalRisk: generalRisk, targetLife: targetLife,
-    swap: swap, setReady: setReady, act: act, skip: skip, redeal: redeal, timeout: timeout, turnSwap: turnSwap, canSwap: canSwap, lossReason: lossReason, emptySlot: emptySlot, deckFor: deckFor, rollsNeeded: rollsNeeded, teamBonus: teamBonus, losIndex: losIndex, checkWin: checkWin, addStatus: addStatus, hasStatus: hasStatus, neighbours: neighbours,
+    swap: swap, setReady: setReady, act: act, skip: skip, redeal: redeal, timeout: timeout, forfeit: forfeit, turnSwap: turnSwap, canSwap: canSwap, lossReason: lossReason, emptySlot: emptySlot, deckFor: deckFor, rollsNeeded: rollsNeeded, teamBonus: teamBonus, losIndex: losIndex, checkWin: checkWin, addStatus: addStatus, hasStatus: hasStatus, neighbours: neighbours,
   };
   root.KV_RULES = KV_RULES;
   if (isNode) module.exports = KV_RULES;

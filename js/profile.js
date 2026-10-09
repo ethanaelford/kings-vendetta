@@ -30,6 +30,9 @@ var KV_PROFILE = (function () {
         wins: 0, losses: 0, draws: 0, rankedGames: 0, themes: ['default'], theme: 'default', awarded: {} };
     }
     if (!p.clientId) p.clientId = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    p.copies = p.copies || {};   // extra copies of owned cards (from chests), spent on upgrades
+    p.levels = p.levels || {};   // card level (1 = base). Each level adds +1 Life.
+    p.campaign = p.campaign || 0; // stages cleared
     if (!p.secret) p.secret = Array.from({ length: 4 }, function () { return Math.random().toString(36).slice(2, 10); }).join('');
     // new starter cards added later are granted automatically
     starters().forEach(function (k) { if (p.owned.indexOf(k) < 0) p.owned.push(k); });
@@ -49,6 +52,20 @@ var KV_PROFILE = (function () {
     if (d.length < 11) P.owned.forEach(function (k) { if (d.indexOf(k) < 0 && d.length < DECK_SIZE) d.push(k); });
     return d;
   }
+
+  // ---- upgrades: level 2 = 2 extra copies + 100 coins, level 3 = 4 more copies + 300 coins ----
+  var UPGRADES = { 2: { copies: 2, coins: 100 }, 3: { copies: 4, coins: 300 } };
+  var MAX_LEVEL = 3;
+  function level(key) { return P.levels[key] || 1; }
+  function upgradeCost(key) { var next = level(key) + 1; return next > MAX_LEVEL ? null : { level: next, copies: UPGRADES[next].copies, coins: UPGRADES[next].coins }; }
+  function canUpgrade(key) { var c = upgradeCost(key); return !!c && P.owned.indexOf(key) >= 0 && (P.copies[key] || 0) >= c.copies && P.coins >= c.coins; }
+  function upgrade(key) {
+    if (!canUpgrade(key)) return false;
+    var c = upgradeCost(key);
+    P.copies[key] -= c.copies; P.coins -= c.coins; P.levels[key] = c.level;
+    save(); return true;
+  }
+  function levelsForGame() { var m = {}; Object.keys(P.levels).forEach(function (k) { if (P.levels[k] > 1) m[k] = P.levels[k]; }); return m; }
 
   function toggleDeck(key) {
     var i = P.deck.indexOf(key);
@@ -85,13 +102,21 @@ var KV_PROFILE = (function () {
     if (Math.random() < ch.cardChance) {
       var want = weighted(ch.odds), order = [want].concat(RARITIES.filter(function (r) { return r !== want; }));
       for (var i = 0; i < order.length; i++) {
-        var locked = cards().filter(function (c) { return c.rarity === order[i] && P.owned.indexOf(c.key) < 0; });
-        if (locked.length) {
+        var all = cards().filter(function (c) { return c.rarity === order[i]; });
+        var locked = all.filter(function (c) { return P.owned.indexOf(c.key) < 0; });
+        var owned = all.filter(function (c) { return P.owned.indexOf(c.key) >= 0 && level(c.key) < MAX_LEVEL; });
+        if (locked.length && (!owned.length || Math.random() < 0.65)) {
           var c = locked[Math.floor(Math.random() * locked.length)];
           P.owned.push(c.key);
           if (P.deck.length < DECK_SIZE) P.deck.push(c.key);
           save();
           return { kind: 'card', key: c.key, name: c.name, rarity: c.rarity };
+        }
+        if (owned.length) {
+          var d = owned[Math.floor(Math.random() * owned.length)];
+          P.copies[d.key] = (P.copies[d.key] || 0) + 1;
+          save();
+          return { kind: 'copy', key: d.key, name: d.name, rarity: d.rarity, copies: P.copies[d.key] };
         }
       }
     }
@@ -101,6 +126,14 @@ var KV_PROFILE = (function () {
   }
 
   // Called once per finished game. Returns {chest, elo} or null if this game was already counted.
+  // Campaign stage won: first clear gives the stage reward and unlocks the next stage
+  function campaignWin(index, reward) {
+    if (index !== P.campaign) return null;
+    P.campaign = index + 1;
+    P.coins += reward.coins; save();
+    return reward;
+  }
+
   function recordGame(info) {
     if (!info.gameId || P.awarded[info.gameId]) return null;
     P.awarded[info.gameId] = Date.now();
@@ -116,7 +149,7 @@ var KV_PROFILE = (function () {
       elo = { delta: delta, rating: P.rating, tier: tier(P.rating, P.rank) };
     }
     save();
-    return { chest: rollChest(info.won), elo: elo };
+    return { chest: info.forfeit ? null : rollChest(info.won), elo: elo };
   }
 
   function buyTheme(id) {
@@ -132,7 +165,7 @@ var KV_PROFILE = (function () {
   function applyTheme() { document.documentElement.setAttribute('data-board', P.theme || 'default'); }
 
   function backupCode() {
-    var data = { owned: P.owned, deck: P.deck, coins: P.coins, rating: P.rating, wins: P.wins, losses: P.losses, draws: P.draws, themes: P.themes, theme: P.theme, rankedGames: P.rankedGames,
+    var data = { copies: P.copies, levels: P.levels, campaign: P.campaign, owned: P.owned, deck: P.deck, coins: P.coins, rating: P.rating, wins: P.wins, losses: P.losses, draws: P.draws, themes: P.themes, theme: P.theme, rankedGames: P.rankedGames,
       clientId: P.clientId, secret: P.secret };
     return btoa(unescape(encodeURIComponent(JSON.stringify(data))));
   }
@@ -177,7 +210,8 @@ var KV_PROFILE = (function () {
 
   return {
     get: function () { return P; }, syncLeaderboard: syncLeaderboard, fetchRank: fetchRank, myTier: myTier, fetchLeaderboard: fetchLeaderboard, save: save, DECK_SIZE: DECK_SIZE, RARITY_LABEL: RARITY_LABEL, CHESTS: CHESTS, THEMES: THEMES,
-    deckForGame: deckForGame, toggleDeck: toggleDeck, tier: tier, openChest: openChest, recordGame: recordGame,
+    deckForGame: deckForGame, level: level, upgradeCost: upgradeCost, canUpgrade: canUpgrade, upgrade: upgrade,
+    levelsForGame: levelsForGame, MAX_LEVEL: MAX_LEVEL, campaignWin: campaignWin, toggleDeck: toggleDeck, tier: tier, openChest: openChest, recordGame: recordGame,
     buyTheme: buyTheme, applyTheme: applyTheme, backupCode: backupCode, restore: restore, cards: cards,
   };
 })();

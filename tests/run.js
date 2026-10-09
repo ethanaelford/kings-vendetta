@@ -385,6 +385,23 @@ t('wiping every card except the General wins', function () {
   eq(s2.winner, 'p1'); eq(s2.winReason, 'wipe');
 });
 
+console.log('levels & forfeit');
+t('card levels add Life', function () {
+  var c = R.makeCard('archer', 'p1', Math.random, 3);
+  eq(c.life, 8); eq(c.baseLife, 8); eq(c.level, 3);
+});
+t('deal applies deck levels', function () {
+  var s = R.newGame({ decks: { p1: ['archer', 'militia', 'knight', 'titan', 'brute', 'cannon', 'wisp', 'spy', 'medic', 'rookie', 'ace'] }, levels: { p1: { archer: 2, general: 3 } } });
+  var a = s.teams.p1.slots.filter(function (c) { return c && c.cardKey === 'archer'; })[0];
+  eq(a.life, 7); eq(R.generalOf(s, 'p1').life, 13);
+});
+t('forfeit: leaver loses', function () {
+  var s = R.newGame();
+  var s2 = R.forfeit(s, 'p2');
+  eq(s2.phase, 'over'); eq(s2.winner, 'p1'); eq(s2.winReason, 'forfeit');
+  eq(R.forfeit(s2, 'p1'), null, 'no double forfeit');
+});
+
 console.log('deal');
 t('exactly one General per team, no duplicates (200 deals)', function () {
   for (var n = 0; n < 200; n++) {

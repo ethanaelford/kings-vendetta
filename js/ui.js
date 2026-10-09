@@ -39,7 +39,7 @@
 
   // ---------------- screens ----------------
   function show(id) {
-    ['lobby', 'game', 'library', 'collection', 'profile', 'leaders'].forEach(function (s) { $(s).classList.toggle('hidden', s !== id); });
+    ['lobby', 'game', 'library', 'collection', 'profile', 'leaders', 'campaign'].forEach(function (s) { $(s).classList.toggle('hidden', s !== id); });
     if (id === 'game') { layout(); requestWake(); }
   }
 
@@ -104,6 +104,7 @@
     }
     if (card.dmg) h += '<div class="dmg">+' + card.dmg + '</div>';
     if (card.statuses && card.statuses.length) h += '<div class="st">' + card.statuses.map(function (s) { return s.icon || '•'; }).join('') + '</div>';
+    if (card.level > 1) h += '<div class="lvl">' + '★'.repeat(card.level - 1) + '</div>';
     h += '<div class="nm">' + esc(shortName(def.name)) + '</div>';
     return h;
   }
@@ -145,7 +146,7 @@
           board.appendChild(el);
           els[card.id] = el;
         }
-        var sig = shownKey(card) + '|' + card.charges + '|' + card.bounty + '|' + card.life + '|' + card.hitsTaken + '|' + (card.dmg || 0) + '|' + JSON.stringify(card.statuses);
+        var sig = shownKey(card) + '|' + (card.level || 1) + '|' + card.charges + '|' + card.bounty + '|' + card.life + '|' + card.hitsTaken + '|' + (card.dmg || 0) + '|' + JSON.stringify(card.statuses);
         if (el._sig !== sig) { el.innerHTML = cardInner(card); el._sig = sig; }
         var cls = 'card ' + (side === G.view ? 'mine' : 'enemy') + ' rar-' + (R.cardDef(shownKey(card)).rarity || 'common');
         if (card.isGeneral) cls += ' general';
@@ -458,7 +459,11 @@
       if (tracked) {
         var opp = R.other(G.view);
         G.reward = KV_PROFILE.recordGame({ gameId: next.gameId, won: next.winner === G.view, draw: next.winner === 'draw',
-          ranked: next.ranked, oppRating: (next.ratings || {})[opp] || 1000 });
+          ranked: next.ranked, oppRating: (next.ratings || {})[opp] || 1000, forfeit: next.winReason === 'forfeit' && next.winner !== G.view });
+        if (G.reward && next.campaign && next.winner === G.view) {
+          var cst = KV_CAMPAIGN[next.campaign.stage];
+          G.reward.stage = KV_PROFILE.campaignWin(next.campaign.stage, cst.reward);
+        }
         if (G.reward) KV_QUESTS.onGameOver(next, G.view);
         if (G.reward && G.reward.elo) KV_PROFILE.syncLeaderboard(myName()).then(KV_PROFILE.fetchRank).then(refreshPlayerCard);
         refreshPlayerCard();
@@ -482,18 +487,31 @@
     var rw = G.reward, extra = '';
     if (rw && rw.elo) extra += '<div class="elo ' + (rw.elo.delta >= 0 ? 'up' : 'down') + '">' + rw.elo.tier.icon + ' ' + rw.elo.rating +
       ' (' + (rw.elo.delta >= 0 ? '+' : '') + rw.elo.delta + ')</div>';
+    if (s.winReason === 'forfeit' && s.winner === G.view) extra += '<p>Your opponent left - <b>you win!</b></p>';
+    if (rw && rw.stage) extra += '<p>🗺 <b>Stage cleared!</b> +' + rw.stage.coins + ' coins' + (KV_CAMPAIGN[s.campaign.stage + 1] ? ' · next stage unlocked' : ' · <b>Campaign complete!</b> 👑') + '</p>';
+    if (rw && rw.stage && rw.stage.chest && !rw.chest) rw.chest = rw.stage.chest;
+    else if (rw && rw.stage && rw.stage.chest) rw.chest2 = rw.stage.chest;
+    if (rw && rw.chest2) extra += '<button class="btn primary big" id="ovChest2">' + KV_PROFILE.CHESTS[rw.chest2].icon + ' Open stage reward</button>';
     if (rw && rw.chest) extra += '<button class="btn primary big" id="ovChest">' + KV_PROFILE.CHESTS[rw.chest].icon + ' Open ' + KV_PROFILE.CHESTS[rw.chest].name + '</button>';
     overlay('<h2>' + esc(title) + '</h2>' + (s.ranked ? '<div>⚔ Ranked match</div>' : '') + '<p>' + esc(s.log[s.log.length - 1] || '') + '</p>' + extra +
       '<button class="btn ' + (rw && rw.chest ? '' : 'primary ') + 'big" id="ovRematch">Rematch</button><button class="btn big" id="ovClose">View board</button><button class="btn big" id="ovLobby">Lobby</button>');
     if ($('ovChest')) $('ovChest').onclick = function () { openChestOverlay(rw.chest, function () { G.reward.chest = null; gameOverOverlay(); }); };
+    if ($('ovChest2')) $('ovChest2').onclick = function () { openChestOverlay(rw.chest2, function () { G.reward.chest2 = null; G.reward.stage = null; gameOverOverlay(); }); };
     $('ovRematch').onclick = function () { closeOverlay(); dispatch({ type: 'rematch' }); };
     $('ovClose').onclick = closeOverlay;
     $('ovLobby').onclick = function () { closeOverlay(); leave(); };
+    if (s.campaign) {
+      $('ovRematch').textContent = s.winner === G.view ? 'Play stage again' : 'Retry stage';
+      $('ovLobby').textContent = 'Back to campaign';
+      $('ovLobby').onclick = function () { closeOverlay(); leave(true); showCampaign(); };
+    }
   }
 
   function ccardHtml(c, cls) {
     return '<div class="ccard rar-' + c.rarity + ' ' + (cls || '') + '" data-key="' + c.key + '"><div class="cart">' + KV_ART.html(c) + '</div>' +
-      '<div class="clife">' + esc(c.lifeRaw === 'Inf' ? '∞' : c.life) + '</div><div class="cnm">' + esc(c.name) + '<br><span class="rtag">' +
+      '<div class="clife">' + esc(c.lifeRaw === 'Inf' ? '∞' : c.life + KV_PROFILE.level(c.key) - 1) + '</div>' +
+      (KV_PROFILE.level(c.key) > 1 ? '<div class="clvl">' + '★'.repeat(KV_PROFILE.level(c.key) - 1) + '</div>' : '') +
+      ((KV_PROFILE.get().copies || {})[c.key] ? '<div class="clvl" style="top:auto;bottom:34px;right:4px">x' + KV_PROFILE.get().copies[c.key] + '</div>' : '') + '<div class="cnm">' + esc(c.name) + '<br><span class="rtag">' +
       KV_PROFILE.RARITY_LABEL[c.rarity] + '</span></div></div>';
   }
 
@@ -504,6 +522,8 @@
       var r = KV_PROFILE.openChest(type);
       var body = r.kind === 'card'
         ? '<p>New card unlocked!</p><div class="reward">' + ccardHtml(KV_RULES.cardDef(r.key)) + '</div><p>It was added to your deck if there was room.</p>'
+        : r.kind === 'copy'
+        ? '<p>Extra copy!</p><div class="reward">' + ccardHtml(KV_RULES.cardDef(r.key)) + '</div><p>You now have <b>' + r.copies + '</b> spare ' + esc(r.name) + (r.copies === 1 ? '' : 's') + ' for upgrades (Deck &amp; Cards).</p>'
         : '<div class="reward chest">🪙</div><p><b>+' + r.coins + ' coins</b> (spend them in the Shop)</p>';
       overlay('<h2>' + esc(ch.name) + '</h2>' + body + '<button class="btn primary big" id="ovChestOk">Nice!</button>');
       refreshPlayerCard();
@@ -544,8 +564,9 @@
     else if (intent.type === 'action') res = R.act(s, side, intent);
     else if (intent.type === 'skip') res = R.skip(s, side);
     else if (intent.type === 'tswap') res = R.turnSwap(s, side, intent.a, intent.b);
+    else if (intent.type === 'forfeit') res = R.forfeit(s, side);
     else if (intent.type === 'rematch' && s.phase === 'over') {
-      res = R.newGame({ names: s.names, decks: s.decks, ranked: s.ranked, ratings: s.ratings, clockMs: s.clock ? s.clock.limit : 0 });
+      res = R.newGame({ names: s.names, decks: s.decks, levels: s.levels, ranked: s.ranked, ratings: s.ratings, campaign: s.campaign, clockMs: s.clock ? s.clock.limit : 0 });
       res.guestClient = s.guestClient;
       res.seq = s.seq + 1; res.lastEvent = { kind: 'deal', seq: res.seq };
     }
@@ -757,7 +778,7 @@
     $('rollText').textContent = '';
   }
 
-  function startLocal(mode, resume) {
+  function startLocal(mode, resume, stage) {
     KV_NET.close();
     resetBoard();
     G.mode = mode; G.room = null; G.view = 'p1';
@@ -769,7 +790,15 @@
     }
     show('game');
     var opts = { names: names, clockMs: clockMs() };
-    if (mode === 'ai') opts.decks = { p1: KV_PROFILE.deckForGame(), p2: null };
+    KV_AI.setNoise(null);
+    if (mode === 'ai') { opts.decks = { p1: KV_PROFILE.deckForGame(), p2: null }; opts.levels = { p1: KV_PROFILE.levelsForGame(), p2: null }; }
+    if (mode === 'ai' && stage != null) {
+      var st = KV_CAMPAIGN[stage], lv = { general: st.genLevel };
+      st.deck.forEach(function (k) { lv[k] = st.cardLevel; });
+      names.p2 = st.foe;
+      opts.decks.p2 = st.deck; opts.levels.p2 = lv; opts.campaign = { stage: stage };
+      KV_AI.setNoise(st.noise);
+    }
     commit(resume || R.newGame(opts));
   }
 
@@ -796,6 +825,7 @@
     show('game');
     var saved = resume && LS.get('kv-state-' + code);
     var st = saved || R.newGame({ names: { p1: myName(), p2: 'Opponent' }, decks: { p1: KV_PROFILE.deckForGame(), p2: null },
+      levels: { p1: KV_PROFILE.levelsForGame(), p2: null },
       ranked: !!ranked, ratings: { p1: me().rating }, clockMs: ranked ? 10 * 60000 : clockMs() });
     if (saved) { st.seq++; st.lastEvent = Object.assign({}, st.lastEvent, { seq: st.seq, kind: 'resume' }); }
     commit(st);
@@ -834,8 +864,10 @@
       if (m.clientId && s.guestClient !== m.clientId) { s.guestClient = m.clientId; changed = true; }
       if (m.name && s.names.p2 !== m.name) { s.names.p2 = String(m.name).slice(0, 16); changed = true; }
       if (m.rating && (s.ratings || {}).p2 !== m.rating) { s.ratings = s.ratings || {}; s.ratings.p2 = +m.rating; changed = true; }
-      if (m.deck && s.phase === 'deploy' && !s.ready.p2 && JSON.stringify(s.decks.p2) !== JSON.stringify(m.deck)) {
-        var rd = R.redeal(s, 'p2', m.deck.slice(0, 40));
+      var lvIn = {};
+      Object.keys(m.levels || {}).forEach(function (k) { lvIn[k] = Math.max(1, Math.min(KV_PROFILE.MAX_LEVEL, +m.levels[k] || 1)); });
+      if (m.deck && s.phase === 'deploy' && !s.ready.p2 && (JSON.stringify(s.decks.p2) !== JSON.stringify(m.deck) || JSON.stringify((s.levels || {}).p2) !== JSON.stringify(lvIn))) {
+        var rd = R.redeal(s, 'p2', m.deck.slice(0, 40), null, lvIn);
         if (rd) { s = rd; changed = true; }
       }
       if (changed) { s.seq++; s.lastEvent = { kind: s.lastEvent && s.lastEvent.kind === 'deal' ? 'deal' : 'names', seq: s.seq }; commit(s); }
@@ -860,7 +892,7 @@
     $('banner').textContent = 'Joining ' + code + '…';
     $('actionbar').innerHTML = '<div class="info">Connecting to room <b>' + code + '</b>…</div>';
     var hello = function () {
-      KV_NET.send({ type: 'hello', name: myName(), clientId: me().clientId, rating: me().rating, deck: KV_PROFILE.deckForGame() });
+      KV_NET.send({ type: 'hello', name: myName(), clientId: me().clientId, rating: me().rating, deck: KV_PROFILE.deckForGame(), levels: KV_PROFILE.levelsForGame() });
       KV_NET.send({ type: 'sync-request', clientId: me().clientId });
     };
     KV_NET.connect({
@@ -925,7 +957,24 @@
     else prompt('Copy this link:', url);
   }
 
-  function leave() {
+  // Leaving a live game forfeits it (online + vs computer). quiet = already over / no prompt.
+  function leave(quiet) {
+    var cur = G.pendingState || G.state;
+    var live = cur && (cur.phase === 'deploy' || cur.phase === 'battle') && (G.mode === 'host' || G.mode === 'guest' || G.mode === 'ai');
+    if (live && !quiet) {
+      if (!confirm('Leave the game? You will forfeit and ' + cur.names[R.other(G.view)] + ' wins.')) return;
+      var lostState = R.forfeit(cur, G.view);
+      if (G.mode === 'guest') {
+        for (var i = 0; i < 3; i++) setTimeout(function () { KV_NET.send({ type: 'intent', intent: { type: 'forfeit' }, clientId: me().clientId }); }, i * 150);
+      } else if (G.mode === 'host') {
+        G.pendingState = lostState; LS.set('kv-state-' + G.room, lostState); broadcastState(lostState);
+      }
+      KV_PROFILE.recordGame({ gameId: cur.gameId, won: false, ranked: cur.ranked, oppRating: (cur.ratings || {})[R.other(G.view)] || 1000, forfeit: true });
+      refreshPlayerCard();
+      var mode = G.mode;
+      G.mode = 'leaving';
+      return setTimeout(function () { G.mode = mode; leave(true); }, G.mode === 'ai' ? 0 : 600);
+    }
     KV_NET.close();
     clearTimeout(aiTimer); aiTimer = null;
     LS.del('kv-session');
@@ -993,11 +1042,51 @@
         '</p><div class="ability">' + esc(c.text) + '</div><p>Unlock it from chests - win or lose a game to earn one.</p>');
       return;
     }
-    if (!KV_PROFILE.toggleDeck(key)) toast('');
-    if (P.deck.indexOf(key) < 0 && P.deck.length >= KV_PROFILE.DECK_SIZE && !cc.classList.contains('indeck')) {
-      openSheet('<p>Your deck is full (' + KV_PROFILE.DECK_SIZE + '). Tap a card with a ✓ to remove it first.</p>');
-    }
-    var y = window.scrollY; showCollection(); window.scrollTo(0, y);
+    cardSheet(key);
+  }
+
+  function cardSheet(key) {
+    var P = me(), c = KV_RULES.cardDef(key), lvl = KV_PROFILE.level(key), cost = KV_PROFILE.upgradeCost(key);
+    var inDeck = P.deck.indexOf(key) >= 0, have = P.copies[key] || 0;
+    var h = '<div class="detail"><div class="big-art">' + KV_ART.html(c) + '</div><div><h2>' + esc(c.name) + '</h2>' +
+      '<div class="kv"><span class="rtag rar-' + c.rarity + '">' + KV_PROFILE.RARITY_LABEL[c.rarity] + '</span> · Level ' + lvl + ' ' + '★'.repeat(lvl - 1) + '</div>' +
+      '<div class="kv">Life <b>' + (c.life + lvl - 1) + '</b>' + (lvl > 1 ? ' (base ' + c.life + ')' : '') + ' · ' + KV_ART.PATTERN_ICON[c.pattern] + ' ' + esc(KV_ART.PATTERN_TEXT[c.pattern]) + '</div>' +
+      '</div></div><div class="ability">' + esc(c.text || 'No special ability.') + '</div>';
+    h += '<button class="btn big ' + (inDeck ? '' : 'primary') + '" id="csDeck">' + (inDeck ? 'Remove from deck' : 'Add to deck (' + P.deck.length + '/' + KV_PROFILE.DECK_SIZE + ')') + '</button>';
+    h += '<div class="upg">' + (cost ? '<b>Upgrade to level ' + cost.level + '</b> (+1 Life): ' + have + '/' + cost.copies + ' spare copies · 🪙' + cost.coins +
+      ' <button class="btn ' + (KV_PROFILE.canUpgrade(key) ? 'primary' : '') + '" id="csUp" ' + (KV_PROFILE.canUpgrade(key) ? '' : 'disabled') + '>Upgrade</button>' +
+      '<br><small>Spare copies come from chests.</small>' : '<b>Max level!</b> ★★') + '</div>';
+    openSheet(h);
+    $('csDeck').onclick = function () {
+      if (!inDeck && P.deck.length >= KV_PROFILE.DECK_SIZE) { alert('Your deck is full (' + KV_PROFILE.DECK_SIZE + '). Remove a card first.'); return; }
+      KV_PROFILE.toggleDeck(key); closeSheet(); var y = window.scrollY; showCollection(); window.scrollTo(0, y);
+    };
+    if ($('csUp')) $('csUp').onclick = function () {
+      if (KV_PROFILE.upgrade(key)) { refreshPlayerCard(); cardSheet(key); var y = window.scrollY; showCollection(); window.scrollTo(0, y); }
+    };
+  }
+
+  // ---------------- campaign ----------------
+  function showCampaign() {
+    var P = me();
+    $('cmpBody').innerHTML = '<p>Beat each opponent with your own deck to unlock the next. First clears pay coins and a chest.</p>' +
+      KV_CAMPAIGN.map(function (st, i) {
+        var cls = i < P.campaign ? 'cleared' : i === P.campaign ? 'next' : 'locked';
+        return '<div class="stage ' + cls + (st.boss ? ' boss' : '') + '" data-stage="' + i + '"><div class="si">' + st.icon + '</div><div class="sm"><b>' + (i + 1) + '. ' + esc(st.name) + '</b>' +
+          '<small>vs ' + esc(st.foe) + (st.boss ? ' · BOSS' : '') + '</small><small>Reward: 🪙' + st.reward.coins + ' + ' + KV_PROFILE.CHESTS[st.reward.chest].icon + '</small></div>' +
+          '<div>' + (i < P.campaign ? '✓' : i === P.campaign ? '▶' : '🔒') + '</div></div>';
+      }).join('') + (P.campaign >= KV_CAMPAIGN.length ? '<p class="mythic" style="text-align:center">👑 Campaign complete - the throne is yours!</p>' : '');
+    show('campaign');
+  }
+  function onCampaignTap(e) {
+    var el = e.target.closest('[data-stage]'); if (!el) return;
+    var i = +el.dataset.stage, P = me(), st = KV_CAMPAIGN[i];
+    if (i > P.campaign) return openSheet('<p>🔒 Beat stage ' + (i) + ' first.</p>');
+    overlay('<h2>' + st.icon + ' ' + esc(st.name) + '</h2><p><b>vs ' + esc(st.foe) + '</b>' + (st.boss ? ' · BOSS' : '') + '</p><p>' + esc(st.story) + '</p>' +
+      '<p class="muted" style="font-size:13px">Enemy General Life ' + (11 + st.genLevel - 1) + (st.cardLevel > 1 ? ' · enemy cards +' + (st.cardLevel - 1) + ' Life' : '') + '</p>' +
+      '<button class="btn primary big" id="cmpGo">⚔ Battle</button><button class="btn big" id="cmpNo">Not yet</button>');
+    $('cmpNo').onclick = closeOverlay;
+    $('cmpGo').onclick = function () { closeOverlay(); startLocal('ai', null, i); };
   }
 
   function showProfile() {
@@ -1124,6 +1213,9 @@
     $('collectionBtn').onclick = function () { colFilter = 'all'; showCollection(); };
     $('profileBtn').onclick = function () { if (needName()) showProfile(); };
     $('colBack').onclick = lobby;
+    $('campaignBtn').onclick = function () { if (needName()) showCampaign(); };
+    $('cmpBack').onclick = lobby;
+    $('cmpBody').addEventListener('click', onCampaignTap);
     $('leaderBtn').onclick = function () { if (needName()) showLeaders(); };
     $('lbBack').onclick = lobby;
     $('lbRefresh').onclick = showLeaders;
