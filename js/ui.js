@@ -1099,12 +1099,17 @@
       '<p>🪙 <b>' + P.coins + '</b> coins · 🃏 ' + P.owned.length + ' cards</p></div>';
     var acc = KV_PROFILE.account();
     h += '<div class="panel"><div class="panel-title">Account</div>' + (acc.user
-      ? '<p>☁ Signed in as <b>' + esc(acc.user.email || acc.user.name) + '</b><br><small>' + ({ synced: 'Progress saved to the cloud', syncing: 'Saving…', error: 'Could not reach the cloud - will retry' }[acc.status] || '') + '</small></p>' +
+      ? '<p>☁ Signed in as <b>' + esc(acc.user.username || acc.user.name || acc.user.email) + '</b><br><small>' + ({ synced: 'Progress saved to the cloud', syncing: 'Saving…', error: 'Could not reach the cloud - will retry' }[acc.status] || '') + '</small></p>' +
         '<button class="btn" id="accSync">Sync now</button> <button class="btn" id="accOut">Sign out</button>'
-      : !C.GOOGLE_SIGNIN ? '<p>Accounts are coming soon. Until then use the backup code below to move your progress.</p>'
       : '<p>Sign in to keep your cards, coins and rating safe and use them on any device.</p>' +
+        '<input id="accUser" class="name2" style="width:100%;margin:4px 0" placeholder="Username" autocomplete="username" autocapitalize="none" maxlength="16">' +
+        '<input id="accPass" class="name2" style="width:100%;margin:4px 0" type="password" placeholder="Password (6+ characters)" autocomplete="current-password">' +
+        '<div class="row"><button class="btn primary" style="flex:1" id="accLogin">Sign in</button><button class="btn" style="flex:1" id="accCreate">Create account</button></div>' +
+        '<p id="accMsg" class="warn"></p>' +
+        '<p class="muted" style="font-size:12px">No email needed. Remember your password: it cannot be reset by email (keep your backup code too).</p>' +
+        (!C.GOOGLE_SIGNIN ? '' :
         '<button class="btn primary big" id="accIn"><b>G</b>&nbsp; Sign in with Google</button>' +
-        '<p class="muted" style="font-size:12px">On iPhone, sign in from Safari. If you play from a Home Screen icon, sign in there too.</p>') + '</div>';
+        '<p class="muted" style="font-size:12px">On iPhone, sign in from Safari. If you play from a Home Screen icon, sign in there too.</p>')) + '</div>';
     h += '<div class="panel"><div class="panel-title">Board themes</div><div class="themes">' + KV_PROFILE.THEMES.map(function (th) {
       var owned = P.themes.indexOf(th.id) >= 0;
       return '<div class="theme theme-' + th.id + (P.theme === th.id ? ' on' : '') + '" data-theme="' + th.id + '"><b>' + esc(th.name) + '</b><br>' +
@@ -1118,6 +1123,18 @@
   }
   function onProfileTap(e) {
     if (e.target.closest('#accIn')) { KV_PROFILE.signInGoogle(); return; }
+    var lg = e.target.closest('#accLogin'), cr = e.target.closest('#accCreate');
+    if (lg || cr) {
+      var btn = lg || cr; btn.disabled = true; $('accMsg').textContent = cr ? 'Creating account…' : 'Signing in…';
+      KV_PROFILE.signInPassword($('accUser').value, $('accPass').value, !!cr).then(function (r) {
+        btn.disabled = false;
+        if (r.error) { $('accMsg').textContent = r.error; return; }
+        $('accMsg').textContent = '';
+        var u = (($('accUser') || {}).value || '').trim();
+        if (u && !$('nameInput').value) { $('nameInput').value = u.slice(0, 16); LS.set('kv-name', myName()); }
+      });
+      return;
+    }
     if (e.target.closest('#accOut')) { KV_PROFILE.signOut().then(showProfile); return; }
     if (e.target.closest('#accSync')) { KV_PROFILE.syncNow().then(showProfile); return; }
     var th = e.target.closest('[data-theme]');

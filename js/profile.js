@@ -245,13 +245,35 @@ var KV_PROFILE = (function () {
     c.auth.onAuthStateChange(function (event, session) {
       var u = session && session.user;
       var was = account.user && account.user.id;
-      account.user = u ? { id: u.id, email: u.email, name: (u.user_metadata || {}).full_name || (u.user_metadata || {}).name || '' } : null;
+      var md = (u && u.user_metadata) || {};
+      account.user = u ? { id: u.id, email: u.email, username: md.username || '', name: md.username || md.full_name || md.name || '' } : null;
       if (!u) { setStatus('signed-out'); return; }
       if (was !== u.id) pull();
       // tidy the ?code=... left in the URL by the Google redirect
       if (/[?&]code=/.test(location.search)) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
     });
   }
+  // Username + password accounts (no email needed). Usernames map to a private placeholder address.
+  var USER_DOMAIN = '@players.kingsvendetta.app';
+  function cleanUsername(u) { return String(u || '').trim().toLowerCase(); }
+  function validUsername(u) { return /^[a-z0-9_]{3,16}$/.test(u); }
+  function signInPassword(username, password, create) {
+    var c = KV_SB(), u = cleanUsername(username);
+    if (!c) return Promise.resolve({ error: 'Online features are not available.' });
+    if (!validUsername(u)) return Promise.resolve({ error: 'Username: 3-16 letters, numbers or _' });
+    if (!password || password.length < 6) return Promise.resolve({ error: 'Password: at least 6 characters' });
+    var req = create
+      ? c.auth.signUp({ email: u + USER_DOMAIN, password: password, options: { data: { username: u } } })
+      : c.auth.signInWithPassword({ email: u + USER_DOMAIN, password: password });
+    return req.then(function (r) {
+      if (!r.error) return {};
+      var m = r.error.message || '';
+      if (/already registered|already been registered/i.test(m)) return { error: 'That username is taken.' };
+      if (/invalid login/i.test(m)) return { error: 'Wrong username or password.' };
+      return { error: m };
+    }, function () { return { error: 'Could not reach the server.' }; });
+  }
+
   function signInGoogle() {
     var c = KV_SB();
     if (!c) return Promise.resolve();
@@ -292,7 +314,7 @@ var KV_PROFILE = (function () {
   }
 
   return {
-    get: function () { return P; }, account: function () { return account; }, initAuth: initAuth, signInGoogle: signInGoogle, signOut: signOut, syncNow: push, syncLeaderboard: syncLeaderboard, fetchRank: fetchRank, myTier: myTier, fetchLeaderboard: fetchLeaderboard, save: save, DECK_SIZE: DECK_SIZE, RARITY_LABEL: RARITY_LABEL, CHESTS: CHESTS, THEMES: THEMES,
+    get: function () { return P; }, account: function () { return account; }, initAuth: initAuth, signInPassword: signInPassword, signInGoogle: signInGoogle, signOut: signOut, syncNow: push, syncLeaderboard: syncLeaderboard, fetchRank: fetchRank, myTier: myTier, fetchLeaderboard: fetchLeaderboard, save: save, DECK_SIZE: DECK_SIZE, RARITY_LABEL: RARITY_LABEL, CHESTS: CHESTS, THEMES: THEMES,
     deckForGame: deckForGame, level: level, upgradeCost: upgradeCost, canUpgrade: canUpgrade, upgrade: upgrade,
     levelsForGame: levelsForGame, MAX_LEVEL: MAX_LEVEL, campaignWin: campaignWin, toggleDeck: toggleDeck, tier: tier, openChest: openChest, recordGame: recordGame,
     buyTheme: buyTheme, applyTheme: applyTheme, backupCode: backupCode, restore: restore, cards: cards,

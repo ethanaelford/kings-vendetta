@@ -6,7 +6,7 @@ var KV_CONFIG = {
 
   GOOGLE_SIGNIN: false,       // flip to true once Google OAuth is configured in Supabase
 
-  BUILD: '20261009-1854',               // replaced by deploy script with a timestamp
+  BUILD: '20261009-1858',               // replaced by deploy script with a timestamp
 
   // Rules
   ADVANCE_BACK_ROW: true,     // back card moves forward when the front card in its column dies

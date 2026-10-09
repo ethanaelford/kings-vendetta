@@ -139,7 +139,7 @@ var KV_CARDS = [
   "text": "Moves then attacks",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/lightning-ninja.png",
   "power": 11,
   "rarity": "uncommon",
   "starter": false
@@ -235,7 +235,7 @@ var KV_CARDS = [
   "text": "Card behind attacks card behind opponent",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/tactical-warrior.png",
   "power": 8,
   "rarity": "common",
   "starter": true
@@ -331,7 +331,7 @@ var KV_CARDS = [
   "text": "Attacks 2 to right or left of LOS.",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/cannon.png",
   "power": 7,
   "rarity": "common",
   "starter": true
@@ -363,7 +363,7 @@ var KV_CARDS = [
   "text": "Attacks each card with LOS life (+1)",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/cobalt-knight.png",
   "power": 11,
   "rarity": "uncommon",
   "starter": false
@@ -459,7 +459,7 @@ var KV_CARDS = [
   "text": "If not attacked gets free attack on Any after Roll",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/joker.png",
   "power": 12,
   "rarity": "rare",
   "starter": false
@@ -539,7 +539,7 @@ var KV_CARDS = [
   "text": "Switch with Adjacent Cards (x1)",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/foot-soldier.png",
   "power": 6,
   "rarity": "common",
   "starter": true
@@ -667,7 +667,7 @@ var KV_CARDS = [
   "text": "(+) Both adjacent cards attack",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/commander.png",
   "power": 12,
   "rarity": "rare",
   "starter": false
@@ -811,7 +811,7 @@ var KV_CARDS = [
   "text": "Can use last roll",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/apprentice.png",
   "power": 10,
   "rarity": "uncommon",
   "starter": false
@@ -827,7 +827,7 @@ var KV_CARDS = [
   "text": "Make any opponent card use the turn (x1)",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/the-manipulator.png",
   "power": 11,
   "rarity": "rare",
   "starter": false
@@ -907,7 +907,7 @@ var KV_CARDS = [
   "text": "Fills empty slot with opponent card",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/field-marshall.png",
   "power": 15,
   "rarity": "legendary",
   "starter": false
@@ -955,7 +955,7 @@ var KV_CARDS = [
   "text": "Whole row attacks",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/admiral.png",
   "power": 15,
   "rarity": "legendary",
   "starter": false
@@ -987,7 +987,7 @@ var KV_CARDS = [
   "text": "Opponent dies on third attack if not killed (doesn't consume turn)",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/redstone-warrior.png",
   "power": 10,
   "rarity": "uncommon",
   "starter": false
@@ -1003,7 +1003,7 @@ var KV_CARDS = [
   "text": "Flame Debuff (-2) (x2)",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/fire-striker.png",
   "power": 8,
   "rarity": "common",
   "starter": true
@@ -1051,7 +1051,7 @@ var KV_CARDS = [
   "text": "1/3 roll added to roll",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/magma-knight.png",
   "power": 11,
   "rarity": "rare",
   "starter": false
@@ -1083,7 +1083,7 @@ var KV_CARDS = [
   "text": "3 rolls for one attack",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/tactical-ninja.png",
   "power": 9,
   "rarity": "uncommon",
   "starter": false
@@ -1179,7 +1179,7 @@ var KV_CARDS = [
   "text": "All ranged cards in handare granted Life (+1) and Damage(+3) and can attack twice in a turn.",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/ranged-expert.png",
   "power": 15,
   "rarity": "legendary",
   "starter": false
@@ -1211,7 +1211,7 @@ var KV_CARDS = [
   "text": "Rolls number, all cards with that number of life die.",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/ace.png",
   "power": 9,
   "rarity": "common",
   "starter": false
@@ -1339,7 +1339,7 @@ var KV_CARDS = [
   "text": "You are not able to kill any card in hand until this card is dead.",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/guardian.png",
   "power": 14,
   "rarity": "epic",
   "starter": false
@@ -1371,7 +1371,7 @@ var KV_CARDS = [
   "text": "If attacker fails, then for next turn card has -1 damage, and for that round, LG has +1 damage ()",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/lava-guardian.png",
   "power": 9,
   "rarity": "uncommon",
   "starter": false
@@ -1451,7 +1451,7 @@ var KV_CARDS = [
   "text": "Every round he fill 4 empty slots (fills two w/Knights, 2/Rnd). When he dies, his 'tombstone' is filled with a FLM",
   "ready": false,
   "note": "Rounds / summons - later session",
-  "art": null,
+  "art": "images/cards/war-captain.png",
   "power": 10,
   "rarity": "uncommon",
   "starter": false
@@ -1483,7 +1483,7 @@ var KV_CARDS = [
   "text": "Every time he fails to kill a card, he gets +1 attack on card and Damage.",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/unstable-titan.png",
   "power": 12,
   "rarity": "rare",
   "starter": false
@@ -1595,7 +1595,7 @@ var KV_CARDS = [
   "text": "All attack damage cards cant attack him",
   "ready": true,
   "note": "",
-  "art": null,
+  "art": "images/cards/fire-sprite.png",
   "power": 8,
   "rarity": "common",
   "starter": true
@@ -1659,7 +1659,7 @@ var KV_CARDS = [
   "text": "While allive, fills all empty slots with Wisp. Infinite while alive.",
   "ready": false,
   "note": "Summons / refills - later session",
-  "art": null,
+  "art": "images/cards/wisp-major.png",
   "power": 12,
   "rarity": "rare",
   "starter": false

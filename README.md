@@ -58,3 +58,16 @@ The host saves the game to localStorage after every action, so a reload resumes 
   Your levels apply in vs-computer, campaign and online games.
 - **Leaving a live game** (Menu → Leave game) forfeits: you take a loss (with no chest), and the opponent gets the win screen.
   Pass & Play has no forfeit. Just closing the app is not a forfeit; the opponent sees "disconnected".
+
+## Accounts & cloud save
+- **Username + password** (Profile → Account). No email: a username maps to a private placeholder address
+  (`<username>@players.kingsvendetta.app`), and email confirmation is turned off in `supabase/config.toml`.
+- While signed in, the profile (cards, levels, coins, Elo, campaign, themes) syncs to the `kv_profiles` table, which is row-locked to each user.
+  On a new device the cloud save is loaded. If both have progress, the player chooses which to keep.
+- Passwords can't be reset by email. An admin can reset one in the Supabase dashboard (Authentication → Users).
+- Google sign-in is built in but disabled. To enable it, set `GOOGLE_SIGNIN: true` in config.js, set `enabled = true` under
+  `[auth.external.google]`, add the keys to `.env.local`, and run `tools/push_auth_config.ps1`.
+
+## Custom portraits
+`reference/sprites2.webp` (a labelled sheet) is sliced by `tools/slice_sprites2.py` into `images/cards/<slug>.png`.
+Those override the original sprite sheet; then rerun `tools/build_cards.py`.
