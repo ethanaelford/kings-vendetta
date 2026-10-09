@@ -30,6 +30,7 @@ var KV_PROFILE = (function () {
         wins: 0, losses: 0, draws: 0, rankedGames: 0, themes: ['default'], theme: 'default', awarded: {} };
     }
     if (!p.clientId) p.clientId = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    if (!p.secret) p.secret = Array.from({ length: 4 }, function () { return Math.random().toString(36).slice(2, 10); }).join('');
     // new starter cards added later are granted automatically
     starters().forEach(function (k) { if (p.owned.indexOf(k) < 0) p.owned.push(k); });
     var valid = {};
@@ -128,7 +129,8 @@ var KV_PROFILE = (function () {
   function applyTheme() { document.documentElement.setAttribute('data-board', P.theme || 'default'); }
 
   function backupCode() {
-    var data = { owned: P.owned, deck: P.deck, coins: P.coins, rating: P.rating, wins: P.wins, losses: P.losses, draws: P.draws, themes: P.themes, theme: P.theme, rankedGames: P.rankedGames };
+    var data = { owned: P.owned, deck: P.deck, coins: P.coins, rating: P.rating, wins: P.wins, losses: P.losses, draws: P.draws, themes: P.themes, theme: P.theme, rankedGames: P.rankedGames,
+      clientId: P.clientId, secret: P.secret };
     return btoa(unescape(encodeURIComponent(JSON.stringify(data))));
   }
   function restore(code) {
@@ -141,8 +143,27 @@ var KV_PROFILE = (function () {
     } catch (e) { return false; }
   }
 
+  // ---- shared leaderboard (Supabase RPCs; the table itself is locked) ----
+  var sb = null;
+  function client() {
+    if (!sb && window.supabase && KV_CONFIG.SUPABASE_URL) sb = window.supabase.createClient(KV_CONFIG.SUPABASE_URL, KV_CONFIG.SUPABASE_ANON_KEY);
+    return sb;
+  }
+  function syncLeaderboard(name) {
+    var c = client();
+    if (!c || !P.rankedGames) return Promise.resolve(false);
+    return c.rpc('kv_submit', { p_client_id: P.clientId, p_secret: P.secret, p_name: (name || 'Player').slice(0, 16), p_rating: P.rating,
+      p_wins: P.wins, p_losses: P.losses, p_draws: P.draws, p_ranked_games: P.rankedGames })
+      .then(function (r) { return !r.error && r.data === true; }, function () { return false; });
+  }
+  function fetchLeaderboard() {
+    var c = client();
+    if (!c) return Promise.resolve([]);
+    return c.rpc('kv_leaderboard', { p_limit: 100 }).then(function (r) { return r.error ? [] : r.data; }, function () { return []; });
+  }
+
   return {
-    get: function () { return P; }, save: save, DECK_SIZE: DECK_SIZE, RARITY_LABEL: RARITY_LABEL, CHESTS: CHESTS, THEMES: THEMES,
+    get: function () { return P; }, syncLeaderboard: syncLeaderboard, fetchLeaderboard: fetchLeaderboard, save: save, DECK_SIZE: DECK_SIZE, RARITY_LABEL: RARITY_LABEL, CHESTS: CHESTS, THEMES: THEMES,
     deckForGame: deckForGame, toggleDeck: toggleDeck, tier: tier, openChest: openChest, recordGame: recordGame,
     buyTheme: buyTheme, applyTheme: applyTheme, backupCode: backupCode, restore: restore, cards: cards,
   };

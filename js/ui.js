@@ -39,7 +39,7 @@
 
   // ---------------- screens ----------------
   function show(id) {
-    ['lobby', 'game', 'library', 'collection', 'profile'].forEach(function (s) { $(s).classList.toggle('hidden', s !== id); });
+    ['lobby', 'game', 'library', 'collection', 'profile', 'leaders'].forEach(function (s) { $(s).classList.toggle('hidden', s !== id); });
     if (id === 'game') { layout(); requestWake(); }
   }
 
@@ -451,12 +451,16 @@
       $('die1').classList.add('hidden2'); $('die2').classList.add('hidden2');
     }
     if (isNew && ev.passed) toast(ev.passed.map(function (sd) { return next.names[sd]; }).join(', ') + ' had no legal attack');
+    var tracked = G.mode === 'host' || G.mode === 'guest' || G.mode === 'ai';
+    if (isNew && tracked) KV_QUESTS.onEvent(next, ev, G.view);
     if (next.phase === 'over' && isNew) {
       G.reward = null;
-      if (G.mode === 'host' || G.mode === 'guest' || G.mode === 'ai') {
+      if (tracked) {
         var opp = R.other(G.view);
         G.reward = KV_PROFILE.recordGame({ gameId: next.gameId, won: next.winner === G.view, draw: next.winner === 'draw',
           ranked: next.ranked, oppRating: (next.ratings || {})[opp] || 1000 });
+        if (G.reward) KV_QUESTS.onGameOver(next, G.view);
+        if (G.reward && G.reward.elo) KV_PROFILE.syncLeaderboard(myName());
         refreshPlayerCard();
       }
       setTimeout(function () { gameOverOverlay(); }, 400);
@@ -1032,6 +1036,43 @@
     }
   }
 
+  function renderQuests() {
+    var list = KV_QUESTS.list();
+    $('questList').innerHTML = list.map(function (q) {
+      var reward = '🪙' + q.coins + (q.chest ? ' + ' + KV_PROFILE.CHESTS[q.chest].icon : '');
+      var right = q.claimed ? '<span class="qr">✓ Claimed</span>' : q.done ? '<button class="btn primary" data-claim="' + q.id + '">Claim</button>' :
+        '<span class="qr">' + q.have + '/' + q.goal + '</span>';
+      return '<div class="quest' + (q.claimed ? ' claimed' : '') + '"><div class="qt">' + esc(q.text) + ' <span class="qr">' + reward + '</span>' +
+        '<div class="bar"><i style="width:' + Math.round(100 * q.have / q.goal) + '%"></i></div></div>' + right + '</div>';
+    }).join('');
+    var now = new Date(), mid = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1), h = Math.floor((mid - now) / 3600000), m = Math.floor((mid - now) / 60000) % 60;
+    $('questReset').textContent = '· new quests in ' + h + 'h ' + m + 'm';
+  }
+  function onQuestTap(e) {
+    var b = e.target.closest('[data-claim]'); if (!b) return;
+    var r = KV_QUESTS.claim(b.dataset.claim);
+    if (!r) return;
+    refreshPlayerCard(); renderQuests();
+    if (r.chest) openChestOverlay(r.chest, function () { refreshPlayerCard(); });
+    else { overlay('<h2>Quest complete!</h2><div class="reward chest">🪙</div><p><b>+' + r.coins + ' coins</b></p><button class="btn primary big" id="ovQ">Nice!</button>'); $('ovQ').onclick = closeOverlay; }
+  }
+
+  function showLeaders() {
+    show('leaders');
+    $('lbBody').innerHTML = '<p>Loading…</p>';
+    var P = me();
+    KV_PROFILE.syncLeaderboard(myName()).then(function () { return KV_PROFILE.fetchLeaderboard(); }).then(function (rows) {
+      if (!rows.length) { $('lbBody').innerHTML = '<p>No ranked games yet. Play a ⚔ Ranked match to get on the board!</p>'; return; }
+      var mine = rows.findIndex(function (r) { return r.client_id === P.clientId; });
+      $('lbBody').innerHTML = (mine < 0 ? '<p>' + (P.rankedGames ? 'You are not in the top 100 yet.' : 'Play a ranked match to join the board.') + '</p>' : '') +
+        rows.map(function (r, i) {
+          var t = KV_PROFILE.tier(r.rating), medal = ['🥇', '🥈', '🥉'][i] || (i + 1);
+          return '<div class="lbrow' + (r.client_id === P.clientId ? ' me' : '') + '"><span class="rk">' + medal + '</span><span class="nm2">' + esc(r.name) +
+            '<small>' + t.icon + ' ' + t.name + ' · ' + r.wins + 'W ' + r.losses + 'L' + (r.draws ? ' ' + r.draws + 'D' : '') + '</small></span><span class="rt">' + r.rating + '</span></div>';
+        }).join('');
+    });
+  }
+
   function refreshPlayerCard() {
     var P = me(), t = KV_PROFILE.tier(P.rating);
     $('pcTier').textContent = t.icon + ' ' + t.name;
@@ -1043,6 +1084,7 @@
   // ---------------- lobby ----------------
   function lobby() {
     refreshPlayerCard();
+    renderQuests();
     show('lobby');
     var code = new URLSearchParams(location.search).get('room');
     $('joinBanner').classList.toggle('hidden', !code);
@@ -1078,6 +1120,11 @@
     $('collectionBtn').onclick = function () { colFilter = 'all'; showCollection(); };
     $('profileBtn').onclick = function () { if (needName()) showProfile(); };
     $('colBack').onclick = lobby;
+    $('leaderBtn').onclick = function () { if (needName()) showLeaders(); };
+    $('lbBack').onclick = lobby;
+    $('lbRefresh').onclick = showLeaders;
+    $('questList').addEventListener('click', onQuestTap);
+    if (KV_PROFILE.get().rankedGames) KV_PROFILE.syncLeaderboard(myName());
     $('profBack').onclick = lobby;
     $('colGrid').addEventListener('click', onCollectionTap);
     $('colFilter').addEventListener('click', onCollectionTap);

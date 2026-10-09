@@ -597,7 +597,7 @@
     var att = findCard(s, intent.cardId);
     var attacker = att.card, aa = ab(attacker);
     var attacks = (aa.attacks || 1) + teamBonus(s, attacker).attacks;
-    var ev = { kind: 'attack', side: side, attackerId: attacker.id, attackerName: attacker.name, rolls: [], deaths: [], attackerDied: false, moves: { p1: [], p2: [] }, notes: [] };
+    var ev = { kind: 'attack', side: side, attackerId: attacker.id, attackerName: attacker.name, attackerLife: attacker.life, rolls: [], deaths: [], attackerDied: false, moves: { p1: [], p2: [] }, notes: [] };
     if (wasExtra) ev.bonus = true;
     var deaths = ev.deaths;
     var alive = opt.targets.slice();
@@ -666,7 +666,7 @@
           survivors.push(x.id);
           if (ta.onSurvive && !doomed[atk.id]) ta.onSurvive({ state: s, attacker: atk, target: t, ev: ev });
         }
-        r.hits.push({ id: x.id, name: t.name, life: x.life, success: x.ok, killed: killed, hitsTaken: t.hitsTaken, rollsToKill: t.rollsToKill });
+        r.hits.push({ id: x.id, name: t.name, life: x.life, success: x.ok, killed: killed, hitsTaken: t.hitsTaken, rollsToKill: t.rollsToKill, isGeneral: !!t.isGeneral });
       });
       ev.rolls.push(r);
       log(s, s.names[side] + ' - ' + atk.name + (reused ? ' reuses the last roll ' : ' rolls ') + r.total +
@@ -920,7 +920,7 @@
     var t = s.teams[side].slots;
     var ca = t[a], cb = t[b];
     t[a] = cb; t[b] = ca;
-    var ev = { kind: 'move', side: side, rolls: [], deaths: [], moves: { p1: [], p2: [] }, notes: [ca.name + ' and ' + cb.name + ' switch places'] };
+    var ev = { kind: 'move', swap: true, side: side, rolls: [], deaths: [], moves: { p1: [], p2: [] }, notes: [ca.name + ' and ' + cb.name + ' switch places'] };
     log(s, s.names[side] + ' - ' + ev.notes[0]);
     s.lastActor[side] = ca.id;
     finishTurn(s, side, ev, null);

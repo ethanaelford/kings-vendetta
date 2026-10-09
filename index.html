@@ -12,7 +12,7 @@
 <link rel="icon" href="images/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="images/icon-180.png">
 <title>King's Vendetta</title>
-<link rel="stylesheet" href="css/game.css?v=20261009-1826">
+<link rel="stylesheet" href="css/game.css?v=20261009-1831">
 </head>
 <body>
 
@@ -57,11 +57,17 @@
     </div>
 
     <div class="panel">
+      <div class="panel-title">Daily quests <span id="questReset" class="muted"></span></div>
+      <div id="questList"></div>
+    </div>
+
+    <div class="panel">
       <div class="panel-title">Your army</div>
       <div class="row">
         <button id="collectionBtn" class="btn" style="flex:1">🃏 Deck &amp; Cards</button>
         <button id="profileBtn" class="btn" style="flex:1">🏰 Profile &amp; Shop</button>
       </div>
+      <button id="leaderBtn" class="btn big">🏆 Leaderboard</button>
       <label class="field" style="margin-top:8px">Chess clock (private &amp; vs computer games)
         <select id="clockSelect"><option value="10">10 minutes each</option><option value="5">5 minutes each</option><option value="20">20 minutes each</option><option value="0">Off</option></select>
       </label>
@@ -124,6 +130,16 @@
   <div id="profBody" class="liblist"></div>
 </section>
 
+<!-- LEADERBOARD -->
+<section id="leaders" class="screen hidden">
+  <header class="topbar">
+    <button id="lbBack" class="iconbtn" aria-label="Back">←</button>
+    <div class="banner">🏆 Leaderboard</div>
+    <button id="lbRefresh" class="iconbtn" aria-label="Refresh">↻</button>
+  </header>
+  <div id="lbBody" class="liblist"></div>
+</section>
+
 <!-- Bottom sheet -->
 <div id="sheetBack" class="sheet-back hidden"></div>
 <div id="sheet" class="sheet hidden"><div class="grab"></div><div id="sheetBody"></div></div>
@@ -132,15 +148,16 @@
 <div id="overlay" class="overlay hidden"><div id="overlayBody" class="overlay-body"></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=20261009-1826"></script>
-<script src="js/cards.data.js?v=20261009-1826"></script>
-<script src="js/sprite-map.js?v=20261009-1826"></script>
-<script src="js/profile.js?v=20261009-1826"></script>
-<script src="js/abilities.js?v=20261009-1826"></script>
-<script src="js/rules.js?v=20261009-1826"></script>
-<script src="js/art.js?v=20261009-1826"></script>
-<script src="js/ai.js?v=20261009-1826"></script>
-<script src="js/net.js?v=20261009-1826"></script>
-<script src="js/ui.js?v=20261009-1826"></script>
+<script src="config.js?v=20261009-1831"></script>
+<script src="js/cards.data.js?v=20261009-1831"></script>
+<script src="js/sprite-map.js?v=20261009-1831"></script>
+<script src="js/profile.js?v=20261009-1831"></script>
+<script src="js/quests.js?v=20261009-1831"></script>
+<script src="js/abilities.js?v=20261009-1831"></script>
+<script src="js/rules.js?v=20261009-1831"></script>
+<script src="js/art.js?v=20261009-1831"></script>
+<script src="js/ai.js?v=20261009-1831"></script>
+<script src="js/net.js?v=20261009-1831"></script>
+<script src="js/ui.js?v=20261009-1831"></script>
 </body>
 </html>
