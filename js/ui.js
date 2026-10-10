@@ -631,12 +631,14 @@
     else if (intent.type === 'hero') res = R.chooseHero(s, side, intent.id);
     else if (intent.type === 'power') res = R.usePower(s, side, intent.args || {});
     else if (intent.type === 'rematch' && s.phase === 'over') {
-      res = R.newGame({ names: s.names, decks: s.decks, levels: s.levels, ranked: s.ranked, ratings: s.ratings, campaign: s.campaign, clockMs: s.clock ? s.clock.limit : 0 });
+      res = R.newGame({ names: s.names, decks: s.decks, levels: s.levels, ranked: s.ranked, ratings: s.ratings, campaign: s.campaign, classic: s.classic, clockMs: s.clock ? s.clock.limit : 0 });
       res.guestClient = s.guestClient;
       res.seq = s.seq + 1; res.lastEvent = { kind: 'deal', seq: res.seq };
     }
     return res;
   }
+
+  function classicMode() { return LS.get('kv-field') === 'classic'; }
 
   function clockMs() { var m = +(LS.get('kv-clock') == null ? 10 : LS.get('kv-clock')); return m > 0 ? m * 60000 : 0; }
 
@@ -901,7 +903,7 @@
       LS.set('kv-name2', names.p2);
     }
     show('game');
-    var opts = { names: names, clockMs: clockMs() };
+    var opts = { names: names, clockMs: clockMs(), classic: classicMode() };
     KV_AI.setNoise(null);
     if (mode === 'ai') { opts.decks = { p1: KV_PROFILE.deckForGame(), p2: null }; opts.levels = { p1: KV_PROFILE.levelsForGame(), p2: null }; }
     if (mode === 'ai' && stage != null) {
@@ -938,7 +940,7 @@
     var saved = resume && LS.get('kv-state-' + code);
     var st = saved || R.newGame({ names: { p1: myName(), p2: 'Opponent' }, decks: { p1: KV_PROFILE.deckForGame(), p2: null },
       levels: { p1: KV_PROFILE.levelsForGame(), p2: null },
-      ranked: !!ranked, ratings: { p1: me().rating }, clockMs: ranked ? 10 * 60000 : clockMs() });
+      ranked: !!ranked, ratings: { p1: me().rating }, clockMs: ranked ? 10 * 60000 : clockMs(), classic: !ranked && classicMode() });
     if (saved) { st.seq++; st.lastEvent = Object.assign({}, st.lastEvent, { seq: st.seq, kind: 'resume' }); }
     commit(st);
     KV_NET.connect({
@@ -1208,7 +1210,7 @@
       '<p style="margin:2px 0"><b>' + P.rating + '</b> Elo' + (P.rank ? ' · #' + P.rank + ' worldwide' : '') + '</p></div></div>' +
       '<div class="ranklad">' + ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'master', 'grandmaster', 'legendary'].map(function (id) {
         return '<img src="images/ui/rank_' + id + '.png" class="' + (id === t.id ? 'on' : '') + '" title="' + id + '">'; }).join('') + '</div>' +
-      (t.mythic ? '' : '<p class="muted" style="font-size:12px">Bronze · Silver 950 · Gold 1100 · Platinum 1250 · Diamond 1400 · Master 1550 · Grandmaster 1700 · <b>Legendary</b> = Grandmaster + a top-100 spot.</p>') +
+      (t.mythic ? '' : '<p class="muted" style="font-size:12px">Bronze · Silver 950 · Gold 1100 · Platinum 1250 · Diamond 1400 · Master 1500 · Grandmaster 1600 · <b>Legendary</b> = Grandmaster + a top-100 spot.</p>') +
       '<p>Ranked games: ' + P.rankedGames + ' · Wins ' + P.wins + ' · Losses ' + P.losses + ' · Draws ' + P.draws + '</p>' +
       '<p>🪙 <b>' + P.coins + '</b> coins · 🃏 ' + P.owned.length + ' cards</p></div>';
     var acc = KV_PROFILE.account();
@@ -1334,7 +1336,7 @@
     KV_PROFILE.syncLeaderboard(myName()).then(KV_PROFILE.fetchRank).then(function () { refreshPlayerCard(); return KV_PROFILE.fetchLeaderboard(); }).then(function (rows) {
       if (!rows.length) { $('lbBody').innerHTML = '<p>No ranked games yet. Play a ⚔ Ranked match to get on the board!</p>'; return; }
       var mine = rows.findIndex(function (r) { return r.client_id === P.clientId; });
-      $('lbBody').innerHTML = '<p class="muted" style="font-size:13px">The top 100 Grandmasters (1700+) are <b class="mythic">Legendary</b>.</p>' +
+      $('lbBody').innerHTML = '<p class="muted" style="font-size:13px">The top 100 Grandmasters (1600+) are <b class="mythic">Legendary</b>.</p>' +
         (mine < 0 ? '<p>' + (P.rankedGames ? 'You are #' + (P.rank || '?') + ' - not in the top 100 yet.' : 'Play a ranked match to join the board.') + '</p>' : '') +
         rows.map(function (r, i) {
           var t = KV_PROFILE.tier(r.rating, i + 1), medal = ['🥇', '🥈', '🥉'][i] || (i + 1);
@@ -1406,6 +1408,8 @@
     $('profBody').addEventListener('click', onProfileTap);
     $('clockSelect').value = String(LS.get('kv-clock') == null ? 10 : LS.get('kv-clock'));
     $('clockSelect').onchange = function () { LS.set('kv-clock', +this.value); };
+    $('fieldSelect').value = classicMode() ? 'classic' : 'dynamic';
+    $('fieldSelect').onchange = function () { LS.set('kv-field', this.value); };
     KV_PROFILE.applyTheme();
     KV_PROFILE.initAuth(function (acc) {
       if (acc.user && acc.user.name && !$('nameInput').value) { $('nameInput').value = acc.user.name.split(' ')[0].slice(0, 16); LS.set('kv-name', myName()); }

@@ -206,7 +206,8 @@
       ranked: !!opts.ranked, decks: { p1: decks.p1 || null, p2: decks.p2 || null }, ratings: opts.ratings || {},
       levels: { p1: levels.p1 || null, p2: levels.p2 || null }, campaign: opts.campaign || null,
       clock: opts.clockMs ? { limit: opts.clockMs, p1: opts.clockMs, p2: opts.clockMs, turnStart: null } : null,
-      terrain: CFG.TERRAIN === false ? null : rollTerrain(rng),
+      classic: !!opts.classic,
+      terrain: CFG.TERRAIN === false || opts.classic ? null : rollTerrain(rng),
       event: null,
       heroes: { p1: null, p2: null }, powerUsed: { p1: false, p2: false }, warcry: { p1: -1, p2: -1 }, turn: null, first: null, winner: null, turnCount: 0,
       names: opts.names || { p1: 'Player 1', p2: 'Player 2' },
@@ -1180,7 +1181,7 @@
       return;
     }
     if (s.event && s.event.turnsLeft > 0 && --s.event.turnsLeft <= 0) { log(s, EVENTS[s.event.id].name + ' ends.'); s.event = null; }
-    if (CFG.EVENTS !== false && s.turnCount % (CFG.EVENT_EVERY || 6) === 0) startEvent(s, ev);
+    if (CFG.EVENTS !== false && !s.classic && s.turnCount % (CFG.EVENT_EVERY || 6) === 0) startEvent(s, ev);
     if (checkWin(s, side)) return;
     var next = wasExtra ? wasExtra.thenTurn : other(side);
     var pe = s.pendingExtra; s.pendingExtra = null;

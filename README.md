@@ -80,11 +80,12 @@ Those override the original sprite sheet; then rerun `tools/build_cards.py`.
   Forest: cards here can only be attacked from the same column. Tap the column icon in-game for details.
 - **Events:** every 6 turns. Thunderstorm (-1 rolls), Clear Skies (+1), Thick Fog (ranged -3), Reinforcements, Plague, Healing Spring,
   Earthquake (new terrain), Meteor Shower.
+- **Classic battlefield** (lobby setting): no terrain and no events, for private, vs-computer and pass & play games. Ranked is always Dynamic.
 - **Hero Generals:** pick one during deploy; each power works once per game. Warlord (War Cry +2 this turn), Tactician (free swap),
   High Priest (restore your army), Executioner (destroy an enemy card with Life <= 6; uses the turn).
 
 ## Ranks, chests & cosmetics (art: reference/sprites3.png -> tools/slice_sprites3.py -> images/ui/)
-- **Ranks:** Bronze, Silver 950, Gold 1100, Platinum 1250, Diamond 1400, Master 1550, Grandmaster 1700,
+- **Ranks:** Bronze, Silver 950, Gold 1100, Platinum 1250, Diamond 1400, Master 1500, Grandmaster 1600,
   and **Legendary** = Grandmaster plus a top-100 leaderboard spot.
 - **Chests:** Wooden, Silver, Golden, Epic, Legendary (won). Royal, Frost and Infernal can be bought in the Shop.
 - **Shop:** 14 board themes (terrain tiles), 8 card frames, 6 dice skins, 3 chests.

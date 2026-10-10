@@ -59,7 +59,7 @@ var KV_PROFILE = (function () {
   var THEMES = COSMETICS.board;
 
   // Ranks (art from sprites3). Legendary = Grandmaster rating AND a top-100 spot on the shared leaderboard.
-  var TIERS = [[1700, 'grandmaster', 'Grandmaster'], [1550, 'master', 'Master'], [1400, 'diamond', 'Diamond'], [1250, 'platinum', 'Platinum'],
+  var TIERS = [[1600, 'grandmaster', 'Grandmaster'], [1500, 'master', 'Master'], [1400, 'diamond', 'Diamond'], [1250, 'platinum', 'Platinum'],
     [1100, 'gold', 'Gold'], [950, 'silver', 'Silver'], [0, 'bronze', 'Bronze']];
 
   function cards() { return KV_CARDS.filter(function (c) { return c.ready && c.key !== 'general'; }); }
@@ -124,7 +124,7 @@ var KV_PROFILE = (function () {
   }
 
   // Mythic: a Diamond rating AND a top-100 spot on the shared leaderboard.
-  var LEGEND_RANK = 100, LEGEND_RATING = 1700;
+  var LEGEND_RANK = 100, LEGEND_RATING = 1600;
   function tierObj(id, name, extra) {
     var t = { id: id, name: name, icon: img('rank_' + id), badge: 'images/ui/rank_' + id + '.png', banner: 'images/ui/banner_' + id + '.png' };
     Object.keys(extra || {}).forEach(function (k) { t[k] = extra[k]; });

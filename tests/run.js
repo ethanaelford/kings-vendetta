@@ -500,6 +500,20 @@ t('hero is chosen in deploy and defaults to Warlord', function () {
   eq(s.heroes.p1, 'priest'); eq(s.heroes.p2, 'warlord');
 });
 
+t('classic mode: no terrain, no events', function () {
+  KV_CONFIG.TERRAIN = true; KV_CONFIG.EVENTS = true;
+  var s = R.newGame({ classic: true });
+  eq(s.terrain, null);
+  s = R.setReady(R.setReady(s, 'p1'), 'p2');
+  for (var n = 0; n < 14 && s.phase === 'battle'; n++) {
+    var a = R.legalActions(s, s.turn)[0];
+    s = a ? R.act(s, s.turn, { cardId: a.cardId, option: a.option }, LOW) : R.turnSwap(s, s.turn, 0, 1);
+    ok(!s.lastEvent.event, 'no event');
+  }
+  ok(R.newGame().terrain, 'dynamic still has terrain');
+  KV_CONFIG.TERRAIN = false; KV_CONFIG.EVENTS = false;
+});
+
 console.log('deal');
 t('exactly one General per team, no duplicates (200 deals)', function () {
   for (var n = 0; n < 200; n++) {
