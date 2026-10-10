@@ -49,11 +49,13 @@ The host saves the game to localStorage after every action, so a reload resumes 
 - `TURN_SWAP`: switch two of your cards instead of attacking (`'any'` / `'adjacent'` / `'off'`)
 - `WIN_BY_WIPE`: you also win by killing every enemy card except their General
 - `STALEMATE_TURNS`: this many turns in a row with no kill = draw
+- `MAX_LIFE`: hard cap on any card's Life (12)
+- `LOS_NEAREST`: a card facing an empty enemy column aims at the nearest enemy column instead
 - The chess clock is picked in the lobby (ranked is always 10 minutes). Running out of time loses.
 
 ## Campaign, upgrades, forfeits
 - **Campaign** (`js/campaign.js`): 8 themed computer opponents. Each stage has its own deck, AI sharpness (`noise`), enemy General level and enemy card level.
-  The first clear of a stage pays coins plus a chest and unlocks the next stage. Stage 8 is the boss (General Life 14).
+  The first clear of a stage pays coins plus a chest and unlocks the next stage. Stage 8 is the boss (General at the Life cap of 12, sharpest AI).
 - **Upgrades:** chests can give spare copies of cards you own. Level 2 = 2 copies + 100 coins, level 3 = 4 copies + 300 coins. Each level is +1 Life.
   Your levels apply in vs-computer, campaign and online games.
 - **Leaving a live game** (Menu → Leave game) forfeits: you take a loss (with no chest), and the opponent gets the win screen.

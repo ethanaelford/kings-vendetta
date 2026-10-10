@@ -84,6 +84,12 @@
   }
 
   // ---------------- card rendering ----------------
+  // Life the attacker actually has to beat (auras, Life changes, 12 cap)
+  function effLife(card) {
+    var st = G.state;
+    try { return st && R.findCard(st, card.id) ? R.targetLife(st, card) : card.life; } catch (e) { return card.life; }
+  }
+
   function shownKey(card) {
     var f = G.state && R.findCard(G.state, card.id);
     if (card.cardKey === 'spy' && !card.revealed && f && f.side !== G.view && G.mode !== 'hotseat') return 'militia';
@@ -93,7 +99,7 @@
   function cardInner(card) {
     var def = R.cardDef(shownKey(card));
     var h = '<div class="art">' + KV_ART.html(def) + '</div>';
-    h += '<div class="life">' + (R.ab(card).lifeLabel || card.life) + '</div>';
+    h += '<div class="life">' + (R.ab(card).lifeLabel || effLife(card)) + '</div>';
     if (card.charges) h += '<div class="dmg" style="top:40px">⚡' + card.charges + '/2</div>';
     if (card.bounty != null) h += '<div class="dmg" style="top:40px;background:#7a5a2f">⏳' + card.bounty + '</div>';
     h += '<div class="pat">' + (KV_ART.PATTERN_ICON[def.pattern] || '') + '</div>';
@@ -146,7 +152,7 @@
           board.appendChild(el);
           els[card.id] = el;
         }
-        var sig = shownKey(card) + '|' + (card.level || 1) + '|' + card.charges + '|' + card.bounty + '|' + card.life + '|' + card.hitsTaken + '|' + (card.dmg || 0) + '|' + JSON.stringify(card.statuses);
+        var sig = shownKey(card) + '|' + effLife(card) + '|' + (card.level || 1) + '|' + card.charges + '|' + card.bounty + '|' + card.life + '|' + card.hitsTaken + '|' + (card.dmg || 0) + '|' + JSON.stringify(card.statuses);
         if (el._sig !== sig) { el.innerHTML = cardInner(card); el._sig = sig; }
         var cls = 'card ' + (side === G.view ? 'mine' : 'enemy') + ' rar-' + (R.cardDef(shownKey(card)).rarity || 'common');
         if (card.isGeneral) cls += ' general';
@@ -230,7 +236,7 @@
         }
         var opts = R.getOptions(s, G.view, G.sel);
         if (!opts.length) {
-          h = '<div class="info"><b>' + esc(a.name) + '</b> has no targets from here.</div>' + swapBtn + '<button class="btn" data-act="info">ⓘ</button>';
+          h = '<div class="info"><b>' + esc(a.name) + '</b> cannot attack: ' + esc(R.whyIdle(s, G.view, G.sel)) + '</div>' + swapBtn + '<button class="btn" data-act="info">ⓘ</button>';
         } else if (!G.chosen) {
           var selfBtns = '', onlySelf = true;
           opts.forEach(function (o, k) {
@@ -392,8 +398,8 @@
       rt.className = 'bad'; rt.textContent = ev.notes[0];
       await sleep(1100);
     } else if (ev.notes && ev.notes.length) {
-      rt.className = 'good'; rt.textContent = ev.notes.join(' · ');
-      await sleep(1000);
+      rt.className = 'good'; rt.textContent = '✨ ' + ev.notes.join(' · ');
+      await sleep(1600);
     }
     if (ev.attackerDied && att) {
       rt.className = 'bad';
@@ -1083,7 +1089,7 @@
     var i = +el.dataset.stage, P = me(), st = KV_CAMPAIGN[i];
     if (i > P.campaign) return openSheet('<p>🔒 Beat stage ' + (i) + ' first.</p>');
     overlay('<h2>' + st.icon + ' ' + esc(st.name) + '</h2><p><b>vs ' + esc(st.foe) + '</b>' + (st.boss ? ' · BOSS' : '') + '</p><p>' + esc(st.story) + '</p>' +
-      '<p class="muted" style="font-size:13px">Enemy General Life ' + (11 + st.genLevel - 1) + (st.cardLevel > 1 ? ' · enemy cards +' + (st.cardLevel - 1) + ' Life' : '') + '</p>' +
+      '<p class="muted" style="font-size:13px">Enemy General Life ' + Math.min(12, 11 + st.genLevel - 1) + (st.cardLevel > 1 ? ' · enemy cards +' + (st.cardLevel - 1) + ' Life' : '') + '</p>' +
       '<button class="btn primary big" id="cmpGo">⚔ Battle</button><button class="btn big" id="cmpNo">Not yet</button>');
     $('cmpNo').onclick = closeOverlay;
     $('cmpGo').onclick = function () { closeOverlay(); startLocal('ai', null, i); };

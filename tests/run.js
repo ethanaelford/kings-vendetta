@@ -59,10 +59,10 @@ var E = team('abcdefghijkl').slots; // enemy full
 var G = team('a.c..fg.ij..').slots; // enemy with gaps
 function ids(groups) { return groups.map(function (g) { return g.join(''); }); }
 t('los col 0 / col 5', function () { eq(ids(R.patternGroups('los', E, 0)), ['a']); eq(ids(R.patternGroups('los', E, 5)), ['f']); });
-t('los with gap falls through to back row', function () { eq(ids(R.patternGroups('los', G, 1)), []); eq(ids(R.patternGroups('los', G, 3)), ['j']); eq(ids(R.patternGroups('los', team('a.....gh....').slots, 1)), ['h']); });
+t('los with gap falls through to back row', function () { eq(ids(R.patternGroups('los', G, 1)), ['a', 'c'], 'empty column: reaches nearest columns'); eq(ids(R.patternGroups('los', G, 3)), ['j']); eq(ids(R.patternGroups('los', team('a.....gh....').slots, 1)), ['h']); });
 t('any', function () { eq(R.patternGroups('any', G, 0).length, 6); });
 t('ends', function () { eq(ids(R.patternGroups('ends', E, 0)), ['af']); eq(ids(R.patternGroups('ends', team('......g..j..').slots, 0)), ['gj']); });
-t('column edges', function () { eq(ids(R.patternGroups('column', E, 0)), ['ag']); eq(ids(R.patternGroups('column', E, 5)), ['fl']); eq(ids(R.patternGroups('column', G, 4)), []); });
+t('column edges', function () { eq(ids(R.patternGroups('column', E, 0)), ['ag']); eq(ids(R.patternGroups('column', E, 5)), ['fl']); eq(ids(R.patternGroups('column', G, 4)), ['j', 'f']); });
 t('quad at edges', function () { eq(ids(R.patternGroups('quad', E, 0)), ['abgh']); eq(ids(R.patternGroups('quad', E, 5)), ['efkl']); eq(ids(R.patternGroups('quad', E, 2)), ['bchi', 'cdij']); });
 t('forD at edges', function () { eq(ids(R.patternGroups('forD', E, 0)), ['a', 'b']); eq(ids(R.patternGroups('forD', E, 5)), ['e', 'f']); eq(ids(R.patternGroups('forD', G, 1)), ['a', 'c']); });
 t('lean at edges', function () { eq(ids(R.patternGroups('lean', E, 0)), ['bc']); eq(ids(R.patternGroups('lean', E, 5)), ['ed']); eq(ids(R.patternGroups('lean', E, 2)), ['ba', 'de']); });
@@ -393,13 +393,45 @@ t('card levels add Life', function () {
 t('deal applies deck levels', function () {
   var s = R.newGame({ decks: { p1: ['archer', 'militia', 'knight', 'titan', 'brute', 'cannon', 'wisp', 'spy', 'medic', 'rookie', 'ace'] }, levels: { p1: { archer: 2, general: 3 } } });
   var a = s.teams.p1.slots.filter(function (c) { return c && c.cardKey === 'archer'; })[0];
-  eq(a.life, 7); eq(R.generalOf(s, 'p1').life, 13);
+  eq(a.life, 7); eq(R.generalOf(s, 'p1').life, 12, 'Life capped at 12');
 });
 t('forfeit: leaver loses', function () {
   var s = R.newGame();
   var s2 = R.forfeit(s, 'p2');
   eq(s2.phase, 'over'); eq(s2.winner, 'p1'); eq(s2.winReason, 'forfeit');
   eq(R.forfeit(s2, 'p1'), null, 'no double forfeit');
+});
+
+console.log('fixes: life cap, Joker, Medic, nearest LOS');
+t('Life never goes above 12 (levels, auras, experts)', function () {
+  eq(R.makeCard('juggernaut', 'p1', null, 3).life, 12);
+  var s = battleState(row(['juggernaut', 'general'], ['melee-expert']), row(['militia', 'general'], []));
+  eq(R.targetLife(s, s.teams.p1.slots.filter(Boolean)[0]), 12);
+});
+t('Fallen Knight stops growing at 12', function () {
+  var s = battleState(row(['fallen-knight', 'general'], []), row(['militia', 'militia', 'general'], []));
+  s.teams.p1.slots.filter(Boolean)[0].life = 12;
+  var fk = s.teams.p1.slots.filter(function (c) { return c && c.cardKey === 'fallen-knight'; })[0];
+  var s2 = R.act(s, 'p1', { cardId: fk.id, option: 0 }, HIGH);
+  eq(R.findCard(s2, fk.id).card.life, 12);
+});
+t('Joker gets a free attack after ANY ally attack', function () {
+  var s = battleState(row(['militia', 'joker', 'general'], []), row(['knight', 'titan', 'general'], []));
+  var m = s.teams.p1.slots.filter(function (c) { return c && c.cardKey === 'militia'; })[0];
+  var s2 = R.act(s, 'p1', { cardId: m.id, option: 0 }, LOW);
+  ok(s2.extra && R.findCard(s2, s2.extra.cardId).card.cardKey === 'joker', 'joker bonus');
+});
+t('Medic restores lost Life', function () {
+  var s = battleState(row(['medic', 'knight', 'general'], []), row(['militia', 'militia', 'general'], []));
+  var kn = s.teams.p1.slots.filter(function (c) { return c && c.cardKey === 'knight'; })[0]; kn.life = 4;
+  var md = s.teams.p1.slots.filter(function (c) { return c && c.cardKey === 'medic'; })[0];
+  var o = R.getOptions(s, 'p1', md.id), k = -1; o.forEach(function (x, i) { if (x.mode === 'cleanse') k = i; });
+  ok(k >= 0, 'cleanse offered');
+  eq(R.findCard(R.act(s, 'p1', { cardId: md.id, option: k }, LOW), kn.id).card.life, 8);
+});
+t('a card facing an empty column still has a target', function () {
+  var s = battleState(row(['militia', 'medic', 'militia', 'general'], []), row(['militia', 'general'], []));
+  s.teams.p1.slots.filter(Boolean).forEach(function (c) { if (!c.isGeneral) ok(R.getOptions(s, 'p1', c.id).length > 0, c.cardKey + ' has a target'); });
 });
 
 console.log('deal');

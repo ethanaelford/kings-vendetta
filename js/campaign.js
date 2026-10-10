@@ -31,7 +31,7 @@ var KV_CAMPAIGN = [
     deck: ['dragon-tamer', 'light-dragon', 'phoenix', 'fire-sentinel', 'magma-knight', 'fire-striker', 'lava-guardian', 'elf-rampager', 'elf-blitz-warrior', 'cobalt-knight', 'tactical-alchemist', 'reviver'],
     reward: { coins: 220, chest: 'gold' } },
   { name: 'The Usurper King', foe: 'King Malgrave', icon: '👑', noise: 0.6, genLevel: 4, cardLevel: 2, boss: true,
-    story: 'The false king sits on your throne with his finest army. His General is armoured (Life 14). End this.',
+    story: 'The false king sits on your throne with his finest army. His General is armoured (Life 12). End this.',
     deck: ['kings-knight', 'melee-expert', 'field-marshall', 'guardian', 'reviver', 'berserker-warrior', 'corrupt-commander', 'admiral', 'commander', 'wizard', 'centurion', "general-s-guard"],
     reward: { coins: 500, chest: 'gold' } },
 ];

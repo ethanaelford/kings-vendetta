@@ -14,6 +14,7 @@
   CARDS.forEach(function (c) { CARD_BY_KEY[c.key] = c; });
 
   function other(side) { return side === 'p1' ? 'p2' : 'p1'; }
+  function capLife(n) { return Math.min(n, CFG.MAX_LIFE || 12); }
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
   function ab(card) { return (card && ABIL[card.cardKey]) || {}; }
   function colOf(i) { return i % 6; }
@@ -107,7 +108,7 @@
     };
     var a = ABIL[key] || {};
     if (a.fixedLife) { card.life = card.baseLife = a.fixedLife; }
-    else if (lvl > 1 && card.life != null) { card.life += lvl - 1; card.baseLife = card.life; card.level = lvl; }
+    else if (lvl > 1 && card.life != null) { card.life = capLife(card.life + lvl - 1); card.baseLife = card.life; card.level = lvl; }
     if (a.rollsRequired) card.rollsToKill = a.rollsRequired(card);
     if (a.isGeneral) card.isGeneral = true;
     if (a.init) a.init(card);
@@ -276,6 +277,18 @@
     return -1;
   }
 
+  // Nearest non-empty enemy column(s) to `col` (two on a tie)
+  function nearestCols(enemySlots, col) {
+    var best = 99, out = [];
+    for (var c = 0; c < 6; c++) {
+      if (!enemySlots[c] && !enemySlots[c + 6]) continue;
+      var d = Math.abs(c - col);
+      if (d < best) { best = d; out = [c]; } else if (d === best) out.push(c);
+    }
+    return out;
+  }
+  var COLUMN_BASED = { los: 1, column: 1, quad: 1, lean: 1, L: 1, six: 1 };
+
   function idsAt(enemySlots, idxs) {
     var out = [];
     idxs.forEach(function (i) { if (i >= 0 && i < 12 && enemySlots[i]) out.push(enemySlots[i].id); });
@@ -286,6 +299,14 @@
   function patternGroups(pattern, enemySlots, myIndex, ctx) {
     var col = colOf(myIndex), groups = [], i, li;
     ctx = ctx || {};
+    // Column-based attacks facing an empty enemy column reach the nearest enemy column instead
+    if (COLUMN_BASED[pattern] && CFG.LOS_NEAREST !== false && !ctx.noNearest && losIndex(enemySlots, col) < 0) {
+      var sub = {}; Object.keys(ctx).forEach(function (k) { sub[k] = ctx[k]; }); sub.noNearest = true;
+      nearestCols(enemySlots, col).forEach(function (c) {
+        patternGroups(pattern, enemySlots, c + (myIndex < 6 ? 0 : 6), sub).forEach(function (g) { groups.push(g); });
+      });
+      return groups;
+    }
     switch (pattern) {
       case 'los':
         li = losIndex(enemySlots, col);
@@ -473,6 +494,20 @@
     return out;
   }
 
+  // Plain-English reason a card has nothing to do right now (UI help)
+  function whyIdle(state, side, cardId) {
+    var f = findCard(state, cardId);
+    if (!f) return '';
+    var c = f.card, a = ab(c), def = cardDef(c.cardKey);
+    if (state.extra && state.extra.cardId !== cardId) return 'Only ' + (findCard(state, state.extra.cardId) || { card: { name: 'the bonus card' } }).card.name + ' can act right now.';
+    if (hasStatus(c, 'frozen')) return 'It is frozen.';
+    if (a.noAttack) return 'It never attacks - it supports the cards around it.';
+    if (rowOf(f.index) === 1 && FRONT_ONLY[def.pattern] && !a.anyRow && !a.extraOptions) return 'It attacks from the front row only. Swap it forward, or wait for the card in front to fall.';
+    if (def.pattern === 'lema' && !state.lastActor[other(side)]) return 'No enemy has acted yet.';
+    if (a.extraOptions && c.usesLeft === 0) return 'Its one-time ability is used up, and it has no target.';
+    return 'Every enemy it could hit is protected or immune right now.';
+  }
+
   function legalActions(state, side) {
     var acts = [];
     state.teams[side].slots.forEach(function (c) {
@@ -508,7 +543,7 @@
       neighbours(f.index).forEach(function (i) { var al = slots[i]; if (al && ab(al).lifeAura) l += ab(al).lifeAura({ ally: al, target: target }) || 0; });
     }
     (target.statuses || []).forEach(function (st) { if (st.type === 'armor') l += st.n || 1; if (st.type === 'lifeSet') l = st.n; });
-    return l;
+    return a.fixedLife ? l : capLife(l);
   }
 
   function isSuccess(attacker, target, raw, total, life) {
@@ -704,7 +739,8 @@
         ev.notes.push(attacker.name + ' switches places with ' + ally.card.name);
       } else {
         ally.card.statuses = (ally.card.statuses || []).filter(function (st) { return !BAD[st.type]; });
-        ev.notes.push(attacker.name + ' cleanses ' + ally.card.name);
+        if (ally.card.life < ally.card.baseLife) ally.card.life = ally.card.baseLife;
+        ev.notes.push(attacker.name + ' cleanses ' + ally.card.name + (ally.card.isGeneral ? '' : ' and restores its Life'));
       }
       alive = [];
     }
@@ -718,6 +754,7 @@
       } else {
         // pull the target into my line of sight (it switches with the card there)
         var enSl = s.teams[other(side)].slots, losI = losIndex(enSl, colOf(meF.index));
+        if (losI < 0) { var nc = nearestCols(enSl, colOf(meF.index))[0]; losI = nc == null ? -1 : losIndex(enSl, nc); }
         if (losI >= 0 && losI !== tF.index) { var t3 = enSl[losI]; enSl[losI] = enSl[tF.index]; enSl[tF.index] = t3; }
         attacker.usesLeft = 0;
         ev.notes.push(attacker.name + ' drags ' + tF.card.name + ' into its sights');
@@ -844,6 +881,12 @@
         log(s, mine[0].name + ' stands alone: the enemy formation crumbles!');
       }
     });
+    // allies that react to any attack by their side (e.g. Joker), once per real turn
+    if (!wasExtra && ev.rolls.length && !s.pendingExtra) {
+      s.teams[side].slots.forEach(function (c) {
+        if (c && ab(c).afterAllyAttack && !s.pendingExtra) ab(c).afterAllyAttack({ state: s, card: c, attacker: attacker, ev: ev });
+      });
+    }
     // onAnyKill: survivors react to enemy deaths (e.g. Spartan)
     SIDES.forEach(function (sd) {
       var enemyDeaths = deaths.filter(function (d) { return d.side !== sd; }).length;
@@ -997,7 +1040,7 @@
     newGame: newGame, findCard: findCard, generalOf: generalOf, compactBoard: compactBoard,
     patternGroups: patternGroups, getOptions: getOptions, legalActions: legalActions,
     hitChance: hitChance, generalRisk: generalRisk, targetLife: targetLife,
-    swap: swap, setReady: setReady, act: act, skip: skip, redeal: redeal, timeout: timeout, forfeit: forfeit, turnSwap: turnSwap, canSwap: canSwap, lossReason: lossReason, emptySlot: emptySlot, deckFor: deckFor, rollsNeeded: rollsNeeded, teamBonus: teamBonus, losIndex: losIndex, checkWin: checkWin, addStatus: addStatus, hasStatus: hasStatus, neighbours: neighbours,
+    swap: swap, setReady: setReady, act: act, skip: skip, capLife: capLife, nearestCols: nearestCols, whyIdle: whyIdle, redeal: redeal, timeout: timeout, forfeit: forfeit, turnSwap: turnSwap, canSwap: canSwap, lossReason: lossReason, emptySlot: emptySlot, deckFor: deckFor, rollsNeeded: rollsNeeded, teamBonus: teamBonus, losIndex: losIndex, checkWin: checkWin, addStatus: addStatus, hasStatus: hasStatus, neighbours: neighbours,
   };
   root.KV_RULES = KV_RULES;
   if (isNode) module.exports = KV_RULES;

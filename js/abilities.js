@@ -55,7 +55,7 @@ var KV_ABILITIES = {
   },
   'rookie': { successRule: 'doubles' },          // targets the General; doubles kill it, a miss kills Rookie (General rule)
   'fallen-knight': {
-    onKill: function (ctx) { ctx.attacker.life += 1; },
+    onKill: function (ctx) { ctx.attacker.life = KV_RULES.capLife(ctx.attacker.life + 1); },
   },
   'spartan': {
     // +1 damage (permanent) every time an enemy card is killed
@@ -93,9 +93,11 @@ var KV_ABILITIES = {
     protects: function (ctx) { return ctx.target.isGeneral; },
   },
   'wisp': {
-    // +1 per Wisp-family card on my side (including itself)
+    // +1 per Wisp-family card on the whole field (both sides, including itself)
     modifyRoll: function (ctx) {
-      return ctx.state.teams[ctx.attacker.side].slots.filter(function (c) { return c && /wisp/.test(c.cardKey); }).length;
+      var n = 0;
+      ['p1', 'p2'].forEach(function (sd) { ctx.state.teams[sd].slots.forEach(function (c) { if (c && /wisp/.test(c.cardKey)) n++; }); });
+      return n;
     },
   },
   'neon-wisp': {
@@ -409,7 +411,7 @@ var KV_ABILITIES = {
     // Instead of attacking, cleanse an ally of debuffs, freeze, poison and marks
     extraOptions: function (ctx) {
       var BAD = { frozen: 1, debuff: 1, lifeSet: 1, poison: 1, mark: 1 };
-      return ctx.mySlots.filter(function (c) { return c && (c.statuses || []).some(function (st) { return BAD[st.type]; }); })
+      return ctx.mySlots.filter(function (c) { return c && (c.life < c.baseLife || (c.statuses || []).some(function (st) { return BAD[st.type]; })); })
         .map(function (c) { return { targets: [c.id], mode: 'cleanse', own: true, label: 'Cleanse' }; });
     },
   },
@@ -429,8 +431,9 @@ var KV_ABILITIES = {
   'eagle-warrior': {
     // Once per game: pull any enemy card (not the General) into its line of sight, then attack it
     extraOptions: function (ctx) {
-      if (ctx.card.usesLeft === 0 || ctx.row !== 0) return [];
+      if (ctx.card.usesLeft === 0) return [];
       var li = ctx.losIndex(ctx.enemySlots, ctx.col);
+      if (li < 0) { var nc = KV_RULES.nearestCols(ctx.enemySlots, ctx.col)[0]; li = nc == null ? -1 : ctx.losIndex(ctx.enemySlots, nc); }
       if (li < 0) return [];
       return ctx.enemySlots.filter(function (c, i) { return c && i !== li && !c.isGeneral; })
         .map(function (c) { return { targets: [c.id], mode: 'eagle', label: 'Pull + attack' }; });
@@ -476,10 +479,9 @@ var KV_ABILITIES = {
   },
   // ---- batch E ----
   'joker': {
-    // If it wasn't attacked during the enemy's last turn, it gets a free attack on any card after its roll
-    onAttackResolved: function (ctx) {
-      var me = ctx.attacker;
-      if (ctx.isExtra || ctx.state.pendingExtra) return;
+    // If the enemy didn't attack it on their last turn, then after ANY roll by its team it gets a free attack on any card
+    afterAllyAttack: function (ctx) {
+      var me = ctx.card;
       if (me.lastTargetedTurn == null || me.lastTargetedTurn < ctx.state.turnCount - 1) {
         ctx.state.pendingExtra = { side: me.side, cardId: me.id, pattern: 'any', reason: 'Joker was left alone - free attack on any card!' };
       }
@@ -531,7 +533,7 @@ var KV_ABILITIES = {
   },
   'tactical-alchemist': {
     // On kill, brews +1 Life and +1 damage for itself
-    onKill: function (ctx) { ctx.attacker.life += 1; ctx.attacker.dmg = (ctx.attacker.dmg || 0) + 1; },
+    onKill: function (ctx) { ctx.attacker.life = KV_RULES.capLife(ctx.attacker.life + 1); ctx.attacker.dmg = (ctx.attacker.dmg || 0) + 1; },
   },
   'guardian': {
     // While alive, no other card on its team can be attacked
