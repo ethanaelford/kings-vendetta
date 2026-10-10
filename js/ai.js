@@ -71,5 +71,32 @@ var KV_AI = (function () {
     return best || (anyway ? null : bestSwap(state, side, rng, true));
   }
 
-  return { choose: choose, setNoise: setNoise };
+  // Hero power decision: returns args for R.usePower, or null to hold it
+  function power(state, side, rng) {
+    rng = rng || Math.random;
+    if (!R.canUsePower(state, side)) return null;
+    var hero = state.heroes[side];
+    if (hero === 'executioner') {
+      var best = null;
+      R.executeTargets(state, side).forEach(function (id) {
+        var c = R.findCard(state, id).card;
+        if (!best || value(c) > value(best)) best = c;
+      });
+      return best && value(best) >= 10 ? { targetId: best.id } : null;
+    }
+    if (hero === 'priest') {
+      var hurt = state.teams[side].slots.filter(function (c) { return c && (c.life < c.baseLife || (c.statuses || []).some(function (st) { return st.type !== 'buff'; })); }).length;
+      return hurt >= 2 ? {} : null;
+    }
+    if (hero === 'warlord') return state.turnCount >= 4 && rng() < 0.35 ? {} : null;
+    if (hero === 'tactician') {
+      if (R.legalActions(state, side).length) return null;
+      var sw = bestSwap(state, side, rng);
+      return sw && sw.swap ? { a: sw.swap[0], b: sw.swap[1] } : null;
+    }
+    return null;
+  }
+  function pickHero(rng) { var k = Object.keys(R.HEROES); return k[Math.floor((rng || Math.random)() * k.length)]; }
+
+  return { choose: choose, setNoise: setNoise, power: power, pickHero: pickHero };
 })();

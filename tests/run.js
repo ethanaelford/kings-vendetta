@@ -1,5 +1,7 @@
 // Run: node tests/run.js   (no dependencies)
 global.KV_CONFIG = require('../config.js');
+// Most tests check exact numbers: keep the random terrain/events out unless a test turns them on
+KV_CONFIG.TERRAIN = false; KV_CONFIG.EVENTS = false;
 global.KV_CARDS = require('../js/cards.data.js');
 global.KV_ABILITIES = require('../js/abilities.js');
 var R = require('../js/rules.js');
@@ -432,6 +434,70 @@ t('Medic restores lost Life', function () {
 t('a card facing an empty column still has a target', function () {
   var s = battleState(row(['militia', 'medic', 'militia', 'general'], []), row(['militia', 'general'], []));
   s.teams.p1.slots.filter(Boolean).forEach(function (c) { if (!c.isGeneral) ok(R.getOptions(s, 'p1', c.id).length > 0, c.cardKey + ' has a target'); });
+});
+
+console.log('terrain, events, hero powers');
+function withTerrain(s, t) { s.terrain = t; return s; }
+t('hill gives +1, swamp -1 to rolls from that column', function () {
+  var s = battleState(row(['militia', 'general'], []), row(['knight', 'general'], []));
+  var m = s.teams.p1.slots.filter(Boolean)[0], i = R.findCard(s, m.id).index;
+  var base = R.hitChance(s, m, s.teams.p2.slots.filter(Boolean)[0]).p;
+  var t = ['plains', 'plains', 'plains', 'plains', 'plains', 'plains']; t[i] = 'hill'; withTerrain(s, t);
+  ok(R.hitChance(s, m, s.teams.p2.slots.filter(Boolean)[0]).p > base, 'hill helps');
+  t[i] = 'swamp';
+  ok(R.hitChance(s, m, s.teams.p2.slots.filter(Boolean)[0]).p < base, 'swamp hurts');
+});
+t('fortress +1 Life, scorched -1 Life (min 2, max 12)', function () {
+  var s = battleState(row(['militia', 'general'], []), row(['knight', 'general'], []));
+  var k = s.teams.p2.slots.filter(Boolean)[0], i = R.findCard(s, k.id).index;
+  var t = ['plains', 'plains', 'plains', 'plains', 'plains', 'plains'];
+  t[i] = 'fortress'; withTerrain(s, t); eq(R.targetLife(s, k), 9);
+  t[i] = 'scorched'; eq(R.targetLife(s, k), 7);
+});
+t('forest: only attackable from the same column', function () {
+  var s = battleState(row(['catapult', 'general'], []), row(['militia', 'knight'], ['general']));
+  var cat = s.teams.p1.slots.filter(Boolean)[0], kn = s.teams.p2.slots.filter(function (c) { return c && c.cardKey === 'knight'; })[0];
+  var t = ['plains', 'plains', 'plains', 'plains', 'plains', 'plains']; t[R.findCard(s, kn.id).index % 6] = 'forest'; withTerrain(s, t);
+  var hits = R.getOptions(s, 'p1', cat.id).some(function (o) { return o.targets.indexOf(kn.id) >= 0; });
+  eq(hits, R.findCard(s, cat.id).index % 6 === R.findCard(s, kn.id).index % 6);
+});
+t('events start every EVENT_EVERY turns and storms wear off', function () {
+  KV_CONFIG.EVENTS = true;
+  var s = battleState(row(['militia', 'militia', 'general'], ['knight']), row(['titan', 'titan', 'general'], ['knight']));
+  var started = 0;
+  for (var n = 0; n < 14 && s.phase === 'battle'; n++) {
+    var a = R.legalActions(s, s.turn)[0];
+    s = a ? R.act(s, s.turn, { cardId: a.cardId, option: a.option }, LOW) : R.turnSwap(s, s.turn, 0, 1);
+    if (s.lastEvent.event) started++;
+  }
+  KV_CONFIG.EVENTS = false;
+  ok(started >= 2, 'events fired: ' + started);
+});
+t('hero: War Cry is free and gives +2 this turn only', function () {
+  var s = battleState(row(['militia', 'general'], []), row(['knight', 'general'], []));
+  s.heroes = { p1: 'warlord', p2: 'warlord' }; s.powerUsed = { p1: false, p2: false }; s.warcry = { p1: -1, p2: -1 };
+  var m = s.teams.p1.slots.filter(Boolean)[0], k = s.teams.p2.slots.filter(Boolean)[0];
+  var p0 = R.hitChance(s, m, k).p;
+  var s2 = R.usePower(s, 'p1');
+  eq(s2.turn, 'p1', 'still my turn'); ok(R.hitChance(s2, m, k).p > p0, '+2');
+  eq(R.usePower(s2, 'p1'), null, 'once per game');
+});
+t('hero: Executioner kills a Life<=6 card and ends the turn', function () {
+  var s = battleState(row(['militia', 'general'], []), row(['militia', 'knight', 'general'], []));
+  s.heroes = { p1: 'executioner', p2: 'warlord' }; s.powerUsed = { p1: false, p2: false }; s.warcry = { p1: -1, p2: -1 };
+  var tg = R.executeTargets(s, 'p1'); eq(tg.length, 1);
+  var s2 = R.usePower(s, 'p1', { targetId: tg[0] });
+  ok(!R.findCard(s2, tg[0]), 'executed'); eq(s2.turn, 'p2');
+});
+t('hero: High Priest restores Life', function () {
+  var s = battleState(row(['knight', 'general'], []), row(['militia', 'general'], []));
+  s.heroes = { p1: 'priest', p2: 'warlord' }; s.powerUsed = { p1: false, p2: false }; s.warcry = { p1: -1, p2: -1 };
+  var k = s.teams.p1.slots.filter(Boolean)[0]; k.life = 3;
+  eq(R.findCard(R.usePower(s, 'p1'), k.id).card.life, 8);
+});
+t('hero is chosen in deploy and defaults to Warlord', function () {
+  var s = R.newGame(); s = R.chooseHero(s, 'p1', 'priest'); s = R.setReady(s, 'p1'); s = R.setReady(s, 'p2');
+  eq(s.heroes.p1, 'priest'); eq(s.heroes.p2, 'warlord');
 });
 
 console.log('deal');

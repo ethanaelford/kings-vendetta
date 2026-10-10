@@ -6,7 +6,7 @@ var KV_CONFIG = {
 
   GOOGLE_SIGNIN: false,       // flip to true once Google OAuth is configured in Supabase
 
-  BUILD: '20261010-2038',               // replaced by deploy script with a timestamp
+  BUILD: '20261010-2053',               // replaced by deploy script with a timestamp
 
   // Rules
   ADVANCE_BACK_ROW: true,     // back card moves forward when the front card in its column dies
@@ -16,6 +16,10 @@ var KV_CONFIG = {
   STALEMATE_TURNS: 30,
   TURN_SWAP: 'any',           // on your turn you may switch two of your cards instead of attacking: 'any' | 'adjacent' | 'off'
   WIN_BY_WIPE: true,          // also win by killing every enemy card except their General
+  TERRAIN: true,              // random terrain per column (hill, fortress, forest, swamp, scorched)
+  EVENTS: true,               // battlefield events every EVENT_EVERY turns
+  EVENT_EVERY: 6,
+  HEROES: true,               // pick a General hero power before battle
   MAX_LIFE: 12,               // hard cap on any card's Life (levels, auras, buffs never go above this)
   LOS_NEAREST: true,          // if the enemy column in front of you is empty, line of sight reaches the nearest enemy column
   GENERAL_SLOT: 8,            // starting slot for the General (back row, col 2)

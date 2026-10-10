@@ -46,7 +46,7 @@
   // ---------------- layout ----------------
   function layout() {
     var wrap = $('boardWrap');
-    var gap = 4, midH = 54, frontGap = 6;
+    var gap = 4, midH = 64, frontGap = 6;
     var availW = Math.min(wrap.clientWidth - 12, 560);
     var availH = wrap.clientHeight - 8;
     var cw = Math.floor((availW - gap * 5) / 6);
@@ -64,7 +64,29 @@
     document.documentElement.style.setProperty('--cw', cw + 'px');
     document.documentElement.style.setProperty('--ch', ch + 'px');
     var mid = $('mid'); mid.style.top = L.midTop + 'px'; mid.style.height = midH + 'px';
+    $('eventChip').style.top = (L.midTop + 2) + 'px';
+    renderTerrain();
     Object.keys(els).forEach(function (id) { placeEl(id, false); });
+  }
+
+  // Terrain: a tinted strip per board column + an icon chip on the middle line
+  function renderTerrain() {
+    var b = $('board'), s = G.pendingState || G.state;
+    for (var c = 0; c < 6; c++) {
+      var el = $('tcol' + c), chip = $('tchip' + c);
+      if (!el) {
+        el = document.createElement('div'); el.id = 'tcol' + c; el.className = 'tcol'; b.insertBefore(el, b.firstChild);
+        chip = document.createElement('div'); chip.id = 'tchip' + c; chip.className = 'tchip'; chip.dataset.col = c; b.appendChild(chip);
+      }
+      var t = s && s.terrain ? s.terrain[c] : null, T = t && R.TERRAIN[t];
+      var x = c * (L.cw + L.gap);
+      el.style.left = x + 'px'; el.style.width = L.cw + 'px'; el.style.height = L.H + 'px';
+      el.style.backgroundImage = T && t !== 'plains' ? 'url(images/ui/' + T.tile + '.png)' : 'none';
+      el.className = 'tcol' + (T && t !== 'plains' ? ' on' : '');
+      chip.style.left = (x + L.cw / 2 - 13) + 'px'; chip.style.top = (L.midTop + L.midH - 26) + 'px';
+      chip.textContent = T && T.icon ? T.icon : '';
+      chip.classList.toggle('hidden', !(T && T.icon) || (s && s.phase === 'deploy' && false));
+    }
   }
 
   function posFor(side, index) {
@@ -129,7 +151,9 @@
     var showEnemy = s.phase !== 'deploy';
     var targetIds = {}, chosenIds = {}, actable = {};
     var selOpts = [];
-    if (s.phase === 'battle' && myTurn() && !G.animating) {
+    if (G.powerMode === 'execute' && s.phase === 'battle' && myTurn()) {
+      R.executeTargets(s, G.view).forEach(function (id) { targetIds[id] = true; });
+    } else if (s.phase === 'battle' && myTurn() && !G.animating) {
       R.legalActions(s, G.view).forEach(function (a) { actable[a.cardId] = true; });
       if (G.sel) {
         selOpts = R.getOptions(s, G.view, G.sel);
@@ -163,7 +187,9 @@
         if (s.phase === 'battle' && side === G.view && myTurn() && !actable[card.id]) cls += ' dim';
         el.className = cls;
         var old = el.querySelector('.odds'); if (old) old.remove();
-        if (targetIds[card.id] && selCard) {
+        if (targetIds[card.id] && G.powerMode === 'execute') {
+          var dx = document.createElement('div'); dx.className = 'odds'; dx.textContent = '🪓'; el.appendChild(dx);
+        } else if (targetIds[card.id] && selCard) {
           var mo = selOpts.filter(function (o) { return o.targets.indexOf(card.id) >= 0; })[0] || {};
           var d = document.createElement('div'); d.className = 'odds';
           d.textContent = mo.own || /hailMary|manipulate|steal|wagonSwitch/.test(mo.mode || '') ? mo.label : pct(R.hitChance(s, selCard.card, card).p);
@@ -215,17 +241,25 @@
         h = '<div class="info"><b>' + esc(sc.card.name) + '</b> selected. Tap another card to swap.</div>' +
           '<button class="btn" data-act="info">ⓘ</button>';
       } else {
+        var myHero = (s.heroes || {})[G.view];
         h = '<div class="info">Tap two cards to swap places. Keep your <b>General ♛</b> safe.</div>' +
+          (C.HEROES !== false ? '<button class="btn" data-act="hero">' + (myHero ? R.HEROES[myHero].icon + ' ' + esc(R.HEROES[myHero].name) : '♛ Hero') + '</button>' : '') +
           '<button class="btn primary" data-act="ready">Ready ✓</button>';
       }
     } else if (s.phase === 'battle') {
       if (!myTurn()) {
         h = '<div class="info">' + esc(opp) + ' is choosing an attack…</div><button class="btn" data-act="log">Log</button>';
+      } else if (G.powerMode) {
+        h = '<div class="info"><b>' + R.HEROES[s.heroes[G.view]].icon + ' ' + (G.powerMode === 'execute' ? 'Execute' : 'Reposition') + '</b>: ' +
+          (G.powerMode === 'execute' ? 'tap a red enemy card (Life 6 or less).' : G.powerFrom == null ? 'tap the first of your cards to move.' : 'now tap the card to switch with.') + '</div>' +
+          '<button class="btn" data-act="powercancel">Cancel</button>';
       } else if (s.extra && !G.sel) {
         h = '<div class="info"><b>' + esc(s.extra.reason || 'Bonus attack') + '</b><br>Tap the glowing card, or skip.</div>' +
           '<button class="btn" data-act="skip">Skip</button>';
       } else if (!G.sel) {
-        h = '<div class="info">Tap one of your <b>glowing</b> cards to attack with it.</div>';
+        var pw = R.canUsePower(s, G.view) ? R.HEROES[s.heroes[G.view]] : null;
+        h = '<div class="info">Tap one of your <b>glowing</b> cards to attack with it.</div>' +
+          (pw ? '<button class="btn primary" data-act="power" title="' + esc(pw.text) + '">' + pw.icon + ' Power</button>' : '');
       } else {
         var a = R.findCard(s, G.sel).card, def = R.cardDef(a.cardKey);
         var swapBtn = R.canSwap(s, G.view) ? '<button class="btn" data-act="swapmode">⇄ Swap</button>' : '';
@@ -327,8 +361,9 @@
     el.classList.remove('hidden');
     var meS = G.view, opS = R.other(G.view);
     var mr = remaining(st, meS), or = remaining(st, opS);
-    $('clockMe').textContent = '⏱ ' + (G.mode === 'hotseat' ? st.names[meS] : 'You') + ' ' + fmt(mr);
-    $('clockOpp').textContent = '⏱ ' + st.names[opS] + ' ' + fmt(or);
+    var hi = function (sd) { var h = st.heroes && st.heroes[sd]; return h && st.phase !== 'deploy' ? R.HEROES[h].icon + ' ' : ''; };
+    $('clockMe').textContent = '⏱ ' + hi(meS) + (G.mode === 'hotseat' ? st.names[meS] : 'You') + ' ' + fmt(mr);
+    $('clockOpp').textContent = '⏱ ' + hi(opS) + st.names[opS] + ' ' + fmt(or);
     $('clockMe').className = st.phase === 'battle' && st.turn === meS ? (mr < 60000 ? 'low' : 'on') : '';
     $('clockOpp').className = st.phase === 'battle' && st.turn === opS ? (or < 60000 ? 'low' : 'on') : '';
   }
@@ -354,9 +389,19 @@
     renderClocks();
   }, 250);
 
+  function renderEventChip() {
+    var s = G.state, chip = $('eventChip');
+    if (!s || !s.event) { chip.classList.add('hidden'); return; }
+    var E = R.EVENTS[s.event.id];
+    chip.classList.remove('hidden');
+    chip.innerHTML = E.icon + ' ' + esc(E.name) + ' <small>' + s.event.turnsLeft + '</small>';
+  }
+
   function render(opts) {
     if (!G.state) return;
     renderClocks();
+    renderTerrain();
+    renderEventChip();
     renderBoard(opts);
     renderBars();
     renderNet();
@@ -426,13 +471,14 @@
     var isNew = ev.seq != null && ev.seq > G.shownSeq;
     if (prev && next.seq < prev.seq && G.mode === 'guest' && !next._sync) return;
     G.animating = true;
-    if (isNew && (ev.kind === 'attack' || ev.kind === 'move') && prev && prev.phase === 'battle') {
+    if (isNew && (ev.kind === 'attack' || ev.kind === 'move' || ev.kind === 'power') && prev && prev.phase === 'battle') {
       G.sel = null; G.chosen = null; G.swapMode = false;
       renderBars();
       await playAttack(ev);
     }
     G.state = next;
     G.shownSeq = Math.max(G.shownSeq, ev.seq || 0);
+    if (isNew && ev.event) { renderTerrain(); await eventToast(ev.event); }
     if (ev.kind === 'deal' && prev && prev !== next) {
       Object.keys(els).forEach(function (id) { els[id].remove(); delete els[id]; });
       closeOverlay(); // rematch started by the other player
@@ -479,6 +525,17 @@
     maybeAI();
   }
 
+  function eventToast(e) {
+    return new Promise(function (resolve) {
+      var d = document.createElement('div');
+      d.className = 'toastbig';
+      d.innerHTML = '<div class="ti">' + e.icon + '</div><b>' + esc(e.name) + '</b><div>' + esc(e.text) + (e.turns ? ' (' + e.turns + ' turns)' : '') + '</div>';
+      document.body.appendChild(d);
+      setTimeout(function () { d.classList.add('out'); }, 1900);
+      setTimeout(function () { d.remove(); resolve(); }, 2300);
+    });
+  }
+
   function handoff(name) {
     return new Promise(function (resolve) {
       overlay('<h2>Pass the device</h2><p>Hand it to <b>' + esc(name) + '</b>.</p><button class="btn primary big" id="hoBtn">I’m ' + esc(name) + ' — go</button>');
@@ -523,15 +580,15 @@
 
   function openChestOverlay(type, done) {
     var ch = KV_PROFILE.CHESTS[type];
-    overlay('<h2>' + esc(ch.name) + '</h2><div class="chest shake">' + ch.icon + '</div><p>Opening…</p>');
+    overlay('<h2>' + esc(ch.name) + '</h2><img class="chestimg shake" src="' + ch.art + '" alt=""><p>Opening…</p>');
     setTimeout(function () {
       var r = KV_PROFILE.openChest(type);
       var body = r.kind === 'card'
         ? '<p>New card unlocked!</p><div class="reward">' + ccardHtml(KV_RULES.cardDef(r.key)) + '</div><p>It was added to your deck if there was room.</p>'
         : r.kind === 'copy'
         ? '<p>Extra copy!</p><div class="reward">' + ccardHtml(KV_RULES.cardDef(r.key)) + '</div><p>You now have <b>' + r.copies + '</b> spare ' + esc(r.name) + (r.copies === 1 ? '' : 's') + ' for upgrades (Deck &amp; Cards).</p>'
-        : '<div class="reward chest">🪙</div><p><b>+' + r.coins + ' coins</b> (spend them in the Shop)</p>';
-      overlay('<h2>' + esc(ch.name) + '</h2>' + body + '<button class="btn primary big" id="ovChestOk">Nice!</button>');
+        : '<div class="reward" style="font-size:54px">🪙</div><p><b>+' + r.coins + ' coins</b> (spend them in the Shop)</p>';
+      overlay('<h2>' + esc(ch.name) + '</h2><img class="chestimg open" src="' + ch.openArt + '" alt="">' + body + '<button class="btn primary big" id="ovChestOk">Nice!</button>');
       refreshPlayerCard();
       $('ovChestOk').onclick = function () { closeOverlay(); done && done(); };
     }, 1600);
@@ -571,6 +628,8 @@
     else if (intent.type === 'skip') res = R.skip(s, side);
     else if (intent.type === 'tswap') res = R.turnSwap(s, side, intent.a, intent.b);
     else if (intent.type === 'forfeit') res = R.forfeit(s, side);
+    else if (intent.type === 'hero') res = R.chooseHero(s, side, intent.id);
+    else if (intent.type === 'power') res = R.usePower(s, side, intent.args || {});
     else if (intent.type === 'rematch' && s.phase === 'over') {
       res = R.newGame({ names: s.names, decks: s.decks, levels: s.levels, ranked: s.ranked, ratings: s.ratings, campaign: s.campaign, clockMs: s.clock ? s.clock.limit : 0 });
       res.guestClient = s.guestClient;
@@ -613,11 +672,16 @@
   function maybeAI() {
     var s = G.state;
     if (G.mode !== 'ai' || !s) return;
-    if (s.phase === 'deploy' && !s.ready.p2) { commit(engineApply('p2', { type: 'ready' })); return; }
+    if (s.phase === 'deploy' && !s.ready.p2) {
+      if (C.HEROES !== false && !(s.heroes || {}).p2) commit(engineApply('p2', { type: 'hero', id: KV_AI.pickHero() }));
+      commit(engineApply('p2', { type: 'ready' })); return;
+    }
     if (s.phase === 'battle' && s.turn === 'p2' && !aiTimer) {
       aiTimer = setTimeout(function () {
         aiTimer = null;
         if (G.mode !== 'ai' || G.state.turn !== 'p2' || G.state.phase !== 'battle') return;
+        var pw = !G.state.extra && KV_AI.power(G.state, 'p2');
+        if (pw) { var rp = engineApply('p2', { type: 'power', args: pw }); if (rp) return commit(rp); }
         var c = KV_AI.choose(G.state, 'p2');
         if (c && c.swap) commit(engineApply('p2', { type: 'tswap', a: c.swap[0], b: c.swap[1] }));
         else if (c && !(G.state.extra && c.score < 0)) commit(engineApply('p2', { type: 'action', cardId: c.cardId, option: c.option }));
@@ -661,6 +725,19 @@
       return render();
     }
     if (s.phase !== 'battle' || !myTurn()) return openDetails(id);
+    if (G.powerMode === 'execute') {
+      if (R.executeTargets(s, G.view).indexOf(id) < 0) return openDetails(id);
+      G.powerMode = null;
+      dispatch({ type: 'power', args: { targetId: id } });
+      return render();
+    }
+    if (G.powerMode === 'reposition') {
+      if (f.side !== G.view) return;
+      if (G.powerFrom == null) { G.powerFrom = f.index; G.sel = id; return render(); }
+      var pa = G.powerFrom; G.powerMode = null; G.powerFrom = null; G.sel = null;
+      if (pa !== f.index) dispatch({ type: 'power', args: { a: pa, b: f.index } });
+      return render();
+    }
     if (f.side === G.view && G.sel && G.swapMode) {
       var from = R.findCard(s, G.sel).index;
       G.swapMode = false; G.sel = null; G.chosen = null;
@@ -711,6 +788,21 @@
       dispatch(si); render();
     }
     else if (act === 'swapmode') { G.swapMode = true; G.chosen = null; render(); }
+    else if (act === 'hero') heroPicker();
+    else if (act === 'power') {
+      var hero = G.state.heroes[G.view];
+      if (hero === 'executioner') {
+        if (!R.executeTargets(G.state, G.view).length) { openSheet('<p>🪓 No enemy card has Life 6 or less right now.</p>'); return; }
+        G.powerMode = 'execute'; G.sel = null; G.chosen = null; render();
+      } else if (hero === 'tactician') { G.powerMode = 'reposition'; G.powerFrom = null; G.sel = null; G.chosen = null; render(); }
+      else {
+        var H = R.HEROES[hero];
+        openSheet('<h2 style="margin:0">' + H.icon + ' ' + esc(H.name) + '</h2><div class="ability">' + esc(H.text) + '</div>' +
+          '<p>Once per game.</p><button class="btn primary big" id="pwGo">Use it now</button>');
+        $('pwGo').onclick = function () { closeSheet(); dispatch({ type: 'power', args: {} }); };
+      }
+    }
+    else if (act === 'powercancel') { G.powerMode = null; G.powerFrom = null; G.sel = null; render(); }
     else if (act === 'swapcancel') { G.swapMode = false; render(); }
     else if (act === 'skip') { G.sel = null; G.chosen = null; dispatch({ type: 'skip' }); }
     else if (act === 'rematch') dispatch({ type: 'rematch' });
@@ -729,6 +821,20 @@
   function toast(msg) {
     var rt = $('rollText'); rt.className = ''; rt.textContent = msg;
     clearTimeout(toastTimer);
+  }
+
+  function heroPicker() {
+    var s = G.state, cur = (s.heroes || {})[G.view];
+    openSheet('<h2 style="margin:0 0 6px">♛ Choose your General</h2><p class="muted" style="font-size:13px">Each has a power you can use once per game.</p>' +
+      Object.keys(R.HEROES).map(function (id) {
+        var H = R.HEROES[id];
+        return '<div class="stage' + (cur === id ? ' next' : '') + '" data-hero="' + id + '"><div class="si">' + H.icon + '</div><div class="sm"><b>' + esc(H.name) + '</b><small>' + esc(H.text) + '</small></div></div>';
+      }).join(''));
+    $('sheetBody').onclick = function (e) {
+      var el = e.target.closest('[data-hero]'); if (!el) return;
+      $('sheetBody').onclick = null; closeSheet();
+      dispatch({ type: 'hero', id: el.dataset.hero });
+    };
   }
 
   function openDetails(id) {
@@ -1098,9 +1204,11 @@
   function showProfile() {
     var P = me(), t = KV_PROFILE.myTier();
     var h = '<div class="panel"><h2 style="margin:0">' + esc(myName()) + '</h2>' +
-      '<p style="font-size:20px" class="' + (t.mythic ? 'mythic' : '') + '">' + t.icon + ' ' + t.name + ' · <b>' + P.rating + '</b> Elo' +
-      (P.rank ? ' · #' + P.rank + ' worldwide' : '') + '</p>' +
-      (t.mythic ? '' : '<p class="muted" style="font-size:13px">🔮 Mythic: reach Diamond (1400) and a top-100 spot on the leaderboard.</p>') +
+      '<div class="rankhead"><img src="' + t.banner + '" alt=""><div><p style="font-size:20px;margin:0" class="' + (t.mythic ? 'mythic' : '') + '">' + t.name + '</p>' +
+      '<p style="margin:2px 0"><b>' + P.rating + '</b> Elo' + (P.rank ? ' · #' + P.rank + ' worldwide' : '') + '</p></div></div>' +
+      '<div class="ranklad">' + ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'master', 'grandmaster', 'legendary'].map(function (id) {
+        return '<img src="images/ui/rank_' + id + '.png" class="' + (id === t.id ? 'on' : '') + '" title="' + id + '">'; }).join('') + '</div>' +
+      (t.mythic ? '' : '<p class="muted" style="font-size:12px">Bronze · Silver 950 · Gold 1100 · Platinum 1250 · Diamond 1400 · Master 1550 · Grandmaster 1700 · <b>Legendary</b> = Grandmaster + a top-100 spot.</p>') +
       '<p>Ranked games: ' + P.rankedGames + ' · Wins ' + P.wins + ' · Losses ' + P.losses + ' · Draws ' + P.draws + '</p>' +
       '<p>🪙 <b>' + P.coins + '</b> coins · 🃏 ' + P.owned.length + ' cards</p></div>';
     var acc = KV_PROFILE.account();
@@ -1116,18 +1224,55 @@
         (!C.GOOGLE_SIGNIN ? '' :
         '<button class="btn primary big" id="accIn"><b>G</b>&nbsp; Sign in with Google</button>' +
         '<p class="muted" style="font-size:12px">On iPhone, sign in from Safari. If you play from a Home Screen icon, sign in there too.</p>')) + '</div>';
-    h += '<div class="panel"><div class="panel-title">Board themes</div><div class="themes">' + KV_PROFILE.THEMES.map(function (th) {
-      var owned = P.themes.indexOf(th.id) >= 0;
-      return '<div class="theme theme-' + th.id + (P.theme === th.id ? ' on' : '') + '" data-theme="' + th.id + '"><b>' + esc(th.name) + '</b><br>' +
-        (P.theme === th.id ? 'Equipped' : owned ? 'Tap to equip' : '🪙 ' + th.price) + '</div>';
-    }).join('') + '</div></div>';
+    h += shopHtml();
     h += '<div class="panel"><div class="panel-title">Backup</div><p>Your cards, coins and rating live on this device. Copy this code to move them to another phone:</p>' +
       '<textarea class="code" readonly id="bkCode">' + KV_PROFILE.backupCode() + '</textarea>' +
       '<button class="btn" id="bkCopy">Copy code</button> <button class="btn" id="bkRestore">Restore from code…</button></div>';
     $('profBody').innerHTML = h;
     show('profile');
   }
+  var shopTab = 'board';
+  function shopHtml() {
+    var P = me(), PR = KV_PROFILE, tabs = { board: 'Boards', frame: 'Card frames', dice: 'Dice', chest: 'Chests' };
+    var h = '<div class="panel"><div class="panel-title">Shop · 🪙 ' + P.coins + '</div><div class="chips" style="padding:0 0 8px">' +
+      Object.keys(tabs).map(function (k) { return '<button data-shoptab="' + k + '" class="' + (k === shopTab ? 'on' : '') + '">' + tabs[k] + '</button>'; }).join('') + '</div><div class="themes">';
+    if (shopTab === 'chest') {
+      h += Object.keys(PR.CHESTS).filter(function (k) { return PR.CHESTS[k].price; }).map(function (k) {
+        var c = PR.CHESTS[k];
+        return '<div class="theme" data-buychest="' + k + '"><img class="shopimg" src="' + c.art + '"><br><b>' + esc(c.name) + '</b><br>🪙 ' + c.price + '</div>';
+      }).join('');
+    } else {
+      h += PR.COSMETICS[shopTab].map(function (it) {
+        var owned = PR.owns(shopTab, it.id), on = PR.equipped(shopTab) === it.id || (!PR.equipped(shopTab) && it.price === 0);
+        var prev = shopTab === 'board' ? (it.tile ? '<img class="shopimg" src="images/ui/' + it.tile + '.png">' : '<div class="shopimg theme-' + it.id + '"></div>')
+          : shopTab === 'frame' ? '<div class="shopimg" style="border:4px solid ' + it.color + ';' + (it.glow ? 'box-shadow:0 0 10px ' + it.color : '') + '"></div>'
+          : '<div class="die" style="display:inline-block;background:' + it.bg + ';color:' + it.fg + '">6</div>';
+        return '<div class="theme' + (on ? ' on' : '') + '" data-cos="' + shopTab + ':' + it.id + '">' + prev + '<br><b>' + esc(it.name) + '</b><br>' +
+          (on ? 'Equipped' : owned ? 'Tap to equip' : '🪙 ' + it.price) + '</div>';
+      }).join('');
+    }
+    return h + '</div></div>';
+  }
+
   function onProfileTap(e) {
+    var tab = e.target.closest('[data-shoptab]');
+    if (tab) { shopTab = tab.dataset.shoptab; return showProfile(); }
+    var cos = e.target.closest('[data-cos]');
+    if (cos) {
+      var parts = cos.dataset.cos.split(':'), kind = parts[0], id = parts[1];
+      var it = KV_PROFILE.COSMETICS[kind].filter(function (x) { return x.id === id; })[0];
+      if (!KV_PROFILE.owns(kind, id) && it.price && !confirm('Buy ' + it.name + ' for ' + it.price + ' coins?')) return;
+      if (!KV_PROFILE.buyCosmetic(kind, id)) alert('Not enough coins yet - open chests and finish quests to earn more.');
+      refreshPlayerCard(); return showProfile();
+    }
+    var bc = e.target.closest('[data-buychest]');
+    if (bc) {
+      var cid = bc.dataset.buychest, cc = KV_PROFILE.CHESTS[cid];
+      if (!confirm('Buy a ' + cc.name + ' for ' + cc.price + ' coins?')) return;
+      if (!KV_PROFILE.buyChest(cid)) { alert('Not enough coins yet.'); return; }
+      refreshPlayerCard();
+      return openChestOverlay(cid, function () { showProfile(); });
+    }
     if (e.target.closest('#accIn')) { KV_PROFILE.signInGoogle(); return; }
     var lg = e.target.closest('#accLogin'), cr = e.target.closest('#accCreate');
     if (lg || cr) {
@@ -1189,7 +1334,7 @@
     KV_PROFILE.syncLeaderboard(myName()).then(KV_PROFILE.fetchRank).then(function () { refreshPlayerCard(); return KV_PROFILE.fetchLeaderboard(); }).then(function (rows) {
       if (!rows.length) { $('lbBody').innerHTML = '<p>No ranked games yet. Play a ⚔ Ranked match to get on the board!</p>'; return; }
       var mine = rows.findIndex(function (r) { return r.client_id === P.clientId; });
-      $('lbBody').innerHTML = '<p class="muted" style="font-size:13px">🔮 The top 100 Diamond players (1400+) are <b class="mythic">Mythic</b>.</p>' +
+      $('lbBody').innerHTML = '<p class="muted" style="font-size:13px">The top 100 Grandmasters (1700+) are <b class="mythic">Legendary</b>.</p>' +
         (mine < 0 ? '<p>' + (P.rankedGames ? 'You are #' + (P.rank || '?') + ' - not in the top 100 yet.' : 'Play a ranked match to join the board.') + '</p>' : '') +
         rows.map(function (r, i) {
           var t = KV_PROFILE.tier(r.rating, i + 1), medal = ['🥇', '🥈', '🥉'][i] || (i + 1);
@@ -1201,7 +1346,7 @@
 
   function refreshPlayerCard() {
     var P = me(), t = KV_PROFILE.myTier();
-    $('pcTier').textContent = t.icon + ' ' + t.name + (P.rank ? ' #' + P.rank : '');
+    $('pcTier').innerHTML = t.icon + ' ' + t.name + (P.rank ? ' #' + P.rank : '');
     $('pcTier').className = t.mythic ? 'mythic' : '';
     $('pcRating').textContent = P.rating;
     $('pcCoins').textContent = '🪙 ' + P.coins;
@@ -1286,6 +1431,19 @@
     board.addEventListener('pointercancel', cancelPress);
     board.addEventListener('pointerleave', cancelPress);
     board.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+    board.addEventListener('click', function (e) {
+      var st = G.state; if (!st) return;
+      var chip = e.target.closest('.tchip');
+      if (chip && st.terrain) {
+        var T = R.TERRAIN[st.terrain[+chip.dataset.col]];
+        return openSheet('<h2 style="margin:0">' + T.icon + ' ' + esc(T.name) + '</h2><div class="ability">' + esc(T.text) + '</div>' +
+          '<p class="muted" style="font-size:13px">Terrain belongs to the board column, so cards gain or lose it as the columns shift.</p>');
+      }
+      if (e.target.closest('#eventChip') && st.event) {
+        var E = R.EVENTS[st.event.id];
+        openSheet('<h2 style="margin:0">' + E.icon + ' ' + esc(E.name) + '</h2><div class="ability">' + esc(E.text) + '</div><p>' + st.event.turnsLeft + ' turns left.</p>');
+      }
+    });
     window.addEventListener('resize', function () { if (!$('game').classList.contains('hidden')) layout(); });
     document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
 

@@ -6,12 +6,16 @@ global.KV_RULES = require('../js/rules.js');
 var src = require('fs').readFileSync(__dirname + '/../js/ai.js', 'utf8');
 var KV_AI = new Function('KV_RULES', src + '; return KV_AI;')(global.KV_RULES);
 var R = global.KV_RULES;
+var HEROES = Object.keys(R.HEROES);
 var N = +process.argv[2] || 300, res = { p1: 0, p2: 0, draw: 0 }, turns = 0, maxT = 0;
 for (var g = 0; g < N; g++) {
   var s = R.newGame();
+  ['p1', 'p2'].forEach(function (sd) { s = R.chooseHero(s, sd, HEROES[Math.floor(Math.random() * HEROES.length)]); });
   s = R.setReady(s, 'p1'); s = R.setReady(s, 'p2');
   var n = 0;
   while (s.phase === 'battle' && n < 500) {
+    var pw = KV_AI.power ? KV_AI.power(s, s.turn) : null;
+    if (pw) { var sp = R.usePower(s, s.turn, pw); if (sp) { s = sp; if (s.phase !== 'battle') break; continue; } }
     var c = KV_AI.choose(s, s.turn);
     if (!c) { console.log('turn', s.turn, 'extra', JSON.stringify(s.extra), 'legal', R.legalActions(s, s.turn).length, s.log.slice(-3)); if (s.extra) { s = R.skip(s, s.turn); continue; } throw new Error('no choice but battle continues'); }
     var nx = c.swap ? R.turnSwap(s, s.turn, c.swap[0], c.swap[1]) : R.act(s, s.turn, { cardId: c.cardId, option: c.option });

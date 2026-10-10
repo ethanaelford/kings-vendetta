@@ -5,19 +5,62 @@ var KV_PROFILE = (function () {
   var DECK_SIZE = 20;
   var RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
   var RARITY_LABEL = { common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' };
+  function img(path, cls) { return '<img class="' + (cls || 'ico') + '" src="images/ui/' + path + '.png" alt="">'; }
+  // Chest art from sprites3: <id>.png and <id>_open.png. price = buyable in the shop.
   var CHESTS = {
-    wood:   { name: 'Wooden Chest', icon: '📦', cardChance: 0.55, coins: [20, 40],   odds: { common: 60, uncommon: 30, rare: 8, epic: 2, legendary: 0 } },
-    silver: { name: 'Silver Chest', icon: '🧰', cardChance: 0.6,  coins: [50, 90],   odds: { common: 30, uncommon: 40, rare: 20, epic: 8, legendary: 2 } },
-    gold:   { name: 'Golden Chest', icon: '👑', cardChance: 0.7,  coins: [120, 200], odds: { common: 10, uncommon: 30, rare: 35, epic: 18, legendary: 7 } },
+    wood:      { name: 'Wooden Chest',    cardChance: 0.55, coins: [20, 40],   odds: { common: 60, uncommon: 30, rare: 8,  epic: 2,  legendary: 0 } },
+    silver:    { name: 'Silver Chest',    cardChance: 0.6,  coins: [50, 90],   odds: { common: 30, uncommon: 40, rare: 20, epic: 8,  legendary: 2 } },
+    gold:      { name: 'Golden Chest',    cardChance: 0.7,  coins: [120, 200], odds: { common: 10, uncommon: 30, rare: 35, epic: 18, legendary: 7 } },
+    epic:      { name: 'Epic Chest',      cardChance: 0.8,  coins: [250, 400], odds: { common: 0,  uncommon: 15, rare: 40, epic: 35, legendary: 10 } },
+    legendary: { name: 'Legendary Chest', cardChance: 0.9,  coins: [500, 800], odds: { common: 0,  uncommon: 0,  rare: 30, epic: 45, legendary: 25 } },
+    royal:     { name: 'Royal Chest',     cardChance: 0.75, coins: [150, 260], odds: { common: 5,  uncommon: 25, rare: 40, epic: 22, legendary: 8 },  price: 300 },
+    frost:     { name: 'Frost Chest',     cardChance: 0.85, coins: [300, 450], odds: { common: 0,  uncommon: 10, rare: 40, epic: 38, legendary: 12 }, price: 650 },
+    infernal:  { name: 'Infernal Chest',  cardChance: 0.9,  coins: [600, 900], odds: { common: 0,  uncommon: 0,  rare: 25, epic: 45, legendary: 30 }, price: 1200 },
   };
-  var THEMES = [
-    { id: 'default', name: 'Castle Stone', price: 0 },
-    { id: 'crimson', name: 'Crimson Keep', price: 150 },
-    { id: 'forest', name: 'Emerald Forest', price: 150 },
-    { id: 'midnight', name: 'Midnight Siege', price: 250 },
-    { id: 'gold', name: 'Gold Leaf', price: 400 },
-  ];
-  var TIERS = [[1400, 'Diamond', '💎'], [1250, 'Platinum', '🔷'], [1100, 'Gold', '🥇'], [950, 'Silver', '🥈'], [0, 'Bronze', '🥉']];
+  Object.keys(CHESTS).forEach(function (k) { CHESTS[k].icon = img('chest_' + k); CHESTS[k].art = 'images/ui/chest_' + k + '.png'; CHESTS[k].openArt = 'images/ui/chest_' + k + '_open.png'; });
+
+  // Cosmetics: kind -> list. Board tiles come from sprites3 terrain.
+  var COSMETICS = {
+    board: [
+      { id: 'default', name: 'Castle Stone', price: 0 },
+      { id: 'meadow', name: 'Green Meadow', price: 100, tile: 't_grass' },
+      { id: 'desert', name: 'Desert Sands', price: 120, tile: 't_sand' },
+      { id: 'cobble', name: 'Old Road', price: 120, tile: 't_cobble' },
+      { id: 'timber', name: 'Timber Fort', price: 150, tile: 't_planks' },
+      { id: 'crimson', name: 'Crimson Keep', price: 150 },
+      { id: 'forest', name: 'Emerald Forest', price: 150 },
+      { id: 'snow', name: 'Snowfield', price: 200, tile: 't_snow' },
+      { id: 'keep', name: 'Mossy Keep', price: 200, tile: 't_mossbrick' },
+      { id: 'midnight', name: 'Midnight Siege', price: 250 },
+      { id: 'ocean', name: 'Open Sea', price: 300, tile: 't_water' },
+      { id: 'gold', name: 'Gold Leaf', price: 400 },
+      { id: 'lava', name: 'Lava Fields', price: 500, tile: 't_lava' },
+      { id: 'void', name: 'The Void', price: 750, tile: 't_void' },
+    ],
+    frame: [
+      { id: 'iron', name: 'Iron', price: 0, color: '#3566b8' },
+      { id: 'bronze', name: 'Bronze', price: 100, color: '#b0703a' },
+      { id: 'silver', name: 'Silver', price: 200, color: '#c9d1d9' },
+      { id: 'gold', name: 'Gold', price: 350, color: '#e6b422' },
+      { id: 'emerald', name: 'Emerald', price: 350, color: '#2fbf71' },
+      { id: 'crystal', name: 'Crystal', price: 500, color: '#7fd8ff', glow: true },
+      { id: 'amethyst', name: 'Amethyst', price: 500, color: '#a46bff', glow: true },
+      { id: 'inferno', name: 'Inferno', price: 800, color: '#ff5a1f', glow: true },
+    ],
+    dice: [
+      { id: 'parchment', name: 'Parchment', price: 0, bg: '#f4ead2', fg: '#24180c' },
+      { id: 'obsidian', name: 'Obsidian', price: 150, bg: '#1d1a24', fg: '#e8e0ff' },
+      { id: 'ruby', name: 'Ruby', price: 200, bg: '#9b1b30', fg: '#fff' },
+      { id: 'ice', name: 'Ice', price: 200, bg: '#bfe9ff', fg: '#0b3a5c' },
+      { id: 'emerald', name: 'Emerald', price: 250, bg: '#1f7a4a', fg: '#fff' },
+      { id: 'gold', name: 'Royal Gold', price: 400, bg: '#e6b422', fg: '#3a2500' },
+    ],
+  };
+  var THEMES = COSMETICS.board;
+
+  // Ranks (art from sprites3). Legendary = Grandmaster rating AND a top-100 spot on the shared leaderboard.
+  var TIERS = [[1700, 'grandmaster', 'Grandmaster'], [1550, 'master', 'Master'], [1400, 'diamond', 'Diamond'], [1250, 'platinum', 'Platinum'],
+    [1100, 'gold', 'Gold'], [950, 'silver', 'Silver'], [0, 'bronze', 'Bronze']];
 
   function cards() { return KV_CARDS.filter(function (c) { return c.ready && c.key !== 'general'; }); }
   function starters() { return cards().filter(function (c) { return c.starter; }).map(function (c) { return c.key; }); }
@@ -29,6 +72,8 @@ var KV_PROFILE = (function () {
       p = { v: 1, owned: starters(), deck: starters().slice(0, DECK_SIZE), coins: 0, rating: 1000,
         wins: 0, losses: 0, draws: 0, rankedGames: 0, themes: ['default'], theme: 'default', awarded: {} };
     }
+    if (!p.frames) { p.frames = ['iron']; p.frame = 'iron'; }
+    if (!p.diceSkins) { p.diceSkins = ['parchment']; p.diceSkin = 'parchment'; }
     if (!p.clientId) p.clientId = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
     p.copies = p.copies || {};   // extra copies of owned cards (from chests), spent on upgrades
     p.levels = p.levels || {};   // card level (1 = base). Each level adds +1 Life.
@@ -79,11 +124,16 @@ var KV_PROFILE = (function () {
   }
 
   // Mythic: a Diamond rating AND a top-100 spot on the shared leaderboard.
-  var MYTHIC_RANK = 100, DIAMOND = 1400;
+  var LEGEND_RANK = 100, LEGEND_RATING = 1700;
+  function tierObj(id, name, extra) {
+    var t = { id: id, name: name, icon: img('rank_' + id), badge: 'images/ui/rank_' + id + '.png', banner: 'images/ui/banner_' + id + '.png' };
+    Object.keys(extra || {}).forEach(function (k) { t[k] = extra[k]; });
+    return t;
+  }
   function tier(r, rank) {
-    if (r >= DIAMOND && rank && rank <= MYTHIC_RANK) return { name: 'Mythic', icon: '🔮', mythic: true, rank: rank };
-    for (var i = 0; i < TIERS.length; i++) if (r >= TIERS[i][0]) return { name: TIERS[i][1], icon: TIERS[i][2] };
-    return { name: 'Bronze', icon: '🥉' };
+    if (r >= LEGEND_RATING && rank && rank <= LEGEND_RANK) return tierObj('legendary', 'Legendary', { mythic: true, rank: rank });
+    for (var i = 0; i < TIERS.length; i++) if (r >= TIERS[i][0]) return tierObj(TIERS[i][1], TIERS[i][2]);
+    return tierObj('bronze', 'Bronze');
   }
 
   function rand(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
@@ -96,7 +146,7 @@ var KV_PROFILE = (function () {
 
   function rollChest(won) {
     var x = Math.random();
-    if (won) return x < 0.5 ? 'wood' : x < 0.85 ? 'silver' : 'gold';
+    if (won) return x < 0.45 ? 'wood' : x < 0.77 ? 'silver' : x < 0.95 ? 'gold' : 'epic';
     return x < 0.7 ? 'wood' : x < 0.95 ? 'silver' : 'gold';
   }
 
@@ -155,20 +205,44 @@ var KV_PROFILE = (function () {
     return { chest: info.forfeit ? null : rollChest(info.won), elo: elo };
   }
 
-  function buyTheme(id) {
-    var t = THEMES.filter(function (x) { return x.id === id; })[0];
-    if (!t) return false;
-    if (P.themes.indexOf(id) < 0) {
-      if (P.coins < t.price) return false;
-      P.coins -= t.price; P.themes.push(id);
+  // owned/equipped field names per cosmetic kind
+  var COS_FIELDS = { board: ['themes', 'theme'], frame: ['frames', 'frame'], dice: ['diceSkins', 'diceSkin'] };
+  function owns(kind, id) { return (P[COS_FIELDS[kind][0]] || []).indexOf(id) >= 0; }
+  function equipped(kind) { return P[COS_FIELDS[kind][1]]; }
+  // Buy (if needed) and equip. Returns false if not enough coins.
+  function buyCosmetic(kind, id) {
+    var item = COSMETICS[kind].filter(function (x) { return x.id === id; })[0];
+    if (!item) return false;
+    var f = COS_FIELDS[kind];
+    P[f[0]] = P[f[0]] || [COSMETICS[kind][0].id];
+    if (P[f[0]].indexOf(id) < 0) {
+      if (P.coins < item.price) return false;
+      P.coins -= item.price; P[f[0]].push(id);
     }
-    P.theme = id; save(); applyTheme();
+    P[f[1]] = id; save(); applyTheme();
     return true;
   }
-  function applyTheme() { document.documentElement.setAttribute('data-board', P.theme || 'default'); }
+  function buyTheme(id) { return buyCosmetic('board', id); }
+  function buyChest(id) {
+    var c = CHESTS[id];
+    if (!c || !c.price || P.coins < c.price) return false;
+    P.coins -= c.price; save();
+    return true;
+  }
+  function applyTheme() {
+    var root = document.documentElement;
+    var b = COSMETICS.board.filter(function (x) { return x.id === (P.theme || 'default'); })[0] || COSMETICS.board[0];
+    root.setAttribute('data-board', b.tile ? 'tile' : b.id);
+    root.style.setProperty('--board-tile', b.tile ? 'url(images/ui/' + b.tile + '.png)' : 'none');
+    var fr = COSMETICS.frame.filter(function (x) { return x.id === (P.frame || 'iron'); })[0] || COSMETICS.frame[0];
+    root.style.setProperty('--frame', fr.color);
+    root.setAttribute('data-frame-glow', fr.glow ? 'on' : 'off');
+    var d = COSMETICS.dice.filter(function (x) { return x.id === (P.diceSkin || 'parchment'); })[0] || COSMETICS.dice[0];
+    root.style.setProperty('--die-bg', d.bg); root.style.setProperty('--die-fg', d.fg);
+  }
 
   function backupCode() {
-    var data = { copies: P.copies, levels: P.levels, campaign: P.campaign, owned: P.owned, deck: P.deck, coins: P.coins, rating: P.rating, wins: P.wins, losses: P.losses, draws: P.draws, themes: P.themes, theme: P.theme, rankedGames: P.rankedGames,
+    var data = { frames: P.frames, frame: P.frame, diceSkins: P.diceSkins, diceSkin: P.diceSkin, copies: P.copies, levels: P.levels, campaign: P.campaign, owned: P.owned, deck: P.deck, coins: P.coins, rating: P.rating, wins: P.wins, losses: P.losses, draws: P.draws, themes: P.themes, theme: P.theme, rankedGames: P.rankedGames,
       clientId: P.clientId, secret: P.secret };
     return btoa(unescape(encodeURIComponent(JSON.stringify(data))));
   }
@@ -185,7 +259,7 @@ var KV_PROFILE = (function () {
   // ---- accounts: Google sign-in + cloud save (kv_profiles, one row per user, RLS-protected) ----
   var account = { user: null, status: 'signed-out', onChange: null, onConflict: null };
   var applying = false, pushTimer = null;
-  var SYNC_FIELDS = ['owned', 'deck', 'coins', 'rating', 'wins', 'losses', 'draws', 'rankedGames', 'themes', 'theme',
+  var SYNC_FIELDS = ['owned', 'deck', 'coins', 'rating', 'wins', 'losses', 'draws', 'rankedGames', 'themes', 'theme', 'frames', 'frame', 'diceSkins', 'diceSkin',
     'copies', 'levels', 'campaign', 'clientId', 'secret', 'rank'];
   function exportData() { var d = {}; SYNC_FIELDS.forEach(function (k) { d[k] = P[k]; }); return d; }
   function importData(d) {
@@ -317,6 +391,6 @@ var KV_PROFILE = (function () {
     get: function () { return P; }, account: function () { return account; }, initAuth: initAuth, signInPassword: signInPassword, signInGoogle: signInGoogle, signOut: signOut, syncNow: push, syncLeaderboard: syncLeaderboard, fetchRank: fetchRank, myTier: myTier, fetchLeaderboard: fetchLeaderboard, save: save, DECK_SIZE: DECK_SIZE, RARITY_LABEL: RARITY_LABEL, CHESTS: CHESTS, THEMES: THEMES,
     deckForGame: deckForGame, level: level, upgradeCost: upgradeCost, canUpgrade: canUpgrade, upgrade: upgrade,
     levelsForGame: levelsForGame, MAX_LEVEL: MAX_LEVEL, campaignWin: campaignWin, toggleDeck: toggleDeck, tier: tier, openChest: openChest, recordGame: recordGame,
-    buyTheme: buyTheme, applyTheme: applyTheme, backupCode: backupCode, restore: restore, cards: cards,
+    buyTheme: buyTheme, buyCosmetic: buyCosmetic, buyChest: buyChest, owns: owns, equipped: equipped, COSMETICS: COSMETICS, applyTheme: applyTheme, backupCode: backupCode, restore: restore, cards: cards,
   };
 })();

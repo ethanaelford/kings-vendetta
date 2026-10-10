@@ -25,14 +25,14 @@ var KV_CAMPAIGN = [
   { name: 'The Frozen Peaks', foe: 'Jarl Frostmane', icon: '❄', noise: 1.5, genLevel: 2, cardLevel: 2,
     story: 'Ice freezes the careless. Every card here has been hardened by the cold (+1 Life).',
     deck: ['ice-sentinel', 'frost-giant', 'frost-brute', 'hydra', 'stone-monster', 'major', 'elephant-mounted-warrior', 'ranger', 'archer', 'unstable-titan', 'fallen-knight', 'spartan'],
-    reward: { coins: 180, chest: 'gold' } },
+    reward: { coins: 180, chest: 'epic' } },
   { name: "The Dragon's Roost", foe: 'Drakewarden Sol', icon: '🐉', noise: 1.2, genLevel: 3, cardLevel: 2,
     story: 'Fire from the sky. Kill the Dragon Tamer before its marks come due.',
     deck: ['dragon-tamer', 'light-dragon', 'phoenix', 'fire-sentinel', 'magma-knight', 'fire-striker', 'lava-guardian', 'elf-rampager', 'elf-blitz-warrior', 'cobalt-knight', 'tactical-alchemist', 'reviver'],
-    reward: { coins: 220, chest: 'gold' } },
+    reward: { coins: 220, chest: 'epic' } },
   { name: 'The Usurper King', foe: 'King Malgrave', icon: '👑', noise: 0.6, genLevel: 4, cardLevel: 2, boss: true,
     story: 'The false king sits on your throne with his finest army. His General is armoured (Life 12). End this.',
     deck: ['kings-knight', 'melee-expert', 'field-marshall', 'guardian', 'reviver', 'berserker-warrior', 'corrupt-commander', 'admiral', 'commander', 'wizard', 'centurion', "general-s-guard"],
-    reward: { coins: 500, chest: 'gold' } },
+    reward: { coins: 500, chest: 'legendary' } },
 ];
 if (typeof module !== 'undefined') module.exports = KV_CAMPAIGN;

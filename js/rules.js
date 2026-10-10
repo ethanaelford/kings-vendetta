@@ -9,6 +9,36 @@
   var ABIL = root.KV_ABILITIES || (isNode ? require('./abilities.js') : {});
 
   var SIDES = ['p1', 'p2'];
+
+  // Terrain is fixed to a board column (both armies' cards in that column are affected).
+  var TERRAIN = {
+    plains:   { name: 'Plains',   icon: '',   tile: 't_grass',   text: 'Open ground. No effect.' },
+    hill:     { name: 'Hill',     icon: '⛰', tile: 't_stone',   text: 'High ground: cards attacking from this column get +1 to their rolls.' },
+    fortress: { name: 'Fortress', icon: '🏰', tile: 't_brick',   text: 'Walls: cards in this column have +1 Life.' },
+    forest:   { name: 'Forest',   icon: '🌲', tile: 't_moss',    text: 'Cover: cards here can only be attacked from the same column.' },
+    swamp:    { name: 'Swamp',    icon: '🌿', tile: 't_shallows', text: 'Mud: cards attacking from this column get -1 to their rolls.' },
+    scorched: { name: 'Scorched', icon: '🔥', tile: 't_lava',    text: 'Burning ground: cards in this column have -1 Life.' },
+  };
+  var TERRAIN_SPECIAL = ['hill', 'fortress', 'forest', 'swamp', 'scorched'];
+
+  // Battlefield events (every EVENT_EVERY turns). Lasting ones run for `turns` turns.
+  var EVENTS = {
+    storm:     { name: 'Thunderstorm',   icon: '⛈', turns: 4, text: 'All rolls -1.' },
+    blessing:  { name: 'Clear Skies',    icon: '☀', turns: 4, text: 'All rolls +1.' },
+    fog:       { name: 'Thick Fog',      icon: '🌫', turns: 3, text: 'Ranged cards and "any card" attacks get -3.' },
+    reinforce: { name: 'Reinforcements', icon: '📯', turns: 0, text: 'Each army gets a fresh card from its deck.' },
+    plague:    { name: 'Plague',         icon: '☠', turns: 0, text: 'Every card except the Generals loses 1 Life.' },
+    spring:    { name: 'Healing Spring', icon: '⛲', turns: 0, text: 'Every card is restored and cleansed.' },
+    quake:     { name: 'Earthquake',     icon: '🌋', turns: 0, text: 'The terrain shifts.' },
+    meteor:    { name: 'Meteor Shower',  icon: '☄', turns: 0, text: 'A random card in each army loses 3 Life.' },
+  };
+
+  var HEROES = {
+    warlord:     { name: 'Warlord',     icon: '⚔', text: 'War Cry: all your cards get +2 to their rolls this turn. Free action.' },
+    tactician:   { name: 'Tactician',   icon: '♟', text: 'Reposition: switch two of your cards. Free action.' },
+    priest:      { name: 'High Priest', icon: '✚', text: 'Mend: restore every card\'s Life and remove debuffs. Free action.' },
+    executioner: { name: 'Executioner', icon: '🪓', text: 'Execute: destroy an enemy card (not the General) with Life 6 or less. Uses your turn.' },
+  };
   var FRONT_ONLY = { los: 1, column: 1, quad: 1, forD: 1, lean: 1, L: 1, six: 1, ends: 1 };
   var CARD_BY_KEY = {};
   CARDS.forEach(function (c) { CARD_BY_KEY[c.key] = c; });
@@ -175,7 +205,10 @@
       gameId: Math.floor(rng() * 1e9).toString(36) + Date.now().toString(36),
       ranked: !!opts.ranked, decks: { p1: decks.p1 || null, p2: decks.p2 || null }, ratings: opts.ratings || {},
       levels: { p1: levels.p1 || null, p2: levels.p2 || null }, campaign: opts.campaign || null,
-      clock: opts.clockMs ? { limit: opts.clockMs, p1: opts.clockMs, p2: opts.clockMs, turnStart: null } : null, turn: null, first: null, winner: null, turnCount: 0,
+      clock: opts.clockMs ? { limit: opts.clockMs, p1: opts.clockMs, p2: opts.clockMs, turnStart: null } : null,
+      terrain: CFG.TERRAIN === false ? null : rollTerrain(rng),
+      event: null,
+      heroes: { p1: null, p2: null }, powerUsed: { p1: false, p2: false }, warcry: { p1: -1, p2: -1 }, turn: null, first: null, winner: null, turnCount: 0,
       names: opts.names || { p1: 'Player 1', p2: 'Player 2' },
       ready: { p1: false, p2: false },
       teams: { p1: dealTeam('p1', rng, decks.p1, levels.p1), p2: dealTeam('p2', rng, decks.p2, levels.p2) },
@@ -186,6 +219,16 @@
     };
     return s;
   }
+
+  function rollTerrain(rng) {
+    rng = rng || Math.random;
+    var t = ['plains', 'plains', 'plains', 'plains', 'plains', 'plains'];
+    var n = 2 + Math.floor(rng() * 2); // 2-3 special columns
+    var cols = shuffle([0, 1, 2, 3, 4, 5], rng).slice(0, n);
+    cols.forEach(function (c) { t[c] = TERRAIN_SPECIAL[Math.floor(rng() * TERRAIN_SPECIAL.length)]; });
+    return t;
+  }
+  function terrainAt(state, index) { return state.terrain ? state.terrain[index % 6] : 'plains'; }
 
   // Re-deal one side from a new deck (e.g. when the guest's deck arrives during deploy)
   function redeal(state, side, deck, rng, levels) {
@@ -478,8 +521,14 @@
     var byId = {};
     enemySlots.forEach(function (c) { if (c) byId[c.id] = c; });
     var out = [];
+    var myCol = colOf(f.index);
+    var covered = function (id) {
+      if (!state.terrain) return false;
+      var i = enemySlots.findIndex(function (c) { return c && c.id === id; });
+      return i >= 0 && terrainAt(state, i) === 'forest' && colOf(i) !== myCol;
+    };
     groups.forEach(function (g) {
-      var t = g.filter(function (id) { return byId[id] && canTarget(card, byId[id], enemySlots); });
+      var t = g.filter(function (id) { return byId[id] && canTarget(card, byId[id], enemySlots) && !covered(id); });
       if (t.length) out.push({ targets: t });
     });
     if (a.extraOptions && !(ex && ex.pattern)) {
@@ -520,6 +569,21 @@
   // ---------- roll math ----------
   function rollModifier(state, attacker, target) {
     var m = (attacker.dmg || 0) + (attacker.tmpBonus || 0) + teamBonus(state, attacker).dmg, a = ab(attacker);
+    var atkF = attacker.side && state.teams[attacker.side] && findCard(state, attacker.id);
+    if (atkF) {
+      var tr = terrainAt(state, atkF.index);
+      if (tr === 'hill') m += 1;
+      if (tr === 'swamp') m -= 1;
+    }
+    if (state.warcry && attacker.side && state.warcry[attacker.side] === state.turnCount) m += 2;
+    if (state.event) {
+      if (state.event.id === 'storm') m -= 1;
+      if (state.event.id === 'blessing') m += 1;
+      if (state.event.id === 'fog') {
+        var ranged = (typeof KV_RANGED !== 'undefined' && KV_RANGED[attacker.cardKey]) || cardDef(attacker.cardKey).pattern === 'any';
+        if (ranged) m -= 3;
+      }
+    }
     if (a.modifyRoll) m += a.modifyRoll({ state: state, attacker: attacker, target: target });
     // passive auras from allies (e.g. Neon Wisp)
     var mine = attacker.side && state.teams[attacker.side] ? state.teams[attacker.side].slots : [];
@@ -542,8 +606,13 @@
       var slots = state.teams[f.side].slots;
       neighbours(f.index).forEach(function (i) { var al = slots[i]; if (al && ab(al).lifeAura) l += ab(al).lifeAura({ ally: al, target: target }) || 0; });
     }
+    if (f) {
+      var tt = terrainAt(state, f.index);
+      if (tt === 'fortress') l += 1;
+      if (tt === 'scorched') l -= 1;
+    }
     (target.statuses || []).forEach(function (st) { if (st.type === 'armor') l += st.n || 1; if (st.type === 'lifeSet') l = st.n; });
-    return a.fixedLife ? l : capLife(l);
+    return a.fixedLife ? l : Math.max(2, capLife(l));
   }
 
   function isSuccess(attacker, target, raw, total, life) {
@@ -619,6 +688,10 @@
       // compact in case a column was left empty during deploy
       SIDES.forEach(function (sd) { s.teams[sd].slots = compactBoard(s.teams[sd], CFG).slots; });
       s.phase = 'battle';
+      s.heroes = s.heroes || { p1: null, p2: null };
+      s.powerUsed = s.powerUsed || { p1: false, p2: false };
+      s.warcry = s.warcry || { p1: -1, p2: -1 };
+      SIDES.forEach(function (sd) { if (!s.heroes[sd]) s.heroes[sd] = 'warlord'; });
       s.first = (rng || Math.random)() < 0.5 ? 'p1' : 'p2';
       s.turn = s.first;
       log(s, 'Battle! ' + s.names[s.first] + ' goes first.');
@@ -986,6 +1059,91 @@
     return bump(s, ev);
   }
 
+  function startEvent(s, ev) {
+    var ids = Object.keys(EVENTS);
+    var id = ids[Math.floor(Math.random() * ids.length)];
+    var E = EVENTS[id];
+    if (E.turns) s.event = { id: id, turnsLeft: E.turns };
+    ev.event = { id: id, name: E.name, icon: E.icon, text: E.text, turns: E.turns };
+    log(s, E.icon + ' ' + E.name + '! ' + E.text);
+    var nonGen = function (sd) { return s.teams[sd].slots.filter(function (c) { return c && !c.isGeneral && !ab(c).fixedLife; }); };
+    if (id === 'plague') SIDES.forEach(function (sd) { nonGen(sd).forEach(function (c) { c.life = Math.max(2, c.life - 1); }); });
+    if (id === 'meteor') SIDES.forEach(function (sd) { var l = nonGen(sd); if (l.length) { var c = l[Math.floor(Math.random() * l.length)]; c.life = Math.max(2, c.life - 3); ev.event.text += ' ' + c.name + ' is hit.'; } });
+    if (id === 'spring') SIDES.forEach(function (sd) { s.teams[sd].slots.forEach(function (c) {
+      if (!c) return;
+      if (c.life < c.baseLife) c.life = c.baseLife;
+      c.statuses = (c.statuses || []).filter(function (st) { return st.type === 'buff'; });
+    }); });
+    if (id === 'quake' && s.terrain) s.terrain = rollTerrain(Math.random);
+    if (id === 'reinforce') SIDES.forEach(function (sd) {
+      var spot = emptySlot(s.teams[sd].slots);
+      if (spot < 0) return;
+      var have = {};
+      s.teams[sd].slots.forEach(function (c) { if (c) have[c.cardKey] = 1; });
+      var pool = (s.decks && s.decks[sd] && s.decks[sd].length ? s.decks[sd] : readyPool()).filter(function (k) { return !have[k] && k !== 'general' && cardDef(k).ready; });
+      if (!pool.length) return;
+      var key = pool[Math.floor(Math.random() * pool.length)];
+      s.teams[sd].slots[spot] = makeCard(key, sd, Math.random, ((s.levels || {})[sd] || {})[key]);
+      s.teams[sd].slots = compactBoard(s.teams[sd], CFG).slots;
+    });
+  }
+
+  // ---------- General hero powers ----------
+  function chooseHero(state, side, id) {
+    if (state.phase !== 'deploy' || state.ready[side] || !HEROES[id]) return null;
+    var s = clone(state);
+    s.heroes = s.heroes || { p1: null, p2: null };
+    s.heroes[side] = id;
+    return bump(s, { kind: 'hero', side: side });
+  }
+
+  function canUsePower(state, side) {
+    return CFG.HEROES !== false && state.phase === 'battle' && state.turn === side && !state.extra &&
+      state.heroes && state.heroes[side] && !(state.powerUsed || {})[side];
+  }
+
+  // Targets for the Executioner: enemy non-Generals with Life <= 6
+  function executeTargets(state, side) {
+    return state.teams[other(side)].slots.filter(function (c) { return c && !c.isGeneral && !ab(c).fixedLife && targetLife(state, c) <= 6; })
+      .map(function (c) { return c.id; });
+  }
+
+  function usePower(state, side, args) {
+    if (!canUsePower(state, side)) return null;
+    args = args || {};
+    var s = clone(state), hero = s.heroes[side], H = HEROES[hero];
+    var ev = { kind: 'power', side: side, hero: hero, rolls: [], deaths: [], moves: { p1: [], p2: [] }, notes: [] };
+    s.powerUsed[side] = true;
+    if (hero === 'warlord') {
+      s.warcry[side] = s.turnCount;
+      ev.notes.push(H.icon + ' War Cry! ' + s.names[side] + '\'s army gets +2 this turn');
+    } else if (hero === 'tactician') {
+      var sl = s.teams[side].slots, a = args.a, b = args.b;
+      if (a == null || b == null || a === b || !sl[a] || !sl[b]) return null;
+      var t = sl[a]; sl[a] = sl[b]; sl[b] = t;
+      s.teams[side].slots = compactBoard(s.teams[side], CFG).slots;
+      ev.notes.push(H.icon + ' Reposition: ' + t.name + ' switches places');
+    } else if (hero === 'priest') {
+      s.teams[side].slots.forEach(function (c) {
+        if (!c) return;
+        if (c.life < c.baseLife) c.life = c.baseLife;
+        c.statuses = (c.statuses || []).filter(function (st) { return !BAD[st.type]; });
+      });
+      ev.notes.push(H.icon + ' Mend! ' + s.names[side] + '\'s army is restored');
+    } else if (hero === 'executioner') {
+      if (executeTargets(s, side).indexOf(args.targetId) < 0) return null;
+      var f = findCard(s, args.targetId);
+      killCard(s, f, ev.deaths);
+      ev.notes.push(H.icon + ' Execute! ' + f.card.name + ' is beheaded');
+      log(s, s.names[side] + ' - ' + ev.notes[0]);
+      s.lastActor[side] = null;
+      finishTurn(s, side, ev, null);
+      return bump(s, ev);
+    } else return null;
+    log(s, s.names[side] + ' - ' + ev.notes[0]);
+    return bump(s, ev);
+  }
+
   function autoPass(s, ev) {
     for (var guard = 0; guard < 4; guard++) {
       if (legalActions(s, s.turn).length || canSwap(s, s.turn)) return;
@@ -1021,6 +1179,9 @@
       log(s, 'Stalemate: ' + s.quietTurns + ' turns without a kill - draw.');
       return;
     }
+    if (s.event && s.event.turnsLeft > 0 && --s.event.turnsLeft <= 0) { log(s, EVENTS[s.event.id].name + ' ends.'); s.event = null; }
+    if (CFG.EVENTS !== false && s.turnCount % (CFG.EVENT_EVERY || 6) === 0) startEvent(s, ev);
+    if (checkWin(s, side)) return;
     var next = wasExtra ? wasExtra.thenTurn : other(side);
     var pe = s.pendingExtra; s.pendingExtra = null;
     if (pe && findCard(s, pe.cardId)) {
@@ -1040,7 +1201,7 @@
     newGame: newGame, findCard: findCard, generalOf: generalOf, compactBoard: compactBoard,
     patternGroups: patternGroups, getOptions: getOptions, legalActions: legalActions,
     hitChance: hitChance, generalRisk: generalRisk, targetLife: targetLife,
-    swap: swap, setReady: setReady, act: act, skip: skip, capLife: capLife, nearestCols: nearestCols, whyIdle: whyIdle, redeal: redeal, timeout: timeout, forfeit: forfeit, turnSwap: turnSwap, canSwap: canSwap, lossReason: lossReason, emptySlot: emptySlot, deckFor: deckFor, rollsNeeded: rollsNeeded, teamBonus: teamBonus, losIndex: losIndex, checkWin: checkWin, addStatus: addStatus, hasStatus: hasStatus, neighbours: neighbours,
+    swap: swap, setReady: setReady, act: act, skip: skip, TERRAIN: TERRAIN, EVENTS: EVENTS, HEROES: HEROES, terrainAt: terrainAt, rollTerrain: rollTerrain, chooseHero: chooseHero, canUsePower: canUsePower, usePower: usePower, executeTargets: executeTargets, startEvent: startEvent, capLife: capLife, nearestCols: nearestCols, whyIdle: whyIdle, redeal: redeal, timeout: timeout, forfeit: forfeit, turnSwap: turnSwap, canSwap: canSwap, lossReason: lossReason, emptySlot: emptySlot, deckFor: deckFor, rollsNeeded: rollsNeeded, teamBonus: teamBonus, losIndex: losIndex, checkWin: checkWin, addStatus: addStatus, hasStatus: hasStatus, neighbours: neighbours,
   };
   root.KV_RULES = KV_RULES;
   if (isNode) module.exports = KV_RULES;

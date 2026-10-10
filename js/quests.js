@@ -9,7 +9,7 @@ var KV_QUESTS = (function () {
     { id: 'kills10',   text: 'Kill 10 enemy cards',                         stat: 'kills',     goal: 10, coins: 50 },
     { id: 'kills25',   text: 'Kill 25 enemy cards',                         stat: 'kills',     goal: 25, coins: 100 },
     { id: 'multi',     text: 'Kill 2+ cards with a single attack',          stat: 'multikill', goal: 1,  coins: 60 },
-    { id: 'slayer',    text: 'Kill an enemy General with a card of Life 5 or less', stat: 'slayer', goal: 1, coins: 120, chest: 'gold' },
+    { id: 'slayer',    text: 'Kill an enemy General with a card of Life 5 or less', stat: 'slayer', goal: 1, coins: 120, chest: 'epic' },
     { id: 'genkill',   text: 'Win by killing the enemy General',            stat: 'genwins',   goal: 1,  coins: 60 },
     { id: 'wipe',      text: 'Win by wiping out every enemy card but the General', stat: 'wipewins', goal: 1, coins: 90 },
     { id: 'ranked',    text: 'Win a ranked match',                          stat: 'rankedwins', goal: 1, coins: 100, chest: 'silver' },
