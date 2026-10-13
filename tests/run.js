@@ -626,6 +626,19 @@ t('season rollover: chest for last rank, soft reset halfway to 1000', function (
   eq(PR.claimSeasonReward().chest, 'royal'); eq(PR.get().seasonReward, null);
 });
 
+t('hero: Tactician Blitz gives one extra action this turn', function () {
+  var s = battleState(row(['militia', 'militia', 'general'], []), row(['titan', 'titan', 'general'], []));
+  s.heroes = { p1: 'tactician', p2: 'warlord' }; s.powerUsed = { p1: false, p2: false }; s.warcry = { p1: -1, p2: -1 };
+  s = R.usePower(s, 'p1'); eq(s.turn, 'p1');
+  var a = R.legalActions(s, 'p1')[0];
+  s = R.act(s, 'p1', { cardId: a.cardId, option: a.option }, LOW);
+  eq(s.turn, 'p1', 'second action');
+  var idx = s.teams.p1.slots.map(function (c, i) { return c ? i : -1; }).filter(function (i) { return i >= 0; });
+  s = R.turnSwap(s, 'p1', idx[0], idx[1]);
+  eq(s.turn, 'p2', 'then the turn passes');
+  eq(R.usePower(s, 'p1'), null);
+});
+
 console.log('deal');
 t('exactly one General per team, no duplicates (200 deals)', function () {
   for (var n = 0; n < 200; n++) {

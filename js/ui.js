@@ -246,7 +246,7 @@
     } else if (s.phase === 'battle') {
       var mine = myTurn();
       ban.className = 'banner ' + (mine ? 'mine' : 'theirs');
-      ban.textContent = mine ? (s.extra ? (s.extra.thenTurn !== s.extra.side ? 'Manipulated!' : 'Bonus attack!') : G.mode === 'hotseat' ? s.names[G.view] + ': your turn' : 'Your turn') : opp + (s.extra ? "'s bonus attack…" : "'s turn…");
+      ban.textContent = mine ? (s.blitz && s.blitz[G.view] > 0 && !s.extra ? '♟ Blitz: 2 actions this turn' : s.extra ? (s.extra.thenTurn !== s.extra.side ? 'Manipulated!' : 'Bonus attack!') : G.mode === 'hotseat' ? s.names[G.view] + ': your turn' : 'Your turn') : opp + (s.extra ? "'s bonus attack…" : "'s turn…");
     } else {
       ban.className = 'banner deploy';
       ban.textContent = s.winner === 'draw' ? 'Draw' : (s.winner === G.view || G.mode === 'hotseat' ? s.names[s.winner] + ' wins!' : opp + ' wins');
@@ -959,8 +959,7 @@
       if (hero === 'executioner') {
         if (!R.executeTargets(G.state, G.view).length) { openSheet('<p>🪓 No enemy card has Life 6 or less right now.</p>'); return; }
         G.powerMode = 'execute'; G.sel = null; G.chosen = null; render();
-      } else if (hero === 'tactician') { G.powerMode = 'reposition'; G.powerFrom = null; G.sel = null; G.chosen = null; render(); }
-      else {
+      } else {
         var H = R.HEROES[hero];
         openSheet('<h2 style="margin:0">' + H.icon + ' ' + esc(H.name) + '</h2><div class="ability">' + esc(H.text) + '</div>' +
           '<p>Once per game.</p><button class="btn primary big" id="pwGo">Use it now</button>');

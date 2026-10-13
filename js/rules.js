@@ -36,7 +36,7 @@
 
   var HEROES = {
     warlord:     { name: 'Warlord',     icon: '⚔', text: 'War Cry: all your cards get +2 to their rolls this turn. Free action.' },
-    tactician:   { name: 'Tactician',   icon: '♟', text: 'Reposition: switch two of your cards. Free action.' },
+    tactician:   { name: 'Tactician',   icon: '♟', text: 'Blitz: take one extra action this turn - two attacks, or an attack and a swap, in any order. Free action.' },
     priest:      { name: 'High Priest', icon: '✚', text: 'Mend: restore every card\'s Life and remove debuffs. Free action.' },
     executioner: { name: 'Executioner', icon: '🪓', text: 'Execute: destroy an enemy card (not the General) with Life 6 or less. Uses your turn.' },
   };
@@ -1223,11 +1223,9 @@
       s.warcry[side] = s.turnCount;
       ev.notes.push(H.icon + ' War Cry! ' + s.names[side] + '\'s army gets +2 this turn');
     } else if (hero === 'tactician') {
-      var sl = s.teams[side].slots, a = args.a, b = args.b;
-      if (a == null || b == null || a === b || !sl[a] || !sl[b]) return null;
-      var t = sl[a]; sl[a] = sl[b]; sl[b] = t;
-      s.teams[side].slots = compactBoard(s.teams[side], CFG).slots;
-      ev.notes.push(H.icon + ' Reposition: ' + t.name + ' switches places');
+      s.blitz = s.blitz || { p1: 0, p2: 0 };
+      s.blitz[side] = 1;
+      ev.notes.push(H.icon + ' Blitz! ' + s.names[side] + ' gets an extra action this turn');
     } else if (hero === 'priest') {
       s.teams[side].slots.forEach(function (c) {
         if (!c) return;
@@ -1273,7 +1271,8 @@
   }
 
   function finishTurn(s, side, ev, wasExtra) {
-    tickStatuses(s, side).forEach(function (id) {
+    var blitzing = !!(s.blitz && s.blitz[side] > 0 && !wasExtra);
+    (blitzing ? [] : tickStatuses(s, side)).forEach(function (id) {
       var f = findCard(s, id);
       if (f) { killCard(s, f, ev.deaths); log(s, f.card.name + ' is destroyed!'); (ev.notes = ev.notes || []).push(f.card.name + ' is destroyed!'); }
     });
@@ -1303,6 +1302,12 @@
     }
     if (checkWin(s, side)) return;
     var next = wasExtra ? wasExtra.thenTurn : other(side);
+    if (blitzing) {
+      s.blitz[side]--;
+      next = side;
+      ev.blitz = true;
+      log(s, s.names[side] + ' - Blitz: one more action!');
+    }
     var pe = s.pendingExtra; s.pendingExtra = null;
     if (pe && findCard(s, pe.cardId)) {
       s.extra = { side: pe.side, cardId: pe.cardId, pattern: pe.pattern || null, reason: pe.reason, thenTurn: pe.thenTurn || next };

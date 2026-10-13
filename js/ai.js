@@ -114,9 +114,12 @@ var KV_AI = (function () {
     }
     if (hero === 'warlord') return state.turnCount >= 4 && rng() < 0.35 ? {} : null;
     if (hero === 'tactician') {
-      if (R.legalActions(state, side).length) return null;
-      var sw = bestSwap(state, side, rng);
-      return sw && sw.swap ? { a: sw.swap[0], b: sw.swap[1] } : null;
+      // Blitz when there are at least two decent attacks available
+      var good = R.legalActions(state, side).filter(function (a) {
+        var att = R.findCard(state, a.cardId).card;
+        return !a.mode && a.targets.some(function (id) { var t = R.findCard(state, id).card; return !t.isGeneral && R.hitChance(state, att, t).p >= 0.5; });
+      });
+      return good.length >= 2 && state.turnCount >= 2 ? {} : null;
     }
     return null;
   }

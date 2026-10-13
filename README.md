@@ -81,7 +81,7 @@ Those override the original sprite sheet; then rerun `tools/build_cards.py`.
 - **Events:** every 6 turns. Thunderstorm (-1 rolls), Clear Skies (+1), Thick Fog (ranged -3), Reinforcements, Plague, Healing Spring,
   Earthquake (new terrain), Meteor Shower.
 - **Classic battlefield** (lobby setting): no terrain and no events, for private, vs-computer and pass & play games. Ranked is always Dynamic.
-- **Hero Generals:** pick one during deploy; each power works once per game. Warlord (War Cry +2 this turn), Tactician (free swap),
+- **Hero Generals:** pick one during deploy; each power works once per game. Warlord (War Cry +2 this turn), Tactician (Blitz: one extra action that turn),
   High Priest (restore your army), Executioner (destroy an enemy card with Life <= 6; uses the turn).
 
 ## Ranks, chests & cosmetics (art: reference/sprites3.png -> tools/slice_sprites3.py -> images/ui/)

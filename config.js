@@ -7,7 +7,7 @@ var KV_CONFIG = {
   VAPID_PUBLIC_KEY: 'BIbr5aGqJXRxIvKrcyPM93zoLhse0dLixWyYZjEmiCiBcrLg439y4IkVgeKvcGIbPUSQmU4Tt4EWpX4Q9gsVG6g',  // web push (public by design)
   GOOGLE_SIGNIN: false,       // flip to true once Google OAuth is configured in Supabase
 
-  BUILD: '20261013-2034',               // replaced by deploy script with a timestamp
+  BUILD: '20261013-2041',               // replaced by deploy script with a timestamp
 
   // Rules
   ADVANCE_BACK_ROW: true,     // back card moves forward when the front card in its column dies
