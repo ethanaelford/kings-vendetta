@@ -4,9 +4,10 @@ var KV_CONFIG = {
   SUPABASE_URL: 'https://xuejozfijzsqxezwjjid.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1ZWpvemZpanpzcXhlendqamlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1NjQ1NjEsImV4cCI6MjEwNzE0MDU2MX0.9tKu0R6VRpgoIw6RrE6Yqobnsqp28x7wL2OR22h6zrE',
 
+  VAPID_PUBLIC_KEY: 'BIbr5aGqJXRxIvKrcyPM93zoLhse0dLixWyYZjEmiCiBcrLg439y4IkVgeKvcGIbPUSQmU4Tt4EWpX4Q9gsVG6g',  // web push (public by design)
   GOOGLE_SIGNIN: false,       // flip to true once Google OAuth is configured in Supabase
 
-  BUILD: '20261013-2031',               // replaced by deploy script with a timestamp
+  BUILD: '20261013-2034',               // replaced by deploy script with a timestamp
 
   // Rules
   ADVANCE_BACK_ROW: true,     // back card moves forward when the front card in its column dies

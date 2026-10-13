@@ -736,6 +736,8 @@
   function dispatch(intent) {
     if (G.mode === 'guest') {
       if (!KV_NET.send({ type: 'intent', intent: intent, clientId: me().clientId })) toast('Not connected — retrying…');
+      var hc = (G.pendingState || G.state || {}).hostClient;
+      if (hc && !G.oppPresent && typeof KV_PUSH !== 'undefined') KV_PUSH.notify(hc, '⏳ Your opponent is waiting', myName() + ' is waiting for you in room ' + G.room + '.', roomUrl(G.room) + '');
       // If the host's phone was asleep the intent is lost: re-send actions/ready (never swaps, they'd undo).
       if (intent.type !== 'swap') {
         var seq0 = (G.pendingState || G.state || {}).seq;
@@ -772,7 +774,7 @@
       var rts = s.ratings || {};
       if (G.mode === 'ai' && s.ranked) rts = { p1: me().rating, p2: rts.p2 };
       res = R.newGame({ names: s.names, decks: s.decks, levels: s.levels, ranked: s.ranked, ratings: rts, campaign: s.campaign, classic: s.classic, clockMs: s.clock ? s.clock.limit : 0 });
-      res.guestClient = s.guestClient;
+      res.guestClient = s.guestClient; res.hostClient = s.hostClient;
       res.seq = s.seq + 1; res.lastEvent = { kind: 'deal', seq: res.seq };
     }
     return res;
@@ -800,7 +802,13 @@
     if (G.mode === 'host') { LS.set('kv-state-' + G.room, next); }
     if (G.mode === 'ai' || G.mode === 'hotseat') LS.set('kv-local', { mode: G.mode, state: next });
     G.pendingState = next;
-    if (G.mode === 'host') broadcastState(next);
+    if (G.mode === 'host') {
+      broadcastState(next);
+      if (next.guestClient && !G.oppPresent && typeof KV_PUSH !== 'undefined') {
+        if (next.phase === 'battle' && next.turn === 'p2') KV_PUSH.notify(next.guestClient, '⚔ Your turn!', next.names.p1 + ' made a move in room ' + G.room + '.', roomUrl(G.room));
+        if (next.phase === 'over') KV_PUSH.notify(next.guestClient, "King's Vendetta", 'Your game in room ' + G.room + ' has ended.', roomUrl(G.room));
+      }
+    }
     receive(next);
   }
 
@@ -1125,6 +1133,7 @@
       levels: { p1: KV_PROFILE.levelsForGame(), p2: null },
       ranked: !!ranked, ratings: { p1: me().rating }, clockMs: ranked ? 10 * 60000 : clockMs(), classic: !ranked && classicMode() });
     if (saved) { st.seq++; st.lastEvent = Object.assign({}, st.lastEvent, { seq: st.seq, kind: 'resume' }); }
+    st.hostClient = me().clientId;
     commit(st);
     KV_NET.connect({
       room: code, role: 'host', name: myName(), clientId: me().clientId,
@@ -1433,6 +1442,7 @@
         (!C.GOOGLE_SIGNIN ? '' :
         '<button class="btn primary big" id="accIn"><b>G</b>&nbsp; Sign in with Google</button>' +
         '<p class="muted" style="font-size:12px">On iPhone, sign in from Safari. If you play from a Home Screen icon, sign in there too.</p>')) + '</div>';
+    h += '<div class="panel"><div class="panel-title">🔔 Turn notifications</div><div id="pushPanel">Checking…</div></div>';
     h += '<div class="panel"><div class="panel-title">🎬 Replays</div>' + replayList() + '</div>';
     h += shopHtml();
     h += '<div class="panel"><div class="panel-title">Backup</div><p>Your cards, coins and rating live on this device. Copy this code to move them to another phone:</p>' +
@@ -1440,6 +1450,7 @@
       '<button class="btn" id="bkCopy">Copy code</button> <button class="btn" id="bkRestore">Restore from code…</button></div>';
     $('profBody').innerHTML = h;
     show('profile');
+    renderPushPanel();
   }
   var shopTab = 'board';
   function shopHtml() {
@@ -1464,7 +1475,25 @@
     return h + '</div></div>';
   }
 
+  function renderPushPanel() {
+    var el = $('pushPanel'); if (!el) return;
+    var env = KV_PUSH.standaloneIOS();
+    KV_PUSH.status().then(function (st) {
+      var help = env.ios && !env.standalone ? '<p class="warn">On iPhone, first add the game to your Home Screen (Share → Add to Home Screen), open it from there, then turn this on.</p>' : '';
+      el.innerHTML = st === 'on' ? '<p>✅ On. Your phone buzzes when it is your turn in an online game and the app is closed.</p><button class="btn" id="pushOff">Turn off</button>'
+        : st === 'denied' ? '<p>Notifications are blocked for this site. Allow them in your phone settings, then come back.</p>'
+        : st === 'unsupported' ? help + '<p class="muted">This browser cannot receive push notifications.</p>'
+        : help + '<p>Get a buzz when it is your turn and the game is closed.</p><button class="btn primary" id="pushOn">🔔 Turn on</button>';
+    });
+  }
+
   function onProfileTap(e) {
+    if (e.target.closest('#pushOn')) {
+      $('pushPanel').innerHTML = 'Asking for permission…';
+      KV_PUSH.enable().then(function (r) { if (!r.ok) alert('Could not turn on notifications: ' + (r.reason || 'unknown')); renderPushPanel(); });
+      return;
+    }
+    if (e.target.closest('#pushOff')) { KV_PUSH.disable().then(renderPushPanel); return; }
     var rp = e.target.closest('[data-replay]');
     if (rp) return playReplay(rp.dataset.replay);
     var tab = e.target.closest('[data-shoptab]');

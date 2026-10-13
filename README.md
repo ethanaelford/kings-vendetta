@@ -94,3 +94,14 @@ Those override the original sprite sheet; then rerun `tools/build_cards.py`.
 If no other player is in the ranked queue after `RANKED_BOT_WAIT_MS` (20s), a ranked bot near your rating joins (always labelled 🤖).
 Bot strength scales with Elo (`js/bots.js`): rarer cards, higher card levels, and a sharper AI. Games against bots are rated, count for the
 leaderboard and give chests. There's also a "Play a ranked bot now" button while searching.
+
+## Seasons, replays, spectating, deck codes, notifications
+- **Seasons:** monthly (UTC). At the new month your rating soft-resets halfway to 1000, and you claim a season chest for the rank you finished at
+  (Bronze → Wooden … Legendary → Legendary chest). The leaderboard shows the current season only (`kv_leaderboard_season`).
+- **Replays:** the last 5 games are kept on the device. Watch them from the game-over screen or Profile → Replays.
+- **Spectating:** 👁 Watch + a room code, or a watch link (Menu → Share watch link, `?room=CODE&watch=1`). Watchers are read-only and don't take a player seat.
+- **Deck codes:** Deck & Cards → Share deck code / Use a code (`KV1-…`). Cards you don't own are skipped.
+- **Turn notifications:** Profile → Turn notifications. A web push via the `notify` edge function (`supabase/functions/notify`), keys in `.env.local`
+  (private key also stored as a Supabase secret). On iPhone it needs iOS 16.4+ and the game added to the Home Screen.
+- **Mythic rarity:** War Captain, Bounty Hunter, Melee Expert. Rarities are hand-set in `RARITY` in `tools/build_cards.py`.
+- **Grim Reaper** is a rare battlefield event for now (not a playable card).
