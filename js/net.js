@@ -14,12 +14,15 @@ var KV_NET = (function () {
     var st = channel.presenceState();
     var otherRole = opts.role === 'host' ? 'guest' : 'host';
     var others = st[otherRole] || [];
-    opts.onPresence && opts.onPresence(!!others.length, others[0] && others[0].name, others);
+    opts.onPresence && opts.onPresence(!!others.length, others[0] && others[0].name, others, (st.spectator || []).length);
   }
 
   function subscribe() {
     if (!client) client = KV_SB();
-    if (channel) { try { client.removeChannel(channel); } catch (e) {} }
+    // Unsubscribe (not removeChannel): removing the last channel disconnects the shared socket,
+    // which could kill the channel we are about to join.
+    if (channel) { try { channel.unsubscribe(); } catch (e) {} }
+    ensureSocket();
     setStatus('connecting');
     var ch = client.channel('kv-room-' + opts.room, {
       config: { broadcast: { self: false, ack: false }, presence: { key: opts.role } },
@@ -52,10 +55,39 @@ var KV_NET = (function () {
     subscribe();
   }
 
+  // Watchdog: a channel can report "joined" while the server never confirmed us (seen after quick leave/rejoin).
+  // If we are not in our own presence list for two checks in a row, rejoin with a fresh channel.
+  var misses = 0;
+  setInterval(function () {
+    if (!wantOpen || !channel || !opts) { misses = 0; return; }
+    var st = {}, here = false;
+    try { st = channel.presenceState(); } catch (e) {}
+    (st[opts.role] || []).forEach(function (m) { if (!opts.clientId || m.clientId === opts.clientId) here = true; });
+    if (here && channel.state === 'joined') { misses = 0; return; }
+    if (++misses >= 2) { misses = 0; hardResubscribe(); }
+  }, 4000);
+
+  // Fully drop the stuck channel (the library re-uses a channel object for the same room name), then join fresh.
+  function hardResubscribe() {
+    var old = channel;
+    channel = null;
+    setStatus('connecting');
+    var p = old && client ? client.removeChannel(old) : null;
+    Promise.resolve(p).catch(function () {}).then(function () {
+      if (!wantOpen) return;
+      ensureSocket();
+      subscribe();
+    });
+  }
+
   // ---- ranked matchmaking: everyone searching sits in one presence channel; the two longest-waiting pair up ----
   var queueCh = null, queueOpts = null, queueJoined = 0;
   function ensureClient() {
     if (!client) client = KV_SB();
+    ensureSocket();
+  }
+  function ensureSocket() {
+    try { if (client && client.realtime && !client.realtime.isConnected()) client.realtime.connect(); } catch (e) {}
   }
   function queue(o) {
     ensureClient();
@@ -92,7 +124,7 @@ var KV_NET = (function () {
       });
   }
   function leaveQueue() {
-    if (queueCh && client) { try { client.removeChannel(queueCh); } catch (e) {} }
+    if (queueCh && client) { try { queueCh.unsubscribe(); } catch (e) {} }
     queueCh = null;
   }
 
@@ -104,7 +136,7 @@ var KV_NET = (function () {
 
   function close() {
     wantOpen = false;
-    if (channel && client) { try { client.removeChannel(channel); } catch (e) {} }
+    if (channel && client) { try { channel.unsubscribe(); } catch (e) {} }
     channel = null; setStatus('idle');
   }
 
