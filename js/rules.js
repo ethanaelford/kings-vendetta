@@ -138,6 +138,7 @@
     };
     var a = ABIL[key] || {};
     if (a.fixedLife) { card.life = card.baseLife = a.fixedLife; }
+    else if (card.life == null && a.defaultLife) { card.life = card.baseLife = a.defaultLife; }
     else if (lvl > 1 && card.life != null) { card.life = capLife(card.life + lvl - 1); card.baseLife = card.life; card.level = lvl; }
     if (a.rollsRequired) card.rollsToKill = a.rollsRequired(card);
     if (a.isGeneral) card.isGeneral = true;
@@ -161,7 +162,7 @@
   }
 
   function readyPool() {
-    return CARDS.filter(function (c) { return c.ready && c.key !== 'general'; }).map(function (c) { return c.key; });
+    return CARDS.filter(function (c) { return c.ready && c.key !== 'general' && !c.superRare; }).map(function (c) { return c.key; });
   }
 
   function shuffle(arr, rng) {
@@ -436,8 +437,8 @@
   }
 
   // ---------- statuses ----------
-  var STATUS_ICON = { frozen: '❄', debuff: '⬇', buff: '⬆', lifeSet: '♥', poison: '☠', mark: '◎', doom: '☄' };
-  var BAD = { frozen: 1, debuff: 1, lifeSet: 1, poison: 1, mark: 1, doom: 1 };
+  var STATUS_ICON = { frozen: '❄', debuff: '⬇', buff: '⬆', lifeSet: '♥', poison: '☠', mark: '◎', doom: '☄', shock: '⚡' };
+  var BAD = { frozen: 1, debuff: 1, lifeSet: 1, poison: 1, mark: 1, doom: 1, shock: 1 };
   function addStatus(s, card, st) {
     if (!card) return false;
     if (BAD[st.type] && ab(card).immuneDebuffs) return false;
@@ -456,6 +457,10 @@
       c.statuses = (c.statuses || []).filter(function (st) {
         if (st.born === s.turnCount) return true;
         if (st.type === 'poison') c.life = Math.max(2, c.life - (st.n || 1));
+        if (st.type === 'shock') {
+          if (Math.random() < 0.25) { c.life = Math.max(c.life, c.baseLife); return false; } // the charge breaks: debuff ends, Life resets
+          return true;
+        }
         st.turns--;
         if (st.turns <= 0 && st.type === 'doom' && findCard(s, st.src)) destroyed.push(c.id);
         return st.turns > 0;
@@ -532,6 +537,9 @@
       var t = g.filter(function (id) { return byId[id] && canTarget(card, byId[id], enemySlots) && !covered(id); });
       if (t.length) out.push({ targets: t });
     });
+    if (card.morphing && !(card.cooldowns && card.cooldowns.morph > 0) && !(ex && ex.pattern)) {
+      out.push({ targets: [card.id], mode: 'morph', own: true, self: true, label: 'Morph' });
+    }
     if (a.extraOptions && !(ex && ex.pattern)) {
       a.extraOptions(ctx).forEach(function (o) {
         if (!o.own) {
@@ -577,6 +585,8 @@
       if (tr === 'swamp') m -= 1;
     }
     if (state.warcry && attacker.side && state.warcry[attacker.side] === state.turnCount) m += 2;
+    var sd = CFG.SUDDEN_DEATH_TURN || 100;
+    if (state.turnCount >= sd) m += 1 + Math.floor((state.turnCount - sd) / 10);
     if (state.event) {
       if (state.event.id === 'storm') m -= 1;
       if (state.event.id === 'blessing') m += 1;
@@ -595,7 +605,7 @@
         m += ab(ally).passiveAura({ state: state, ally: ally, attacker: attacker, target: target, adjacent: adj }) || 0;
       }
     });
-    (attacker.statuses || []).forEach(function (st) { if (st.type === 'debuff') m -= st.n; if (st.type === 'buff') m += st.n; });
+    (attacker.statuses || []).forEach(function (st) { if (st.type === 'debuff' || st.type === 'shock') m -= st.n; if (st.type === 'buff') m += st.n; });
     return m;
   }
 
@@ -630,6 +640,7 @@
   function hitChance(state, attacker, target) {
     var mod = rollModifier(state, attacker, target), life = targetLife(state, target);
     var aa = ab(attacker), ta = ab(target);
+    if (aa.lifeAgainst) life = aa.lifeAgainst({ attacker: attacker, target: target, life: life });
     var p = 0, text;
     if (ta.onlyDiesTo === 'snakeEyes') {
       p = aa.dice === 'oneDouble' ? 0 : aa.dice === 'best3' ? 1 / 46656 : 1 / 36;
@@ -697,6 +708,7 @@
       s.turn = s.first;
       log(s, 'Battle! ' + s.names[s.first] + ' goes first.');
       ev = { kind: 'start', first: s.first };
+      roundStart(s, s.first, ev);
       autoPass(s, ev);
     }
     return bump(s, ev);
@@ -749,6 +761,7 @@
         var tf = findCard(s, id);
         if (!tf) return null;
         var life = targetLife(s, tf.card);
+        if (A.lifeAgainst) life = A.lifeAgainst({ attacker: atk, target: tf.card, life: life });
         var tot = base + (powerless ? 0 : rollModifier(s, atk, tf.card));
         tf.card.lastTargetedTurn = s.turnCount;
         if (ab(tf.card).reflectOnExact && tot === life) return { id: id, life: life, ok: false, reflect: true };
@@ -771,7 +784,7 @@
             killCard(s, tf, deaths);
             if (A.onKill) A.onKill({ state: s, attacker: atk, target: t, index: tIndex, slots: s.teams[tSide].slots, addStatus: addStatus, ev: ev });
             if (ta.onKilled) {
-              var res = ta.onKilled({ state: s, killer: atk, target: t, addStatus: addStatus, ev: ev });
+              var res = ta.onKilled({ state: s, killer: atk, target: t, addStatus: addStatus, ev: ev, index: tIndex, slots: s.teams[tSide].slots });
               if (res === 'killerDies' && !atk.isGeneral) doomed[atk.id] = t.name + ' takes its killer down';
               if (res && res.kill) res.kill.forEach(function (id) {
                 if (id === atk.id) doomed[atk.id] = 'is cursed by ' + t.name;
@@ -780,6 +793,7 @@
             }
           }
         } else if (!shielded) {
+          if (A.onMiss) A.onMiss({ state: s, attacker: atk, target: t, total: base + mod, ev: ev });
           if (generalRisk(atk, t)) doomed[atk.id] = 'failed against the General';
           if (ta.onFailedAttackAgainstMe) ta.onFailedAttackAgainstMe({ state: s, attacker: atk, target: t, addStatus: addStatus, ev: ev });
         }
@@ -861,7 +875,9 @@
         s.teams[st.side].slots[st.index] = null;
         st.card.side = side;
         mine[sp] = st.card;
-        ev.notes.push(attacker.name + ' recruits ' + st.card.name + ' from the enemy!');
+        attacker.usesLeft = (attacker.usesLeft == null ? 2 : attacker.usesLeft) - 1;
+        addStatus(s, st.card, { type: 'frozen', turns: 1 });
+        ev.notes.push(attacker.name + ' recruits ' + st.card.name + ' from the enemy! (' + attacker.usesLeft + ' left)');
       }
       alive = [];
     }
@@ -874,11 +890,83 @@
       alive = [];
     }
     if (opt.mode === 'manipulate') {
+      // Force an enemy card to act: march to the front, charge my General, or attack its own neighbour. Every 3 turns.
       noRoll = true; ev.kind = 'move';
-      var mt = findCard(s, alive[0]);
+      var mt = findCard(s, alive[0]), choice = intent.choice || 'charge';
+      attacker.cooldowns = attacker.cooldowns || {}; attacker.cooldowns.manip = 3;
+      alive = [];
+      if (mt && choice === 'forward' && mt.index >= 6) {
+        var es2 = s.teams[mt.side].slots, fi = mt.index - 6, tmp2 = es2[fi]; es2[fi] = mt.card; es2[mt.index] = tmp2;
+        ev.notes.push(attacker.name + ' forces ' + mt.card.name + ' to march to the front!');
+      } else if (mt && choice === 'charge') {
+        var myGen = generalOf(s, side);
+        ev.notes.push(attacker.name + ' forces ' + mt.card.name + ' to charge ' + s.names[side] + "'s General!");
+        if (myGen) {
+          var cr = [rollDie(rng), rollDie(rng)];
+          strike(mt.card, [myGen.id], cr, cr[0] + cr[1], false);
+          if (doomed[mt.card.id]) doomed[mt.card.id] = 'was forced to charge the General';
+        }
+      } else if (mt && choice === 'turncoat') {
+        var own = s.teams[mt.side].slots, victim = null;
+        neighbours(mt.index).forEach(function (i) { var c = own[i]; if (c && !c.isGeneral && (!victim || targetLife(s, c) < targetLife(s, victim))) victim = c; });
+        if (victim) {
+          ev.notes.push(attacker.name + ' turns ' + mt.card.name + ' against ' + victim.name + '!');
+          var tr = [rollDie(rng), rollDie(rng)];
+          strike(mt.card, [victim.id], tr, tr[0] + tr[1], false);
+        } else ev.notes.push(mt.card.name + ' has no ally next to it to betray');
+      }
+    }
+    if (opt.mode === 'morph') {
+      noRoll = true; ev.kind = 'move';
+      var into = cardDef(intent.choice);
+      if (!into || !into.ready || into.key === 'general' || into.key === 'morphing-warrior' || into.life == null) return null;
+      var oldName = attacker.name, a2 = ABIL[into.key] || {};
+      attacker.cardKey = into.key; attacker.name = into.name;
+      attacker.life = attacker.baseLife = capLife(into.life + ((attacker.level || 1) - 1));
+      attacker.rollsToKill = a2.rollsRequired ? a2.rollsRequired(attacker) : 1;
+      attacker.hitsTaken = 0; attacker.dmg = 0; attacker.charges = 0; attacker.usesLeft = null;
+      attacker.morphing = true; attacker.cooldowns = attacker.cooldowns || {}; attacker.cooldowns.morph = 3; // ~6 turns
+      if (a2.init) a2.init(attacker);
+      ev.notes.push(oldName + ' morphs into ' + into.name + '!');
+      alive = [];
+    }
+    if (opt.mode === 'regroup' || opt.mode === 'rally') {
+      noRoll = true; ev.kind = 'move';
       attacker.usesLeft = 0;
-      s.pendingExtra = { side: other(side), cardId: mt.card.id, thenTurn: side, reason: attacker.name + ' forces ' + s.names[other(side)] + ' to use ' + mt.card.name + ' this turn' };
-      ev.notes.push(attacker.name + ' manipulates ' + mt.card.name + '!');
+      var mine2 = s.teams[side].slots;
+      if (opt.mode === 'regroup') {
+        var deck2 = deckFor(s, side), called2 = 0;
+        while (deck2.length && emptySlot(mine2) >= 0) {
+          var k2 = deck2.splice(Math.floor((rng || Math.random)() * deck2.length), 1)[0];
+          mine2[emptySlot(mine2)] = makeCard(k2, side, rng, ((s.levels || {})[side] || {})[k2]);
+          called2++;
+        }
+        ev.notes.push(attacker.name + ' regroups: ' + called2 + ' fresh troops fill the ranks');
+      } else {
+        mine2.forEach(function (c) { if (c) { c.dmg = (c.dmg || 0) + 2; c.life = capLife(c.life + 1); c.baseLife = capLife(c.baseLife + 1); c.rollsToKill += 1; } });
+        ev.notes.push(attacker.name + ' rallies the army: +2 damage, +1 Life, +1 hit to kill');
+      }
+      alive = [];
+    }
+    if (opt.mode === 'reap') {
+      // Grim Reaper: both armies roll; the lower roll loses a random position (1-12). Not the General. Then the Reaper leaves.
+      noRoll = true;
+      var r1, r2;
+      do { r1 = rollDie(rng) + rollDie(rng); r2 = rollDie(rng) + rollDie(rng); } while (r1 === r2);
+      var loser = r1 < r2 ? side : other(side);
+      var pos = Math.floor((rng || Math.random)() * 12), victim2 = s.teams[loser].slots[pos];
+      ev.notes.push('☠ The Reaper comes. ' + s.names[side] + ' rolls ' + r1 + ', ' + s.names[other(side)] + ' rolls ' + r2 + '. ' + s.names[loser] + ' loses position ' + (pos + 1) +
+        (victim2 && !victim2.isGeneral ? ': ' + victim2.name + ' is taken!' : ' - but it is empty (or the General). Spared!'));
+      if (victim2 && !victim2.isGeneral) kill(victim2.id);
+      ev.selfDestruct = true;
+      alive = [];
+    }
+    if (opt.mode === 'chariot') {
+      noRoll = true; ev.kind = 'move';
+      var cf2 = findCard(s, attacker.id), sl2 = s.teams[side].slots;
+      if (opt.slot == null || sl2[opt.slot]) return null;
+      sl2[opt.slot] = attacker; sl2[cf2.index] = null;
+      ev.notes.push(attacker.name + ' rides into a new position');
       alive = [];
     }
     if (opt.mode === 'hailMary') {
@@ -995,7 +1083,7 @@
       var best = null;
       neighbours(i).forEach(function (j) {
         var c = slots[j];
-        if (!c) return;
+        if (!c || c.cardKey === 'guardian') return;
         if (!best || (c.isGeneral && !best.isGeneral) || (!best.isGeneral && c.life > best.life)) best = c;
       });
       if (best && best.id === target.id) found = e;
@@ -1145,6 +1233,17 @@
     return bump(s, ev);
   }
 
+  // A new round begins for `side` (its turn is starting): Dark Knight, War Captain, Wisp Major...
+  function roundStart(s, side, ev) {
+    s.teams[side].slots.slice().forEach(function (c) {
+      if (!c) return;
+      c.rounds = (c.rounds || 0) + 1;
+      var a = ab(c);
+      if (a.onRoundStart) a.onRoundStart({ state: s, card: c, side: side, ev: ev, makeCard: makeCard, emptySlot: emptySlot, deckFor: deckFor, capLife: capLife });
+    });
+    s.teams[side].slots = compactBoard(s.teams[side], CFG).slots;
+  }
+
   function autoPass(s, ev) {
     for (var guard = 0; guard < 4; guard++) {
       if (legalActions(s, s.turn).length || canSwap(s, s.turn)) return;
@@ -1182,6 +1281,10 @@
     }
     if (s.event && s.event.turnsLeft > 0 && --s.event.turnsLeft <= 0) { log(s, EVENTS[s.event.id].name + ' ends.'); s.event = null; }
     if (CFG.EVENTS !== false && !s.classic && s.turnCount % (CFG.EVENT_EVERY || 6) === 0) startEvent(s, ev);
+    if (s.turnCount === (CFG.SUDDEN_DEATH_TURN || 100)) {
+      ev.event = { id: 'sudden', name: 'Sudden Death', icon: '⚔', text: 'Every attack gets +1, and +1 more every 10 turns.', turns: 0 };
+      log(s, '⚔ Sudden Death! Every attack gets stronger until someone falls.');
+    }
     if (checkWin(s, side)) return;
     var next = wasExtra ? wasExtra.thenTurn : other(side);
     var pe = s.pendingExtra; s.pendingExtra = null;
@@ -1192,6 +1295,7 @@
       log(s, pe.reason);
     } else {
       s.turn = next;
+      if (next !== side) roundStart(s, next, ev);
     }
     autoPass(s, ev);
   }

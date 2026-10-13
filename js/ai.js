@@ -7,7 +7,9 @@ var KV_AI = (function () {
 
   function value(card) {
     if (card.isGeneral) return 100;
-    return 4 + (card.baseLife || 6) + (card.rollsToKill - 1) * 3;
+    var v = 4 + Math.min(card.baseLife || 6, 12) + (card.rollsToKill - 1) * 3;
+    if (R.ab(card).onRoundStart || R.ab(card).protects || R.ab(card).teamAura) v += 10; // summoners, protectors, experts: kill first
+    return v;
   }
 
   function choose(state, side, rng, nested) {
@@ -16,11 +18,33 @@ var KV_AI = (function () {
     R.legalActions(state, side).forEach(function (a) {
       var att = R.findCard(state, a.cardId).card;
       var score = 0, risk = 0, expKills = 0;
-      var FIXED = { hailMary: -60, cleanse: 4, manipulate: 1, swapAlly: -5, wagonSwitch: -3, charge: 3, summon: 8 };
+      var mySlots = state.teams[side].slots, empties = mySlots.filter(function (c) { return !c; }).length;
+      var FIXED = { hailMary: -60, cleanse: 4, swapAlly: -5, wagonSwitch: -3, charge: 3, summon: 8, chariot: -4,
+        regroup: empties >= 3 ? 4 + empties : -2, rally: 6, reap: 7, morph: 6 };
+      var choice;
       if (a.mode === 'steal') FIXED.steal = value(R.findCard(state, a.targets[0]).card) * 0.8;
+      if (a.mode === 'morph') {
+        // morph into one of the strongest cards
+        var pool = KV_CARDS.filter(function (c) { return c.ready && c.life != null && c.key !== 'general' && c.key !== 'morphing-warrior' && !c.superRare; })
+          .sort(function (x, y) { return (y.power || 0) - (x.power || 0); }).slice(0, 15);
+        choice = pool[Math.floor(rng() * pool.length)].key;
+      }
+      if (a.mode === 'manipulate') {
+        // best order: make a strong enemy charge our General (it dies on a miss) vs. turning it on a neighbour
+        var x = R.findCard(state, a.targets[0]).card, myGen = R.generalOf(state, side);
+        var pSucc = myGen ? R.hitChance(state, x, myGen).p : 0;
+        var chargeScore = (1 - pSucc) * value(x) - pSucc * 100;
+        FIXED.manipulate = chargeScore; choice = 'charge';
+        var ally = R.neighbours(R.findCard(state, x.id).index).map(function (i) { return state.teams[R.other(side)].slots[i]; })
+          .filter(function (c) { return c && !c.isGeneral; })[0];
+        if (ally) {
+          var turnScore = R.hitChance(state, x, ally).p * value(ally);
+          if (turnScore > chargeScore) { FIXED.manipulate = turnScore; choice = 'turncoat'; }
+        }
+      }
       if (a.mode && FIXED[a.mode] != null) {
         var fixed = FIXED[a.mode] + rng();
-        if (!best || fixed > best.score) best = { score: fixed, cardId: a.cardId, option: a.option };
+        if (!best || fixed > best.score) best = { score: fixed, cardId: a.cardId, option: a.option, choice: choice };
         return;
       }
       a.targets.forEach(function (id) {

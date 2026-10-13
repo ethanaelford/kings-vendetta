@@ -25,11 +25,12 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Attacks remaing cards by number for lowest roll; if 11, lowest card; if 12, General",
-  "ready": false,
-  "note": "Special Life value (D) - later session",
+  "ready": true,
+  "note": "",
   "art": null,
-  "power": 3,
-  "rarity": "common",
+  "power": 20,
+  "rarity": "legendary",
+  "superRare": true,
   "starter": false
  },
  {
@@ -89,12 +90,12 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Can fill empty card slots - consumes turn",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null,
-  "power": 9,
+  "power": 6,
   "rarity": "common",
-  "starter": false
+  "starter": true
  },
  {
   "key": "iron-giant",
@@ -109,7 +110,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 9,
-  "rarity": "uncommon",
+  "rarity": "common",
   "starter": false
  },
  {
@@ -173,7 +174,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 9,
-  "rarity": "uncommon",
+  "rarity": "common",
   "starter": false
  },
  {
@@ -473,11 +474,11 @@ var KV_CARDS = [
   "code": "?",
   "pattern": "special",
   "text": "Round Start: Morphs into any card (exc. General)",
-  "ready": false,
-  "note": "Special Life value (?) - later session",
+  "ready": true,
+  "note": "",
   "art": null,
-  "power": 3,
-  "rarity": "common",
+  "power": 9,
+  "rarity": "uncommon",
   "starter": false
  },
  {
@@ -525,7 +526,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 9,
-  "rarity": "uncommon",
+  "rarity": "common",
   "starter": false
  },
  {
@@ -605,7 +606,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 12,
-  "rarity": "epic",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -637,7 +638,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 13,
-  "rarity": "epic",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -717,7 +718,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 14,
-  "rarity": "legendary",
+  "rarity": "epic",
   "starter": false
  },
  {
@@ -745,8 +746,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "75% chance to debuff (-4) each turn until debuff fail (reset life)",
-  "ready": false,
-  "note": "Ability not implemented yet",
+  "ready": true,
+  "note": "",
   "art": null,
   "power": 12,
   "rarity": "rare",
@@ -877,7 +878,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 15,
-  "rarity": "legendary",
+  "rarity": "epic",
   "starter": false
  },
  {
@@ -957,7 +958,7 @@ var KV_CARDS = [
   "note": "",
   "art": "images/cards/admiral.png",
   "power": 15,
-  "rarity": "legendary",
+  "rarity": "epic",
   "starter": false
  },
  {
@@ -1017,8 +1018,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Greater roll kills; Less roll subtracts life; Other attackers must attack orig life",
-  "ready": false,
-  "note": "Partial life damage - later session",
+  "ready": true,
+  "note": "",
   "art": null,
   "power": 13,
   "rarity": "epic",
@@ -1053,7 +1054,7 @@ var KV_CARDS = [
   "note": "",
   "art": "images/cards/magma-knight.png",
   "power": 11,
-  "rarity": "rare",
+  "rarity": "uncommon",
   "starter": false
  },
  {
@@ -1262,7 +1263,7 @@ var KV_CARDS = [
   "art": null,
   "power": 8,
   "rarity": "common",
-  "starter": true
+  "starter": false
  },
  {
   "key": "stone-monster",
@@ -1401,11 +1402,11 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "If he survives to the second round then he gets +3 Damage, and +3 Life",
-  "ready": false,
-  "note": "Rounds - later session",
+  "ready": true,
+  "note": "",
   "art": null,
-  "power": 12,
-  "rarity": "rare",
+  "power": 13,
+  "rarity": "epic",
   "starter": false
  },
  {
@@ -1417,11 +1418,11 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Has to choicse, one: forfit round, save alive cards and get empty slots filled. Two: If wins round, does not get the card refil, but all cards on deck stay 'alone' but are buffed (+2 Damage + 1 Health, +1 'roll to kill')",
-  "ready": false,
-  "note": "Round-based choice - later session",
+  "ready": true,
+  "note": "",
   "art": null,
-  "power": 8,
-  "rarity": "common",
+  "power": 11,
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -1449,11 +1450,11 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Every round he fill 4 empty slots (fills two w/Knights, 2/Rnd). When he dies, his 'tombstone' is filled with a FLM",
-  "ready": false,
-  "note": "Rounds / summons - later session",
+  "ready": true,
+  "note": "",
   "art": "images/cards/war-captain.png",
-  "power": 10,
-  "rarity": "uncommon",
+  "power": 16,
+  "rarity": "legendary",
   "starter": false
  },
  {
@@ -1469,7 +1470,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 13,
-  "rarity": "epic",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -1517,7 +1518,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 11,
-  "rarity": "rare",
+  "rarity": "uncommon",
   "starter": false
  },
  {
@@ -1549,7 +1550,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 11,
-  "rarity": "rare",
+  "rarity": "uncommon",
   "starter": false
  },
  {
@@ -1581,7 +1582,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 12,
-  "rarity": "epic",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -1657,11 +1658,11 @@ var KV_CARDS = [
   "code": "Any",
   "pattern": "any",
   "text": "While allive, fills all empty slots with Wisp. Infinite while alive.",
-  "ready": false,
-  "note": "Summons / refills - later session",
+  "ready": true,
+  "note": "",
   "art": "images/cards/wisp-major.png",
-  "power": 12,
-  "rarity": "rare",
+  "power": 16,
+  "rarity": "legendary",
   "starter": false
  }
 ];

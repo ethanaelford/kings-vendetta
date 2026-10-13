@@ -497,10 +497,11 @@ var KV_ABILITIES = {
     },
   },
   'the-manipulator': {
-    // Once per game: pick any enemy card - the opponent must use that card on their next turn (or lose the turn)
+    // Every 3 turns: take control of an enemy card (not the General) and force its action:
+    // march it to the front, make it charge your General (it dies if it misses), or turn it on its own neighbour.
     extraOptions: function (ctx) {
-      if (ctx.card.usesLeft === 0) return [];
-      return ctx.enemySlots.filter(Boolean).map(function (c) { return { targets: [c.id], mode: 'manipulate', label: 'Manipulate' }; });
+      if (ctx.card.cooldowns && ctx.card.cooldowns.manip > 0) return [];
+      return ctx.enemySlots.filter(function (c) { return c && !c.isGeneral; }).map(function (c) { return { targets: [c.id], mode: 'manipulate', label: 'Control' }; });
     },
   },
   'dragon-tamer': {
@@ -558,9 +559,10 @@ var KV_ABILITIES = {
     },
   },
   'field-marshall': {
-    // Uses its turn to recruit an enemy card (not the General) into one of its empty slots
+    // Twice per game, uses its turn to recruit an enemy card (not the General) into an empty slot. Recruits sit out a turn.
+    init: function (card) { card.usesLeft = 2; },
     extraOptions: function (ctx) {
-      if (KV_RULES.emptySlot(ctx.mySlots) < 0) return [];
+      if (ctx.card.usesLeft === 0 || KV_RULES.emptySlot(ctx.mySlots) < 0) return [];
       return ctx.enemySlots.filter(function (c) { return c && !c.isGeneral; })
         .map(function (c) { return { targets: [c.id], mode: 'steal', label: 'Recruit' }; });
     },
@@ -615,6 +617,92 @@ var KV_ABILITIES = {
     canBeTargetedBy: function () { return false; },
     getTargets: function (ctx) { return ctx.patternGroups('los', ctx.enemySlots, ctx.index); },
     onAttackResolved: function (ctx) { if (ctx.kills) ctx.attacker.bounty = 5; },
+  },
+  // ---- the last 9 cards ----
+  'dark-knight': {
+    // If he survives to the 2nd round, he gets +3 damage and +3 Life (once)
+    onRoundStart: function (ctx) {
+      var c = ctx.card;
+      if (c.rounds === 2 && !c.darkRisen) {
+        c.darkRisen = true; c.dmg = (c.dmg || 0) + 3; c.life = ctx.capLife(c.life + 3); c.baseLife = ctx.capLife(c.baseLife + 3);
+        ctx.ev.notes = ctx.ev.notes || []; ctx.ev.notes.push('Dark Knight survived the round: +3 damage, +3 Life!');
+      }
+    },
+  },
+  'war-captain': {
+    // Every round he fills up to 4 empty slots: 2 Knights + 2 random troops. When he dies a Front Lineman takes his place.
+    onRoundStart: function (ctx) {
+      var sl = ctx.state.teams[ctx.side].slots, deck = ctx.deckFor(ctx.state, ctx.side), n = 0;
+      for (var i = 0; i < 4 && ctx.emptySlot(sl) >= 0; i++) {
+        var key = i < 2 ? 'knight' : deck.splice(Math.floor(Math.random() * deck.length), 1)[0];
+        if (!key) break;
+        sl[ctx.emptySlot(sl)] = ctx.makeCard(key, ctx.side);
+        n++;
+      }
+      if (n) { ctx.ev.notes = ctx.ev.notes || []; ctx.ev.notes.push('War Captain calls ' + n + ' troops to the line'); }
+    },
+    onKilled: function (ctx) {
+      if (ctx.slots && ctx.index != null && !ctx.slots[ctx.index]) ctx.slots[ctx.index] = KV_RULES.makeCard('front-lineman', ctx.target.side);
+      ctx.ev.notes.push('A Front Lineman takes the War Captain\'s place');
+    },
+  },
+  'wisp-major': {
+    // While alive, every round fills empty slots with Wisps (balance cap: 2 per round - the card says "all")
+    onRoundStart: function (ctx) {
+      var sl = ctx.state.teams[ctx.side].slots, n = 0;
+      while (ctx.emptySlot(sl) >= 0 && n < (KV_CONFIG.WISP_MAJOR_PER_ROUND || 2)) { sl[ctx.emptySlot(sl)] = ctx.makeCard('wisp', ctx.side); n++; }
+      if (n) { ctx.ev.notes = ctx.ev.notes || []; ctx.ev.notes.push('Wisp Major summons ' + n + ' Wisp' + (n > 1 ? 's' : '')); }
+    },
+  },
+  'morphing-warrior': {
+    // Life 6 until it morphs. Morphs into any card except the General (uses its turn), then again every 6 turns.
+    defaultLife: 6,
+    init: function (card) { card.morphing = true; },
+  },
+  'strategic-warrior': {
+    // Once per game, uses its turn: Regroup (fill every empty slot from the deck) or Rally (+2 damage, +1 Life, +1 hit to kill for the whole army)
+    extraOptions: function (ctx) {
+      if (ctx.card.usesLeft === 0) return [];
+      return [{ targets: [ctx.card.id], mode: 'regroup', own: true, self: true, label: 'Regroup' },
+              { targets: [ctx.card.id], mode: 'rally', own: true, self: true, label: 'Rally' }];
+    },
+  },
+  'shadow-warrior': {
+    // A roll that falls short still wears the target down - for the Shadow Warrior only
+    lifeAgainst: function (ctx) { return Math.max(2, ctx.life - ((ctx.target.shadow || {})[ctx.attacker.id] || 0)); },
+    onMiss: function (ctx) {
+      ctx.target.shadow = ctx.target.shadow || {};
+      ctx.target.shadow[ctx.attacker.id] = (ctx.target.shadow[ctx.attacker.id] || 0) + Math.max(0, ctx.total);
+      ctx.ev.notes.push(ctx.target.name + ' is weakened by the shadows (-' + ctx.total + ' for the Shadow Warrior)');
+    },
+  },
+  'lightning-wizard': {
+    // No roll: the target gets -4 to its rolls. Each turn the charge has a 75% chance to hold; when it breaks, the target's Life resets.
+    customAction: function (ctx) {
+      ctx.targets.forEach(function (t) {
+        var ok = ctx.addStatus(ctx.state, t, { type: 'shock', n: 4, turns: 999 });
+        ctx.ev.notes.push(ok ? t.name + ' is charged with lightning (-4 until it breaks)' : t.name + ' is immune');
+      });
+    },
+    customSafe: true,
+    customText: 'Shock: -4 (75% to hold each turn)',
+  },
+  'grim-reaper': {
+    // Super rare. Can't be attacked. Once: both armies roll, the lower roll loses a random position (not the General). Then the Reaper leaves.
+    fixedLife: 99,
+    lifeLabel: '\u2620',
+    canBeTargetedBy: function () { return false; },
+    anyRow: true,
+    getTargets: function () { return []; },
+    extraOptions: function (ctx) { return [{ targets: [ctx.card.id], mode: 'reap', own: true, self: true, label: 'Reap' }]; },
+  },
+  'chariot-warrior': {
+    // Uses its turn to ride into any empty slot on its side (opening or closing columns)
+    extraOptions: function (ctx) {
+      var out = [];
+      ctx.mySlots.forEach(function (c, i) { if (!c) out.push({ targets: ['slot:' + i], mode: 'chariot', own: true, slot: i, label: 'Ride' }); });
+      return out;
+    },
   },
   'hog-mounted-brute': {
     onAttackResolved: function (ctx) {

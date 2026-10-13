@@ -6,7 +6,7 @@ var KV_CONFIG = {
 
   GOOGLE_SIGNIN: false,       // flip to true once Google OAuth is configured in Supabase
 
-  BUILD: '20261010-2104',               // replaced by deploy script with a timestamp
+  BUILD: '20261013-2009',               // replaced by deploy script with a timestamp
 
   // Rules
   ADVANCE_BACK_ROW: true,     // back card moves forward when the front card in its column dies
@@ -20,6 +20,9 @@ var KV_CONFIG = {
   EVENTS: true,               // battlefield events every EVENT_EVERY turns
   EVENT_EVERY: 6,
   HEROES: true,               // pick a General hero power before battle
+  WISP_MAJOR_PER_ROUND: 2,    // Wisps summoned per round by Wisp Major (card text says all empty slots)
+  SUDDEN_DEATH_TURN: 100,     // after this many turns every attack gets +1, +1 more every 10 turns (games always end)
+  RANKED_BOT_WAIT_MS: 20000,  // ranked queue: humans first; after this long a rated bot fills in
   MAX_LIFE: 12,               // hard cap on any card's Life (levels, auras, buffs never go above this)
   LOS_NEAREST: true,          // if the enemy column in front of you is empty, line of sight reaches the nearest enemy column
   GENERAL_SLOT: 8,            // starting slot for the General (back row, col 2)

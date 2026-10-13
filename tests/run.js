@@ -325,14 +325,6 @@ t('Guardian protects its team', function () {
   var o = R.getOptions(s, 'p1', s.teams.p1.slots[0].id);
   eq(o.length, 1); eq(o[0].targets[0], s.teams.p2.slots[0].id);
 });
-t('Manipulator forces the enemy to use one card', function () {
-  var s = battleState(row(['the-manipulator', 'general'], []), row(['militia', 'general', 'knight'], []));
-  var o = R.getOptions(s, 'p1', s.teams.p1.slots[0].id), k = -1;
-  o.forEach(function (x, i) { if (x.mode === 'manipulate' && x.targets[0] === s.teams.p2.slots[2].id) k = i; });
-  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: k }, LOW);
-  eq(s2.turn, 'p2'); eq(s2.extra.cardId, s.teams.p2.slots[2].id);
-  var s3 = R.skip(s2, 'p2'); eq(s3.turn, 'p1');
-});
 t('Frost Brute reflects an exact roll', function () {
   var s = battleState(row(['militia', 'general'], []), row(['frost-brute', 'general'], []));
   var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots[0].id, option: 0 }, fixedRng([0.5, 0.9])); // 4+6 = 10? need 9
@@ -512,6 +504,95 @@ t('classic mode: no terrain, no events', function () {
   }
   ok(R.newGame().terrain, 'dynamic still has terrain');
   KV_CONFIG.TERRAIN = false; KV_CONFIG.EVENTS = false;
+});
+
+console.log('last 9 cards & balance changes');
+function optOf(s, side, cardId, mode) { var o = R.getOptions(s, side, cardId); for (var i = 0; i < o.length; i++) if (o[i].mode === mode) return i; return -1; }
+function key(s, side, k) { return s.teams[side].slots.filter(function (c) { return c && c.cardKey === k; })[0]; }
+t('Manipulator: forced charge at my General kills the card on a miss, then 3-turn cooldown', function () {
+  var s = battleState(row(['the-manipulator', 'general'], []), row(['knight', 'militia', 'general'], []));
+  var m = key(s, 'p1', 'the-manipulator'), kn = key(s, 'p2', 'knight');
+  var o = R.getOptions(s, 'p1', m.id), k = -1;
+  o.forEach(function (x, i) { if (x.mode === 'manipulate' && x.targets[0] === kn.id) k = i; });
+  var s2 = R.act(s, 'p1', { cardId: m.id, option: k, choice: 'charge' }, LOW);
+  ok(!R.findCard(s2, kn.id), 'knight died charging'); ok(R.generalOf(s2, 'p1'), 'my General safe');
+  s2.turn = 'p1';
+  eq(optOf(s2, 'p1', m.id, 'manipulate'), -1, 'on cooldown');
+});
+t('Manipulator: march a back-row card to the front', function () {
+  var s = battleState(row(['the-manipulator', 'general'], []), row(['militia', 'general'], ['knight']));
+  var m = key(s, 'p1', 'the-manipulator'), kn = key(s, 'p2', 'knight');
+  var o = R.getOptions(s, 'p1', m.id), k = -1;
+  o.forEach(function (x, i) { if (x.mode === 'manipulate' && x.targets[0] === kn.id) k = i; });
+  var s2 = R.act(s, 'p1', { cardId: m.id, option: k, choice: 'forward' }, LOW);
+  ok(R.findCard(s2, kn.id).index < 6, 'knight now in front');
+});
+t('Field Marshall recruits only twice', function () {
+  var s = battleState(row(['field-marshall', 'general'], []), row(['knight', 'titan', 'militia', 'general'], []));
+  var fm = key(s, 'p1', 'field-marshall');
+  for (var n = 0; n < 2; n++) { s.turn = 'p1'; s = R.act(s, 'p1', { cardId: fm.id, option: optOf(s, 'p1', fm.id, 'steal') }, LOW); }
+  s.turn = 'p1';
+  eq(optOf(s, 'p1', fm.id, 'steal'), -1, 'no third recruit');
+});
+t('Ent cannot shield the Guardian', function () {
+  var s = battleState(row(['militia', 'general'], []), row(['guardian', 'ent'], ['general']));
+  var g = key(s, 'p2', 'guardian');
+  var s2 = R.act(s, 'p1', { cardId: s.teams.p1.slots.filter(Boolean)[0].id, targetId: g.id }, HIGH);
+  ok(!R.findCard(s2, g.id), 'guardian died (no shield)');
+});
+t('Dark Knight rises on its 2nd round', function () {
+  var s = battleState(row(['dark-knight', 'militia', 'general'], []), row(['titan', 'titan', 'general'], []));
+  var dk = key(s, 'p1', 'dark-knight'); dk.rounds = 1; // battle start counts as its first round
+  s = R.turnSwap(s, 'p1', R.findCard(s, dk.id).index, R.findCard(s, key(s, 'p1', 'militia').id).index); // p1 round 1 ends
+  s = R.turnSwap(s, 'p2', R.findCard(s, key(s, 'p2', 'titan').id).index, R.findCard(s, R.generalOf(s, 'p2').id).index); // round 2 starts for p1
+  eq(R.findCard(s, dk.id).card.life, 12); eq(R.findCard(s, dk.id).card.dmg, 3);
+});
+t('Wisp Major fills empty slots with Wisps each round', function () {
+  var s = battleState(row(['wisp-major', 'general'], []), row(['titan', 'general'], []));
+  var idx = function (sd) { return s.teams[sd].slots.map(function (c, i) { return c ? i : -1; }).filter(function (i) { return i >= 0; }); };
+  s = R.turnSwap(s, 'p1', idx('p1')[0], idx('p1')[1]); s = R.turnSwap(s, 'p2', idx('p2')[0], idx('p2')[1]);
+  ok(s.teams.p1.slots.filter(function (c) { return c && c.cardKey === 'wisp'; }).length >= 2, 'wisps summoned');
+});
+t('Morphing Warrior morphs into a chosen card, then cools down', function () {
+  var s = battleState(row(['morphing-warrior', 'general'], []), row(['militia', 'general'], []));
+  var mw = key(s, 'p1', 'morphing-warrior'); eq(mw.life, 6);
+  var s2 = R.act(s, 'p1', { cardId: mw.id, option: optOf(s, 'p1', mw.id, 'morph'), choice: 'titan' }, LOW);
+  var c = R.findCard(s2, mw.id).card; eq(c.cardKey, 'titan'); eq(c.rollsToKill, 3);
+  s2.turn = 'p1'; eq(optOf(s2, 'p1', mw.id, 'morph'), -1, 'cooldown');
+  eq(R.act(s, 'p1', { cardId: mw.id, option: optOf(s, 'p1', mw.id, 'morph'), choice: 'general' }, LOW), null, 'cannot become the General');
+});
+t('Shadow Warrior wears targets down for itself only', function () {
+  var s = battleState(row(['shadow-warrior', 'militia', 'general'], []), row(['knight', 'titan', 'general'], []));
+  var sw = key(s, 'p1', 'shadow-warrior');
+  var o = R.getOptions(s, 'p1', sw.id); var tid = o[0].targets[0];
+  var s2 = R.act(s, 'p1', { cardId: sw.id, option: 0 }, fixedRng([0, 0.2])); // 1+2 = 3: miss, -3 for SW
+  var tgt = R.findCard(s2, tid).card;
+  eq(tgt.shadow[sw.id], 3);
+  ok(R.hitChance(s2, R.findCard(s2, sw.id).card, tgt).p > R.hitChance(s2, R.findCard(s2, key(s2, 'p1', 'militia').id).card, tgt).p, 'easier for SW only');
+});
+t('Lightning Wizard shocks (-4) until the charge breaks', function () {
+  var s = battleState(row(['lightning-wizard', 'general'], []), row(['knight', 'general'], []));
+  var s2 = R.act(s, 'p1', { cardId: key(s, 'p1', 'lightning-wizard').id, option: 0 }, LOW);
+  var kn = key(s2, 'p2', 'knight'); ok(R.hasStatus(kn, 'shock'), 'shocked');
+});
+t('Strategic Warrior rally buffs the whole army', function () {
+  var s = battleState(row(['strategic-warrior', 'militia', 'general'], []), row(['knight', 'general'], []));
+  var sw = key(s, 'p1', 'strategic-warrior');
+  var s2 = R.act(s, 'p1', { cardId: sw.id, option: optOf(s, 'p1', sw.id, 'rally') }, LOW);
+  var m = key(s2, 'p1', 'militia'); eq(m.dmg, 2); eq(m.life, 4); eq(m.rollsToKill, 2);
+});
+t('Grim Reaper reaps once and leaves', function () {
+  var s = battleState(row(['grim-reaper', 'militia', 'general'], []), row(['knight', 'titan', 'general'], []));
+  var gr = key(s, 'p1', 'grim-reaper');
+  var s2 = R.act(s, 'p1', { cardId: gr.id, option: optOf(s, 'p1', gr.id, 'reap') }, Math.random);
+  ok(!R.findCard(s2, gr.id), 'reaper gone'); ok(R.generalOf(s2, 'p1') && R.generalOf(s2, 'p2'), 'Generals spared');
+});
+t('Chariot Warrior rides into an empty slot', function () {
+  var s = battleState(row(['chariot-warrior', 'general'], []), row(['knight', 'general'], []));
+  var ch = key(s, 'p1', 'chariot-warrior'), k = optOf(s, 'p1', ch.id, 'chariot');
+  ok(k >= 0, 'can ride');
+  var s2 = R.act(s, 'p1', { cardId: ch.id, option: k }, LOW);
+  ok(s2 && s2.turn === 'p2');
 });
 
 console.log('deal');

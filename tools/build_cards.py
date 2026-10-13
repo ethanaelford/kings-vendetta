@@ -48,10 +48,13 @@ READY = {
     'Tactical Alchemist', 'Guardian',
     # batch F
     'Attack Wagon', 'Centurion', 'Field Marshall', 'Phoenix', 'Kings Knight', "General's Guard", 'Bounty Hunter',
+    # the last 9
+    'Dark Knight', 'War Captain', 'Wisp Major', 'Morphing Warrior', 'Strategic Warrior', 'Shadow Warrior',
+    'Lightning Wizard', 'Grim Reaper', 'Chariot Warrior',
 }
 
 # Special-Life cards whose Life is handled by their ability (js/abilities.js)
-READY_SPECIAL_LIFE = {'Bounty Hunter'}
+READY_SPECIAL_LIFE = {'Bounty Hunter', 'Morphing Warrior', 'Grim Reaper'}
 
 # One-line "what's missing" notes for the Card Library (default: ability not built yet).
 LATER = {
@@ -90,10 +93,13 @@ ABILITY_WEIGHT = {
     'Unskilled Warrior': 1, 'The Manipulator': 3, 'Dragon Tamer': 5, 'Frost Brute': 2, 'Stone Monster': 3,
     'Tactical Alchemist': 2, 'Guardian': 5, 'Attack Wagon': 2, 'Centurion': 4, 'Field Marshall': 5, 'Phoenix': 4,
     'Kings Knight': 5, "General's Guard": 3, 'Bounty Hunter': 14,
+    'Dark Knight': 4, 'War Captain': 9, 'Wisp Major': 7, 'Morphing Warrior': 9, 'Strategic Warrior': 6, 'Shadow Warrior': 3,
+    'Lightning Wizard': 3, 'Grim Reaper': 20, 'Chariot Warrior': 0,
 }
 # Rarity by power percentile among non-General cards: bottom 30% Common, 30% Uncommon, 20% Rare, 13% Epic, 7% Legendary
 RARITY_SPLITS = [(0.30, 'common'), (0.60, 'uncommon'), (0.80, 'rare'), (0.93, 'epic'), (1.01, 'legendary')]
 STARTER_COUNT = 20
+SUPER_RARE = {'grim-reaper'}  # drops very rarely from chests
 
 
 def assign_rarity(cards):
@@ -105,6 +111,8 @@ def assign_rarity(cards):
         f = i / len(ranked)
         c['rarity'] = next(r for lim, r in RARITY_SPLITS if f < lim)
     for c in cards:
+        if c['key'] in SUPER_RARE:
+            c['rarity'], c['superRare'] = 'legendary', True
         if c['key'] == 'general':
             c['rarity'], c['power'], c['starter'] = 'legendary', 99, True
     ready = [c for c in sorted(pool, key=lambda c: (c['power'], c['name'])) if c['ready']]

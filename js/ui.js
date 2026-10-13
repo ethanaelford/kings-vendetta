@@ -209,6 +209,17 @@
       });
     });
     Object.keys(els).forEach(function (id) { if (!seen[id]) { els[id].remove(); delete els[id]; } });
+    // ghost slots (Chariot Warrior can ride into empty positions)
+    board.querySelectorAll('.ghost').forEach(function (g) { g.remove(); });
+    selOpts.forEach(function (o, k) {
+      if (o.mode !== 'chariot') return;
+      var gEl = document.createElement('div');
+      gEl.className = 'card ghost' + (G.chosen && G.chosen.opt === k ? ' chosen target' : '');
+      gEl.dataset.id = o.targets[0];
+      gEl.innerHTML = '<div class="ghostlbl">🐎</div>';
+      var gp = posFor(G.view, o.slot); gEl.style.transform = gp; gEl.style.setProperty('--pos', gp);
+      board.appendChild(gEl);
+    });
     if (s.phase === 'deploy') {
       $('rollText').textContent = s.ready[R.other(G.view)] ? oppName() + ' is ready' : oppName() + ' is deploying…';
       $('rollText').className = '';
@@ -281,6 +292,11 @@
             (onlySelf ? '' : '<br>Tap a red target.') + '</div>' + selfBtns + swapBtn + '<button class="btn" data-act="info">ⓘ</button>';
         } else {
           var opt = opts[G.chosen.opt];
+          if (opt.mode === 'chariot') {
+            h = '<div class="info"><b>' + esc(a.name) + '</b>: ride to the marked position (uses your turn).</div>' +
+              '<button class="btn primary" data-act="attack">RIDE</button>';
+            bar.innerHTML = h; return;
+          }
           if (opt.own) {
             var ally = R.findCard(s, opt.targets[0]).card;
             h = '<div class="info"><b>' + esc(a.name) + '</b>: ' + esc(opt.label) + ' with <b>' + esc(ally.name) + '</b> (uses your turn)</div>' +
@@ -295,9 +311,13 @@
             bar.innerHTML = h; return;
           }
           if (opt.mode === 'manipulate') {
-            var mv = R.findCard(s, opt.targets[0]).card;
-            h = '<div class="info"><b>' + esc(a.name) + '</b> (once per game): ' + esc(opp) + ' must use <b>' + esc(mv.name) +
-              '</b> on their next turn, or lose the turn.</div><button class="btn primary" data-act="attack">MANIPULATE</button>';
+            var mvF = R.findCard(s, opt.targets[0]), mv = mvF.card, gen = R.generalOf(s, G.view);
+            var pHit = gen ? R.hitChance(s, mv, gen).p : 0;
+            var hasAlly = R.neighbours(mvF.index).some(function (i) { var c = s.teams[mvF.side].slots[i]; return c && !c.isGeneral; });
+            h = '<div class="info"><b>' + esc(a.name) + '</b> controls <b>' + esc(mv.name) + '</b>. Order:</div>' +
+              (mvF.index >= 6 ? '<button class="btn" data-act="manip" data-choice="forward">⬆ Front</button>' : '') +
+              '<button class="btn primary" data-act="manip" data-choice="charge" title="It dies if it misses">⚔ Charge my General (' + pct(1 - pHit) + ' it dies)</button>' +
+              (hasAlly ? '<button class="btn" data-act="manip" data-choice="turncoat">🗡 Betray ally</button>' : '');
             bar.innerHTML = h; return;
           }
           if (opt.mode === 'hailMary') {
@@ -631,7 +651,9 @@
     else if (intent.type === 'hero') res = R.chooseHero(s, side, intent.id);
     else if (intent.type === 'power') res = R.usePower(s, side, intent.args || {});
     else if (intent.type === 'rematch' && s.phase === 'over') {
-      res = R.newGame({ names: s.names, decks: s.decks, levels: s.levels, ranked: s.ranked, ratings: s.ratings, campaign: s.campaign, classic: s.classic, clockMs: s.clock ? s.clock.limit : 0 });
+      var rts = s.ratings || {};
+      if (G.mode === 'ai' && s.ranked) rts = { p1: me().rating, p2: rts.p2 };
+      res = R.newGame({ names: s.names, decks: s.decks, levels: s.levels, ranked: s.ranked, ratings: rts, campaign: s.campaign, classic: s.classic, clockMs: s.clock ? s.clock.limit : 0 });
       res.guestClient = s.guestClient;
       res.seq = s.seq + 1; res.lastEvent = { kind: 'deal', seq: res.seq };
     }
@@ -686,7 +708,7 @@
         if (pw) { var rp = engineApply('p2', { type: 'power', args: pw }); if (rp) return commit(rp); }
         var c = KV_AI.choose(G.state, 'p2');
         if (c && c.swap) commit(engineApply('p2', { type: 'tswap', a: c.swap[0], b: c.swap[1] }));
-        else if (c && !(G.state.extra && c.score < 0)) commit(engineApply('p2', { type: 'action', cardId: c.cardId, option: c.option }));
+        else if (c && !(G.state.extra && c.score < 0)) commit(engineApply('p2', { type: 'action', cardId: c.cardId, option: c.option, choice: c.choice }));
         else if (G.state.extra) commit(engineApply('p2', { type: 'skip' }));
       }, C.AI_THINK_MS || 600);
     }
@@ -713,6 +735,11 @@
   function onCardTap(id) {
     var s = G.state;
     if (!s || G.animating) return;
+    if (String(id).indexOf('slot:') === 0) {
+      var go = R.getOptions(s, G.view, G.sel || '');
+      for (var gi = 0; gi < go.length; gi++) if (go[gi].targets[0] === id) { G.chosen = { opt: gi, targetId: id }; return render(); }
+      return;
+    }
     var f = R.findCard(s, id);
     if (!f) return;
     if (s.phase === 'deploy') {
@@ -786,8 +813,16 @@
     else if (act === 'log') openLog();
     else if (act === 'self' && G.sel) {
       var si = { type: 'action', cardId: G.sel, option: +b.dataset.opt };
+      var so = R.getOptions(G.state, G.view, G.sel)[si.option];
+      if (so && so.mode === 'morph') return morphPicker(si);
+      if (so && so.mode === 'reap' && !confirm('Call the Grim Reaper? Both armies roll - the loser loses a random position. The Reaper leaves afterwards.')) return;
       G.sel = null; G.chosen = null;
       dispatch(si); render();
+    }
+    else if (act === 'manip' && G.sel && G.chosen) {
+      var mi = { type: 'action', cardId: G.sel, option: G.chosen.opt, targetId: G.chosen.targetId, choice: b.dataset.choice };
+      G.sel = null; G.chosen = null;
+      dispatch(mi); render();
     }
     else if (act === 'swapmode') { G.swapMode = true; G.chosen = null; render(); }
     else if (act === 'hero') heroPicker();
@@ -823,6 +858,20 @@
   function toast(msg) {
     var rt = $('rollText'); rt.className = ''; rt.textContent = msg;
     clearTimeout(toastTimer);
+  }
+
+  function morphPicker(intent) {
+    var list = KV_CARDS.filter(function (c) { return c.ready && c.life != null && c.key !== 'general' && c.key !== 'morphing-warrior' && !c.superRare; })
+      .sort(function (a, b) { return a.name.localeCompare(b.name); });
+    openSheet('<h2 style="margin:0 0 6px">🎭 Morph into…</h2><p class="muted" style="font-size:13px">Uses your turn. Can morph again in 6 turns.</p>' +
+      '<div class="colgrid" style="padding:0">' + list.map(function (c) { return ccardHtml(c); }).join('') + '</div>');
+    $('sheetBody').onclick = function (e) {
+      var el = e.target.closest('.ccard'); if (!el) return;
+      $('sheetBody').onclick = null; closeSheet();
+      intent.choice = el.dataset.key;
+      G.sel = null; G.chosen = null;
+      dispatch(intent); render();
+    };
   }
 
   function heroPicker() {
@@ -892,7 +941,7 @@
     $('rollText').textContent = '';
   }
 
-  function startLocal(mode, resume, stage) {
+  function startLocal(mode, resume, stage, bot) {
     KV_NET.close();
     resetBoard();
     G.mode = mode; G.room = null; G.view = 'p1';
@@ -906,6 +955,13 @@
     var opts = { names: names, clockMs: clockMs(), classic: classicMode() };
     KV_AI.setNoise(null);
     if (mode === 'ai') { opts.decks = { p1: KV_PROFILE.deckForGame(), p2: null }; opts.levels = { p1: KV_PROFILE.levelsForGame(), p2: null }; }
+    if (mode === 'ai' && bot) {
+      names.p2 = bot.name;
+      opts.decks.p2 = bot.deck; opts.levels.p2 = bot.levels;
+      opts.ranked = true; opts.ratings = { p1: me().rating, p2: bot.rating };
+      opts.clockMs = 10 * 60000; opts.classic = false;
+      KV_AI.setNoise(bot.noise);
+    }
     if (mode === 'ai' && stage != null) {
       var st = KV_CAMPAIGN[stage], lv = { general: st.genLevel };
       st.deck.forEach(function (k) { lv[k] = st.cardLevel; });
@@ -1038,21 +1094,43 @@
     }, 3000);
   }
 
+  // Ranked: real players first. If nobody is found within RANKED_BOT_WAIT_MS, a rated bot (clearly labelled) fills in.
+  var botTimer = null;
   function findRanked() {
     if (!KV_NET.available()) { alert('Online play is not configured yet.'); return; }
-    var P = me();
+    var P = me(), waitMs = C.RANKED_BOT_WAIT_MS || 20000, startedAt = Date.now(), humanFound = false;
     overlay('<h2>⚔ Ranked</h2><p>' + KV_PROFILE.myTier().icon + ' ' + P.rating + '</p><div class="chest shake" style="font-size:60px">⚔</div>' +
-      '<p id="qStatus">Searching for an opponent…</p><button class="btn big" id="qCancel">Cancel</button>');
-    $('qCancel').onclick = function () { KV_NET.leaveQueue(); closeOverlay(); };
+      '<p id="qStatus">Searching for a player…</p><p id="qBot" class="muted" style="font-size:13px"></p>' +
+      '<button class="btn big" id="qBotNow">🤖 Play a ranked bot now</button><button class="btn big" id="qCancel">Cancel</button>');
+    var stop = function () { clearInterval(botTimer); botTimer = null; KV_NET.leaveQueue(); };
+    $('qCancel').onclick = function () { stop(); closeOverlay(); };
+    $('qBotNow').onclick = function () { stop(); closeOverlay(); startBotRanked(); };
+    clearInterval(botTimer);
+    botTimer = setInterval(function () {
+      var left = Math.ceil((waitMs - (Date.now() - startedAt)) / 1000), e = $('qBot');
+      if (humanFound) return;
+      if (left <= 0) { stop(); closeOverlay(); startBotRanked(); return; }
+      if (e) e.textContent = 'No player yet - a ranked bot near your rating joins in ' + left + 's.';
+    }, 250);
     KV_NET.queue({
       clientId: P.clientId, name: myName(), rating: P.rating, makeRoom: randomCode,
-      onCount: function (n) { var e = $('qStatus'); if (e) e.textContent = n > 1 ? 'Opponent found - connecting…' : 'Searching for an opponent… (you are the only one waiting)'; },
+      onCount: function (n) {
+        var e = $('qStatus');
+        if (n > 1) humanFound = true;
+        if (e) e.textContent = n > 1 ? 'Player found - connecting…' : 'Searching for a player…';
+      },
       onMatch: function (m) {
+        clearInterval(botTimer); botTimer = null;
         closeOverlay();
         if (m.role === 'host') startHost(m.room, false, true);
         else startGuest(m.room);
       },
     });
+  }
+
+  function startBotRanked() {
+    var bot = KV_BOTS.make(me().rating);
+    startLocal('ai', null, null, bot);
   }
 
   function shareOverlay(code) {

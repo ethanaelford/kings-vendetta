@@ -134,12 +134,28 @@ Answer in batches and I'll update the engine.
 - **Bounty Hunter** (Life "Inf"): can't be targeted at all. It must make a kill at least every 4 of its owner's turns or it leaves the field.
   It attacks with LOS (the sheet says "TD"; what does TD mean?).
 
-## Still not built (ready: false)
+## The last 9 cards (built from your answers) - assumptions
 
-- **Grim Reaper** (Life "D"): "Attacks remaining cards by number for lowest roll; if 11, lowest card; if 12, General". What does Life "D" mean, and how does the roll pick a target?
-- **Morphing Warrior** (Life "?"): "Round Start: Morphs into any card". What is a "round"?
-- **Shadow Warrior**: "Less roll subtracts life". Does a miss subtract the roll from the target's Life, or 1?
-- **Dark Knight / Strategic Warrior / War Captain / Wisp Major**: all depend on "rounds". *Assumed so far:* one game = one round.
-  Is a match several rounds (keep surviving cards, refill)?
-- **Lightning Wizard**: "75% chance to debuff (-4) each turn until debuff fail (reset life)". Which card gets debuffed, and what resets?
-- **Chariot Warrior**: "Can fill empty card slots". With column shifting there are rarely empty slots. Should it move into an empty back-row slot, or open a new column?
+- **A "round" = one turn pair**, counted on each of the card owner's turns.
+- **Dark Knight:** once it reaches its 2nd round alive, it gets +3 damage and +3 Life (Life capped at 12).
+- **War Captain:** each round fills up to 4 empty slots (2 Knights + 2 random from the deck). When he dies, a Front Lineman takes his slot.
+- **Wisp Major:** each round summons Wisps into empty slots. **Balance cap: 2 per round** (the card says "all"). Change `WISP_MAJOR_PER_ROUND` in config.js.
+- **Morphing Warrior:** Life 6 until it morphs. It uses its turn to morph into any card except the General (you pick), then can morph again 6 turns later.
+- **Strategic Warrior:** once per game, uses its turn: **Regroup** (fill every empty slot from the deck) or **Rally** (whole army +2 damage, +1 Life, +1 hit to kill).
+- **Shadow Warrior:** a miss subtracts the roll from the target's Life, for the Shadow Warrior only. Other attackers still need the original Life.
+- **Lightning Wizard:** no roll; the target gets -4 to its rolls. Each turn the charge has a 75% chance to hold; when it breaks, the target's Life resets to full.
+- **Grim Reaper (super rare):** can't be attacked. Once: both armies roll, the lower roll loses the card at a random position (1-12, never the General), then the Reaper leaves.
+  It never appears in random deals and only rarely drops from chests.
+- **Chariot Warrior:** uses its turn to ride into any empty slot on its side (dashed ghost slots appear when selected).
+
+## Balance changes
+
+- **Field Marshall:** recruits at most **2 times per game**, and a recruited card sits out its first turn (frozen).
+- **The Manipulator:** every 3 turns, take control of an enemy card (not the General) and order it to **march to the front**,
+  **charge your General** (it almost always misses and dies to the General's defence; if it hits, your General falls!), or **betray** its weakest neighbour.
+- **Ent** can no longer shield the Guardian (that could soft-lock a game).
+- **Sudden Death:** from turn 100, every attack gets +1, and +1 more every 10 turns, so every game ends.
+
+## Still open
+
+- Is the Wisp Major cap of 2 per round OK, and is War Captain's 4 per round too strong in practice?

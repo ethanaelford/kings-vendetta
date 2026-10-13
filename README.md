@@ -89,3 +89,8 @@ Those override the original sprite sheet; then rerun `tools/build_cards.py`.
   and **Legendary** = Grandmaster plus a top-100 leaderboard spot.
 - **Chests:** Wooden, Silver, Golden, Epic, Legendary (won). Royal, Frost and Infernal can be bought in the Shop.
 - **Shop:** 14 board themes (terrain tiles), 8 card frames, 6 dice skins, 3 chests.
+
+## Ranked bots
+If no other player is in the ranked queue after `RANKED_BOT_WAIT_MS` (20s), a ranked bot near your rating joins (always labelled 🤖).
+Bot strength scales with Elo (`js/bots.js`): rarer cards, higher card levels, and a sharper AI. Games against bots are rated, count for the
+leaderboard and give chests. There's also a "Play a ranked bot now" button while searching.

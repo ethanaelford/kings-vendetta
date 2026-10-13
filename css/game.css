@@ -280,6 +280,9 @@ textarea.code { width: 100%; min-height: 70px; font: 12px monospace; border-radi
 .ranklad img.on { opacity: 1; filter: drop-shadow(0 0 6px #ffd76a); transform: scale(1.12); }
 .shopimg { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; margin: 0 auto 4px; display: block; }
 
+.card.ghost { background: rgba(255,255,255,.06); border: 2px dashed #d4a63a; display: flex; align-items: center; justify-content: center; }
+.card.ghost .ghostlbl { font-size: 22px; opacity: .8; }
+
 /* ---------- terrain ---------- */
 .tcol { position: absolute; top: 0; z-index: 0; border-radius: 6px; background-size: 48px; background-repeat: repeat; image-rendering: auto; opacity: 0; transition: opacity .4s; pointer-events: none; }
 .tcol.on { opacity: .38; }

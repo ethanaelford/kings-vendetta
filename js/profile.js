@@ -156,7 +156,8 @@ var KV_PROFILE = (function () {
       var want = weighted(ch.odds), order = [want].concat(RARITIES.filter(function (r) { return r !== want; }));
       for (var i = 0; i < order.length; i++) {
         var all = cards().filter(function (c) { return c.rarity === order[i]; });
-        var locked = all.filter(function (c) { return P.owned.indexOf(c.key) < 0; });
+        // super-rare cards (Grim Reaper) only make it through 1 time in 8
+        var locked = all.filter(function (c) { return P.owned.indexOf(c.key) < 0 && (!c.superRare || Math.random() < 0.125); });
         var owned = all.filter(function (c) { return P.owned.indexOf(c.key) >= 0 && level(c.key) < MAX_LEVEL; });
         if (locked.length && (!owned.length || Math.random() < 0.65)) {
           var c = locked[Math.floor(Math.random() * locked.length)];
