@@ -12,7 +12,7 @@
 <link rel="icon" href="images/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="images/icon-180.png">
 <title>King's Vendetta</title>
-<link rel="stylesheet" href="css/game.css?v=20261013-2019">
+<link rel="stylesheet" href="css/game.css?v=20261013-2022">
 </head>
 <body>
 
@@ -32,6 +32,8 @@
     <label class="field">Your name
       <input id="nameInput" maxlength="16" autocomplete="off" placeholder="e.g. Ethan">
     </label>
+
+    <div id="seasonBanner" class="panel hidden"></div>
 
     <div id="joinBanner" class="panel hidden">
       <div>Invited to game <b id="joinBannerCode"></b></div>
@@ -121,6 +123,7 @@
     <span class="iconbtn"></span>
   </header>
   <div class="colhead"><span id="colCount"></span><span id="colOwned"></span></div>
+  <div class="row" style="padding:0 12px 6px"><button class="btn" style="flex:1" id="deckShare">📋 Share deck code</button><button class="btn" style="flex:1" id="deckImport">📥 Use a code</button></div>
   <div id="colFilter" class="chips"></div>
   <div id="colGrid" class="colgrid"></div>
 </section>
@@ -163,19 +166,19 @@
 <div id="overlay" class="overlay hidden"><div id="overlayBody" class="overlay-body"></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=20261013-2019"></script>
-<script src="js/sb.js?v=20261013-2019"></script>
-<script src="js/cards.data.js?v=20261013-2019"></script>
-<script src="js/sprite-map.js?v=20261013-2019"></script>
-<script src="js/profile.js?v=20261013-2019"></script>
-<script src="js/campaign.js?v=20261013-2019"></script>
-<script src="js/quests.js?v=20261013-2019"></script>
-<script src="js/abilities.js?v=20261013-2019"></script>
-<script src="js/rules.js?v=20261013-2019"></script>
-<script src="js/art.js?v=20261013-2019"></script>
-<script src="js/bots.js?v=20261013-2019"></script>
-<script src="js/ai.js?v=20261013-2019"></script>
-<script src="js/net.js?v=20261013-2019"></script>
-<script src="js/ui.js?v=20261013-2019"></script>
+<script src="config.js?v=20261013-2022"></script>
+<script src="js/sb.js?v=20261013-2022"></script>
+<script src="js/cards.data.js?v=20261013-2022"></script>
+<script src="js/sprite-map.js?v=20261013-2022"></script>
+<script src="js/profile.js?v=20261013-2022"></script>
+<script src="js/campaign.js?v=20261013-2022"></script>
+<script src="js/quests.js?v=20261013-2022"></script>
+<script src="js/abilities.js?v=20261013-2022"></script>
+<script src="js/rules.js?v=20261013-2022"></script>
+<script src="js/art.js?v=20261013-2022"></script>
+<script src="js/bots.js?v=20261013-2022"></script>
+<script src="js/ai.js?v=20261013-2022"></script>
+<script src="js/net.js?v=20261013-2022"></script>
+<script src="js/ui.js?v=20261013-2022"></script>
 </body>
 </html>

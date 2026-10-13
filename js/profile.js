@@ -88,10 +88,40 @@ var KV_PROFILE = (function () {
     return p;
   }
   var P = load();
+
+  // ---- monthly seasons ----
+  // At a new month: your old-season rank earns a season chest, and your rating soft-resets halfway to 1000.
+  var SEASON_CHEST = { bronze: 'wood', silver: 'silver', gold: 'gold', platinum: 'royal', diamond: 'epic', master: 'frost', grandmaster: 'infernal', legendary: 'legendary' };
+  function seasonId(d) { d = d || new Date(); return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2); }
+  function seasonName(id) {
+    var parts = (id || seasonId()).split('-');
+    return ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][+parts[1] - 1] + ' ' + parts[0];
+  }
+  function seasonDaysLeft() {
+    var d = new Date(), end = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
+    return Math.max(0, Math.ceil((end - d.getTime()) / 86400000));
+  }
+  function rollSeason() {
+    var now = seasonId();
+    if (!P.season) { P.season = now; P.seasonGames = P.seasonGames || 0; return; }
+    if (P.season === now) return;
+    if (P.seasonGames > 0) {
+      var t = tier(P.rating, P.rank);
+      P.seasonReward = { season: P.season, tier: t.id, tierName: t.name, rating: P.rating, chest: SEASON_CHEST[t.id] || 'wood' };
+    }
+    P.rating = 1000 + Math.round((P.rating - 1000) / 2);
+    P.rank = null; P.seasonGames = 0; P.season = now;
+  }
+  function claimSeasonReward() {
+    var r = P.seasonReward; if (!r) return null;
+    P.seasonReward = null; save();
+    return r;
+  }
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {}
     if (account && account.user && !applying) { P.dirty = true; schedulePush(); }
   }
+  rollSeason();
   save();
 
   // Deck used for a game: the chosen cards, topped up from the collection if fewer than 11 are picked
@@ -115,6 +145,33 @@ var KV_PROFILE = (function () {
   }
   function levelsForGame() { var m = {}; Object.keys(P.levels).forEach(function (k) { if (P.levels[k] > 1) m[k] = P.levels[k]; }); return m; }
 
+  // Deck codes: "KV1-" + 2 base-36 chars per card (its position in the card list). Short enough to text.
+  function deckCode(deck) {
+    var idx = (deck || P.deck).map(function (k) { return KV_CARDS.findIndex(function (c) { return c.key === k; }); })
+      .filter(function (i) { return i >= 0; }).sort(function (a, b) { return a - b; });
+    return 'KV1-' + idx.map(function (i) { return ('0' + i.toString(36)).slice(-2); }).join('').toUpperCase();
+  }
+  function parseDeckCode(code) {
+    var m = String(code || '').trim().toUpperCase().replace(/\s/g, '').match(/^KV1-([0-9A-Z]+)$/);
+    if (!m || m[1].length % 2) return null;
+    var keys = [];
+    for (var i = 0; i < m[1].length; i += 2) {
+      var c = KV_CARDS[parseInt(m[1].substr(i, 2), 36)];
+      if (c && c.ready && c.key !== 'general' && keys.indexOf(c.key) < 0) keys.push(c.key);
+    }
+    return keys;
+  }
+  // Use a deck code: keeps the cards you own (up to 20). Returns {used, missing:[names]} or null for a bad code.
+  function importDeck(code) {
+    var keys = parseDeckCode(code);
+    if (!keys) return null;
+    var used = keys.filter(function (k) { return P.owned.indexOf(k) >= 0; }).slice(0, DECK_SIZE);
+    var missing = keys.filter(function (k) { return P.owned.indexOf(k) < 0; }).map(function (k) { return KV_RULES.cardDef(k).name; });
+    if (!used.length) return { used: 0, missing: missing };
+    P.deck = used; save();
+    return { used: used.length, missing: missing };
+  }
+
   function toggleDeck(key) {
     var i = P.deck.indexOf(key);
     if (i >= 0) P.deck.splice(i, 1);
@@ -131,7 +188,7 @@ var KV_PROFILE = (function () {
     return t;
   }
   function tier(r, rank) {
-    if (r >= LEGEND_RATING && rank && rank <= LEGEND_RANK) return tierObj('legendary', 'Legendary', { mythic: true, rank: rank });
+    if (r >= (LEGEND_RATING || 1600) && rank && rank <= (LEGEND_RANK || 100)) return tierObj('legendary', 'Legendary', { mythic: true, rank: rank });
     for (var i = 0; i < TIERS.length; i++) if (r >= TIERS[i][0]) return tierObj(TIERS[i][1], TIERS[i][2]);
     return tierObj('bronze', 'Bronze');
   }
@@ -199,7 +256,8 @@ var KV_PROFILE = (function () {
       var exp = 1 / (1 + Math.pow(10, (info.oppRating - P.rating) / 400));
       var score = info.draw ? 0.5 : info.won ? 1 : 0;
       var delta = Math.round(32 * (score - exp));
-      P.rating += delta; P.rankedGames++;
+      rollSeason();
+      P.rating += delta; P.rankedGames++; P.seasonGames = (P.seasonGames || 0) + 1;
       elo = { delta: delta, rating: P.rating, tier: tier(P.rating, P.rank) };
     }
     save();
@@ -260,7 +318,7 @@ var KV_PROFILE = (function () {
   // ---- accounts: Google sign-in + cloud save (kv_profiles, one row per user, RLS-protected) ----
   var account = { user: null, status: 'signed-out', onChange: null, onConflict: null };
   var applying = false, pushTimer = null;
-  var SYNC_FIELDS = ['owned', 'deck', 'coins', 'rating', 'wins', 'losses', 'draws', 'rankedGames', 'themes', 'theme', 'frames', 'frame', 'diceSkins', 'diceSkin',
+  var SYNC_FIELDS = ['season', 'seasonGames', 'seasonReward', 'owned', 'deck', 'coins', 'rating', 'wins', 'losses', 'draws', 'rankedGames', 'themes', 'theme', 'frames', 'frame', 'diceSkins', 'diceSkin',
     'copies', 'levels', 'campaign', 'clientId', 'secret', 'rank'];
   function exportData() { var d = {}; SYNC_FIELDS.forEach(function (k) { d[k] = P[k]; }); return d; }
   function importData(d) {
@@ -368,15 +426,16 @@ var KV_PROFILE = (function () {
   function syncLeaderboard(name) {
     var c = client();
     if (!c || !P.rankedGames) return Promise.resolve(false);
+    rollSeason();
     return c.rpc('kv_submit', { p_client_id: P.clientId, p_secret: P.secret, p_name: (name || 'Player').slice(0, 16), p_rating: P.rating,
-      p_wins: P.wins, p_losses: P.losses, p_draws: P.draws, p_ranked_games: P.rankedGames })
+      p_wins: P.wins, p_losses: P.losses, p_draws: P.draws, p_ranked_games: P.rankedGames, p_season: P.season, p_season_games: P.seasonGames || 0 })
       .then(function (r) { return !r.error && r.data === true; }, function () { return false; });
   }
   // My global position (cached on the profile for the Mythic badge)
   function fetchRank() {
     var c = client();
-    if (!c || !P.rankedGames) return Promise.resolve(null);
-    return c.rpc('kv_rank', { p_client_id: P.clientId }).then(function (r) {
+    if (!c || !P.seasonGames) { P.rank = null; return Promise.resolve(null); }
+    return c.rpc('kv_rank_season', { p_client_id: P.clientId, p_season: seasonId() }).then(function (r) {
       if (!r.error) { P.rank = r.data || null; save(); }
       return P.rank;
     }, function () { return P.rank; });
@@ -385,12 +444,12 @@ var KV_PROFILE = (function () {
   function fetchLeaderboard() {
     var c = client();
     if (!c) return Promise.resolve([]);
-    return c.rpc('kv_leaderboard', { p_limit: 100 }).then(function (r) { return r.error ? [] : r.data; }, function () { return []; });
+    return c.rpc('kv_leaderboard_season', { p_season: seasonId(), p_limit: 100 }).then(function (r) { return r.error ? [] : r.data; }, function () { return []; });
   }
 
   return {
-    get: function () { return P; }, account: function () { return account; }, initAuth: initAuth, signInPassword: signInPassword, signInGoogle: signInGoogle, signOut: signOut, syncNow: push, syncLeaderboard: syncLeaderboard, fetchRank: fetchRank, myTier: myTier, fetchLeaderboard: fetchLeaderboard, save: save, DECK_SIZE: DECK_SIZE, RARITY_LABEL: RARITY_LABEL, CHESTS: CHESTS, THEMES: THEMES,
-    deckForGame: deckForGame, level: level, upgradeCost: upgradeCost, canUpgrade: canUpgrade, upgrade: upgrade,
+    get: function () { return P; }, seasonId: seasonId, seasonName: seasonName, seasonDaysLeft: seasonDaysLeft, claimSeasonReward: claimSeasonReward, account: function () { return account; }, initAuth: initAuth, signInPassword: signInPassword, signInGoogle: signInGoogle, signOut: signOut, syncNow: push, syncLeaderboard: syncLeaderboard, fetchRank: fetchRank, myTier: myTier, fetchLeaderboard: fetchLeaderboard, save: save, DECK_SIZE: DECK_SIZE, RARITY_LABEL: RARITY_LABEL, CHESTS: CHESTS, THEMES: THEMES,
+    deckForGame: deckForGame, deckCode: deckCode, parseDeckCode: parseDeckCode, importDeck: importDeck, level: level, upgradeCost: upgradeCost, canUpgrade: canUpgrade, upgrade: upgrade,
     levelsForGame: levelsForGame, MAX_LEVEL: MAX_LEVEL, campaignWin: campaignWin, toggleDeck: toggleDeck, tier: tier, openChest: openChest, recordGame: recordGame,
     buyTheme: buyTheme, buyCosmetic: buyCosmetic, buyChest: buyChest, owns: owns, equipped: equipped, COSMETICS: COSMETICS, applyTheme: applyTheme, backupCode: backupCode, restore: restore, cards: cards,
   };

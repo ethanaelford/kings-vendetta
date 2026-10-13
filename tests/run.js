@@ -602,6 +602,30 @@ t('Grim Reaper is an event, not a dealt card; Mythic tier exists', function () {
   eq(R.cardDef('morphing-warrior').rarity, 'legendary');
 });
 
+t('deck codes round-trip', function () {
+  var src = require('fs').readFileSync(__dirname + '/../js/profile.js', 'utf8');
+  global.localStorage = { _d: {}, getItem: function (k) { return this._d[k] || null; }, setItem: function (k, v) { this._d[k] = v; }, removeItem: function (k) { delete this._d[k]; } };
+  global.document = { documentElement: { setAttribute: function () {}, style: { setProperty: function () {} } } };
+  var PR = new Function('KV_CARDS', 'KV_RULES', 'KV_CONFIG', src + '; return KV_PROFILE;')(KV_CARDS, R, KV_CONFIG);
+  var deck = PR.get().deck.slice(), code = PR.deckCode();
+  ok(/^KV1-[0-9A-Z]+$/.test(code), code);
+  eq(PR.parseDeckCode(code).slice().sort(), deck.slice().sort());
+  eq(PR.parseDeckCode('nonsense'), null);
+});
+
+t('season rollover: chest for last rank, soft reset halfway to 1000', function () {
+  var src = require('fs').readFileSync(__dirname + '/../js/profile.js', 'utf8');
+  var store = { 'kv-profile': JSON.stringify({ owned: ['militia'], deck: ['militia'], coins: 0, rating: 1300, wins: 5, losses: 0, draws: 0,
+    rankedGames: 5, season: '2000-01', seasonGames: 5, themes: ['default'], theme: 'default', awarded: {} }) };
+  global.localStorage = { getItem: function (k) { return store[k] || null; }, setItem: function (k, v) { store[k] = v; }, removeItem: function (k) { delete store[k]; } };
+  global.document = { documentElement: { setAttribute: function () {}, style: { setProperty: function () {} } } };
+  var PR = new Function('KV_CARDS', 'KV_RULES', 'KV_CONFIG', src + '; return KV_PROFILE;')(KV_CARDS, R, KV_CONFIG);
+  var P = PR.get();
+  eq(P.rating, 1150); eq(P.seasonGames, 0); eq(P.season, PR.seasonId());
+  eq(P.seasonReward.tier, 'platinum'); eq(P.seasonReward.chest, 'royal');
+  eq(PR.claimSeasonReward().chest, 'royal'); eq(PR.get().seasonReward, null);
+});
+
 console.log('deal');
 t('exactly one General per team, no duplicates (200 deals)', function () {
   for (var n = 0; n < 200; n++) {

@@ -1285,7 +1285,8 @@
     var P = me(), t = KV_PROFILE.myTier();
     var h = '<div class="panel"><h2 style="margin:0">' + esc(myName()) + '</h2>' +
       '<div class="rankhead"><img src="' + t.banner + '" alt=""><div><p style="font-size:20px;margin:0" class="' + (t.mythic ? 'mythic' : '') + '">' + t.name + '</p>' +
-      '<p style="margin:2px 0"><b>' + P.rating + '</b> Elo' + (P.rank ? ' · #' + P.rank + ' worldwide' : '') + '</p></div></div>' +
+      '<p style="margin:2px 0"><b>' + P.rating + '</b> Elo' + (P.rank ? ' · #' + P.rank + ' this season' : '') + '</p>' +
+      '<p class="muted" style="margin:2px 0;font-size:12px">Season ' + esc(KV_PROFILE.seasonName()) + ' · ends in ' + KV_PROFILE.seasonDaysLeft() + ' days</p></div></div>' +
       '<div class="ranklad">' + ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'master', 'grandmaster', 'legendary'].map(function (id) {
         return '<img src="images/ui/rank_' + id + '.png" class="' + (id === t.id ? 'on' : '') + '" title="' + id + '">'; }).join('') + '</div>' +
       (t.mythic ? '' : '<p class="muted" style="font-size:12px">Bronze · Silver 950 · Gold 1100 · Platinum 1250 · Diamond 1400 · Master 1500 · Grandmaster 1600 · <b>Legendary</b> = Grandmaster + a top-100 spot.</p>') +
@@ -1412,14 +1413,15 @@
     $('lbBody').innerHTML = '<p>Loading…</p>';
     var P = me();
     KV_PROFILE.syncLeaderboard(myName()).then(KV_PROFILE.fetchRank).then(function () { refreshPlayerCard(); return KV_PROFILE.fetchLeaderboard(); }).then(function (rows) {
-      if (!rows.length) { $('lbBody').innerHTML = '<p>No ranked games yet. Play a ⚔ Ranked match to get on the board!</p>'; return; }
+      if (!rows.length) { $('lbBody').innerHTML = '<p><b>Season: ' + esc(KV_PROFILE.seasonName()) + '</b></p><p>No ranked games this season yet. Play a ⚔ Ranked match to get on the board!</p>'; return; }
       var mine = rows.findIndex(function (r) { return r.client_id === P.clientId; });
-      $('lbBody').innerHTML = '<p class="muted" style="font-size:13px">The top 100 Grandmasters (1600+) are <b class="mythic">Legendary</b>.</p>' +
+      $('lbBody').innerHTML = '<p><b>Season: ' + esc(KV_PROFILE.seasonName()) + '</b> · ends in ' + KV_PROFILE.seasonDaysLeft() + ' days</p>' +
+        '<p class="muted" style="font-size:13px">The top 100 Grandmasters (1600+) are <b class="mythic">Legendary</b>. At the end of each month ratings reset halfway to 1000 and everyone gets a season chest for their rank.</p>' +
         (mine < 0 ? '<p>' + (P.rankedGames ? 'You are #' + (P.rank || '?') + ' - not in the top 100 yet.' : 'Play a ranked match to join the board.') + '</p>' : '') +
         rows.map(function (r, i) {
           var t = KV_PROFILE.tier(r.rating, i + 1), medal = ['🥇', '🥈', '🥉'][i] || (i + 1);
           return '<div class="lbrow' + (r.client_id === P.clientId ? ' me' : '') + '"><span class="rk">' + medal + '</span><span class="nm2">' + esc(r.name) +
-            '<small class="' + (t.mythic ? 'mythic' : '') + '">' + t.icon + ' ' + t.name + ' · ' + r.wins + 'W ' + r.losses + 'L' + (r.draws ? ' ' + r.draws + 'D' : '') + '</small></span><span class="rt">' + r.rating + '</span></div>';
+            '<small class="' + (t.mythic ? 'mythic' : '') + '">' + t.icon + ' ' + t.name + ' · ' + (r.season_games || 0) + ' games this season</small></span><span class="rt">' + r.rating + '</span></div>';
         }).join('');
     });
   }
@@ -1434,9 +1436,23 @@
   }
 
   // ---------------- lobby ----------------
+  function renderSeasonBanner() {
+    var r = me().seasonReward, el = $('seasonBanner');
+    if (!r) { el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    el.innerHTML = '<div>🏆 <b>' + esc(KV_PROFILE.seasonName(r.season)) + '</b> is over - you finished <b>' + esc(r.tierName) + '</b> (' + r.rating + ').</div>' +
+      '<button class="btn primary big" id="seasonClaim">' + KV_PROFILE.CHESTS[r.chest].icon + ' Claim ' + esc(KV_PROFILE.CHESTS[r.chest].name) + '</button>';
+    $('seasonClaim').onclick = function () {
+      var rr = KV_PROFILE.claimSeasonReward();
+      renderSeasonBanner();
+      if (rr) openChestOverlay(rr.chest, function () { refreshPlayerCard(); });
+    };
+  }
+
   function lobby() {
     refreshPlayerCard();
     renderQuests();
+    renderSeasonBanner();
     show('lobby');
     var code = new URLSearchParams(location.search).get('room');
     $('joinBanner').classList.toggle('hidden', !code);
@@ -1473,13 +1489,29 @@
     $('profileBtn').onclick = function () { if (needName()) showProfile(); };
     $('colBack').onclick = lobby;
     $('campaignBtn').onclick = function () { if (needName()) showCampaign(); };
+    $('deckShare').onclick = function () {
+      var code = KV_PROFILE.deckCode();
+      var text = "My King's Vendetta deck: " + code;
+      if (navigator.share) navigator.share({ title: "King's Vendetta deck", text: text }).catch(function () {});
+      else if (navigator.clipboard) navigator.clipboard.writeText(code).then(function () { alert('Deck code copied:\n' + code); });
+      else prompt('Copy your deck code:', code);
+    };
+    $('deckImport').onclick = function () {
+      var code = prompt('Paste a deck code (KV1-...):');
+      if (!code) return;
+      var r = KV_PROFILE.importDeck(code);
+      if (!r) return alert('That is not a valid deck code.');
+      if (!r.used) return alert("You don't own any of the cards in that deck yet.");
+      alert('Deck loaded: ' + r.used + ' cards.' + (r.missing.length ? "\nYou don't own yet (skipped): " + r.missing.join(', ') : ''));
+      showCollection();
+    };
     $('cmpBack').onclick = lobby;
     $('cmpBody').addEventListener('click', onCampaignTap);
     $('leaderBtn').onclick = function () { if (needName()) showLeaders(); };
     $('lbBack').onclick = lobby;
     $('lbRefresh').onclick = showLeaders;
     $('questList').addEventListener('click', onQuestTap);
-    if (KV_PROFILE.get().rankedGames) KV_PROFILE.syncLeaderboard(myName()).then(KV_PROFILE.fetchRank).then(refreshPlayerCard);
+    if (KV_PROFILE.get().seasonGames) KV_PROFILE.syncLeaderboard(myName()).then(KV_PROFILE.fetchRank).then(refreshPlayerCard);
     $('profBack').onclick = lobby;
     $('colGrid').addEventListener('click', onCollectionTap);
     $('colFilter').addEventListener('click', onCollectionTap);
