@@ -31,6 +31,7 @@
     spring:    { name: 'Healing Spring', icon: '⛲', turns: 0, text: 'Every card is restored and cleansed.' },
     quake:     { name: 'Earthquake',     icon: '🌋', turns: 0, text: 'The terrain shifts.' },
     meteor:    { name: 'Meteor Shower',  icon: '☄', turns: 0, text: 'A random card in each army loses 3 Life.' },
+    reaper:    { name: 'The Grim Reaper', icon: '💀', turns: 0, weight: 1, text: 'Both armies roll. The lower roll loses the card at a random position (never the General).' },
   };
 
   var HEROES = {
@@ -1149,8 +1150,11 @@
   }
 
   function startEvent(s, ev) {
-    var ids = Object.keys(EVENTS);
-    var id = ids[Math.floor(Math.random() * ids.length)];
+    var ids = Object.keys(EVENTS), tot = 0, x;
+    ids.forEach(function (k) { tot += EVENTS[k].weight || 3; });
+    x = Math.random() * tot;
+    var id = ids[ids.length - 1];
+    for (var ei = 0; ei < ids.length; ei++) { x -= EVENTS[ids[ei]].weight || 3; if (x < 0) { id = ids[ei]; break; } }
     var E = EVENTS[id];
     if (E.turns) s.event = { id: id, turnsLeft: E.turns };
     ev.event = { id: id, name: E.name, icon: E.icon, text: E.text, turns: E.turns };
@@ -1164,6 +1168,18 @@
       c.statuses = (c.statuses || []).filter(function (st) { return st.type === 'buff'; });
     }); });
     if (id === 'quake' && s.terrain) s.terrain = rollTerrain(Math.random);
+    if (id === 'reaper') {
+      var ra, rb;
+      do { ra = 2 + Math.floor(Math.random() * 6) + Math.floor(Math.random() * 6); rb = 2 + Math.floor(Math.random() * 6) + Math.floor(Math.random() * 6); } while (ra === rb);
+      var loser = ra < rb ? 'p1' : 'p2', pos = Math.floor(Math.random() * 12), vic = s.teams[loser].slots[pos];
+      ev.event.text = s.names.p1 + ' rolls ' + ra + ', ' + s.names.p2 + ' rolls ' + rb + '. ' + s.names[loser] + ' loses position ' + (pos + 1) +
+        (vic && !vic.isGeneral && !ab(vic).fixedLife ? ': ' + vic.name + ' is taken!' : ' - empty or the General. Spared!');
+      if (vic && !vic.isGeneral && !ab(vic).fixedLife) {
+        var vf = findCard(s, vic.id);
+        killCard(s, vf, ev.deaths);
+        s.teams[loser].slots = compactBoard(s.teams[loser], CFG).slots;
+      }
+    }
     if (id === 'reinforce') SIDES.forEach(function (sd) {
       var spot = emptySlot(s.teams[sd].slots);
       if (spot < 0) return;

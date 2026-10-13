@@ -195,9 +195,12 @@ h1 { margin: 6px 0 0; font-size: 32px; color: var(--gold); letter-spacing: 1px; 
 .clocks span.on { background: #2a3f66; color: #fff; }
 .clocks span.low { background: #8a2020; color: #fff; }
 
-:root { --r-common: #9a9a9a; --r-uncommon: #3f9a4a; --r-rare: #3566b8; --r-epic: #8a3fb8; --r-legendary: #d4a63a; }
+:root { --r-common: #9a9a9a; --r-uncommon: #3f9a4a; --r-rare: #3566b8; --r-epic: #8a3fb8; --r-legendary: #d4a63a; --r-mythic: #ff3d7f; }
 .rar-common { --rc: var(--r-common); } .rar-uncommon { --rc: var(--r-uncommon); } .rar-rare { --rc: var(--r-rare); }
-.rar-epic { --rc: var(--r-epic); } .rar-legendary { --rc: var(--r-legendary); }
+.rar-epic { --rc: var(--r-epic); } .rar-legendary { --rc: var(--r-legendary); } .rar-mythic { --rc: var(--r-mythic); }
+.ccard.rar-mythic { box-shadow: 0 0 10px 2px rgba(255,61,127,.55); animation: mythicPulse 2.4s ease-in-out infinite; }
+@keyframes mythicPulse { 50% { box-shadow: 0 0 16px 4px rgba(255,140,60,.6); } }
+.rtag.rar-mythic, .rar-mythic .rtag { background: linear-gradient(90deg, #ff3d7f, #ff9a3d); }
 .card[class*="rar-"] .nm { box-shadow: inset 0 3px 0 var(--rc); }
 .rtag { font: bold 10px sans-serif; padding: 1px 5px; border-radius: 5px; color: #fff; background: var(--rc); }
 

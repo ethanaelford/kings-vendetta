@@ -1204,7 +1204,7 @@
   var colFilter = 'all';
   function showCollection() {
     var P = me(), all = KV_PROFILE.cards();
-    var order = { legendary: 0, epic: 1, rare: 2, uncommon: 3, common: 4 };
+    var order = { mythic: -1, legendary: 0, epic: 1, rare: 2, uncommon: 3, common: 4 };
     var list = all.filter(function (c) {
       var owned = P.owned.indexOf(c.key) >= 0;
       return colFilter === 'all' || (colFilter === 'deck' ? P.deck.indexOf(c.key) >= 0 : colFilter === 'owned' ? owned : colFilter === 'locked' ? !owned : c.rarity === colFilter);
@@ -1214,7 +1214,7 @@
     });
     $('colCount').innerHTML = 'Deck <b>' + P.deck.length + '/' + KV_PROFILE.DECK_SIZE + '</b>' + (P.deck.length < KV_PROFILE.DECK_SIZE ? ' <span style="color:#f0b36a">(tap owned cards to add)</span>' : '');
     $('colOwned').textContent = P.owned.length + ' / ' + all.length + ' owned';
-    $('colFilter').innerHTML = ['all', 'deck', 'owned', 'locked', 'common', 'uncommon', 'rare', 'epic', 'legendary'].map(function (f) {
+    $('colFilter').innerHTML = ['all', 'deck', 'owned', 'locked', 'common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'].map(function (f) {
       return '<button data-f="' + f + '" class="' + (f === colFilter ? 'on' : '') + '">' + f[0].toUpperCase() + f.slice(1) + '</button>';
     }).join('');
     $('colGrid').innerHTML = list.map(function (c) {

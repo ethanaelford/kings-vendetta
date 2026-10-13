@@ -13,7 +13,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 9,
-  "rarity": "common",
+  "rarity": "uncommon",
   "starter": false
  },
  {
@@ -25,8 +25,8 @@ var KV_CARDS = [
   "code": "LOS",
   "pattern": "los",
   "text": "Attacks remaing cards by number for lowest roll; if 11, lowest card; if 12, General",
-  "ready": true,
-  "note": "",
+  "ready": false,
+  "note": "Special Life value (D) - later session",
   "art": null,
   "power": 20,
   "rarity": "legendary",
@@ -46,7 +46,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 10,
-  "rarity": "uncommon",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -62,7 +62,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 11,
-  "rarity": "uncommon",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -110,7 +110,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 9,
-  "rarity": "common",
+  "rarity": "uncommon",
   "starter": false
  },
  {
@@ -126,7 +126,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 14,
-  "rarity": "epic",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -158,7 +158,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 10,
-  "rarity": "uncommon",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -174,7 +174,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 9,
-  "rarity": "common",
+  "rarity": "uncommon",
   "starter": false
  },
  {
@@ -222,7 +222,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 11,
-  "rarity": "uncommon",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -286,7 +286,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 14,
-  "rarity": "epic",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -302,7 +302,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 9,
-  "rarity": "common",
+  "rarity": "uncommon",
   "starter": false
  },
  {
@@ -318,7 +318,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 12,
-  "rarity": "rare",
+  "rarity": "epic",
   "starter": false
  },
  {
@@ -351,7 +351,7 @@ var KV_CARDS = [
   "art": null,
   "power": 9,
   "rarity": "common",
-  "starter": false
+  "starter": true
  },
  {
   "key": "cobalt-knight",
@@ -382,7 +382,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 9,
-  "rarity": "common",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -398,7 +398,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 11,
-  "rarity": "rare",
+  "rarity": "uncommon",
   "starter": false
  },
  {
@@ -414,8 +414,8 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 7,
-  "rarity": "common",
-  "starter": true
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "heavily-armored-soldier",
@@ -478,7 +478,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 9,
-  "rarity": "uncommon",
+  "rarity": "legendary",
   "starter": false
  },
  {
@@ -527,7 +527,7 @@ var KV_CARDS = [
   "art": null,
   "power": 9,
   "rarity": "common",
-  "starter": false
+  "starter": true
  },
  {
   "key": "foot-soldier",
@@ -590,7 +590,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 9,
-  "rarity": "uncommon",
+  "rarity": "common",
   "starter": false
  },
  {
@@ -606,7 +606,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 12,
-  "rarity": "rare",
+  "rarity": "uncommon",
   "starter": false
  },
  {
@@ -638,7 +638,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 13,
-  "rarity": "rare",
+  "rarity": "uncommon",
   "starter": false
  },
  {
@@ -686,7 +686,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 9,
-  "rarity": "uncommon",
+  "rarity": "epic",
   "starter": false
  },
  {
@@ -702,7 +702,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 9,
-  "rarity": "uncommon",
+  "rarity": "common",
   "starter": false
  },
  {
@@ -734,7 +734,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 12,
-  "rarity": "rare",
+  "rarity": "uncommon",
   "starter": false
  },
  {
@@ -782,7 +782,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 10,
-  "rarity": "uncommon",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -830,7 +830,7 @@ var KV_CARDS = [
   "note": "",
   "art": "images/cards/the-manipulator.png",
   "power": 11,
-  "rarity": "rare",
+  "rarity": "epic",
   "starter": false
  },
  {
@@ -847,7 +847,7 @@ var KV_CARDS = [
   "art": null,
   "power": 9,
   "rarity": "common",
-  "starter": false
+  "starter": true
  },
  {
   "key": "dragon-ninja",
@@ -926,7 +926,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 10,
-  "rarity": "uncommon",
+  "rarity": "epic",
   "starter": false
  },
  {
@@ -942,7 +942,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 12,
-  "rarity": "rare",
+  "rarity": "epic",
   "starter": false
  },
  {
@@ -958,7 +958,7 @@ var KV_CARDS = [
   "note": "",
   "art": "images/cards/admiral.png",
   "power": 15,
-  "rarity": "epic",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -1022,7 +1022,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 13,
-  "rarity": "epic",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -1038,8 +1038,8 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 8,
-  "rarity": "common",
-  "starter": true
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "magma-knight",
@@ -1086,7 +1086,7 @@ var KV_CARDS = [
   "note": "",
   "art": "images/cards/tactical-ninja.png",
   "power": 9,
-  "rarity": "uncommon",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -1102,7 +1102,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 9,
-  "rarity": "common",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -1118,7 +1118,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 11,
-  "rarity": "rare",
+  "rarity": "uncommon",
   "starter": false
  },
  {
@@ -1134,7 +1134,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 14,
-  "rarity": "epic",
+  "rarity": "mythic",
   "starter": false
  },
  {
@@ -1150,7 +1150,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 13,
-  "rarity": "epic",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -1182,7 +1182,7 @@ var KV_CARDS = [
   "note": "",
   "art": "images/cards/ranged-expert.png",
   "power": 15,
-  "rarity": "legendary",
+  "rarity": "epic",
   "starter": false
  },
  {
@@ -1198,7 +1198,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 17,
-  "rarity": "legendary",
+  "rarity": "mythic",
   "starter": false
  },
  {
@@ -1214,7 +1214,7 @@ var KV_CARDS = [
   "note": "",
   "art": "images/cards/ace.png",
   "power": 9,
-  "rarity": "common",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -1246,8 +1246,8 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 8,
-  "rarity": "common",
-  "starter": true
+  "rarity": "uncommon",
+  "starter": false
  },
  {
   "key": "unstable-bomb-expert",
@@ -1262,7 +1262,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 8,
-  "rarity": "common",
+  "rarity": "uncommon",
   "starter": false
  },
  {
@@ -1278,7 +1278,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 11,
-  "rarity": "rare",
+  "rarity": "uncommon",
   "starter": false
  },
  {
@@ -1294,7 +1294,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 11,
-  "rarity": "rare",
+  "rarity": "uncommon",
   "starter": false
  },
  {
@@ -1310,7 +1310,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 10,
-  "rarity": "uncommon",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -1326,7 +1326,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 13,
-  "rarity": "epic",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -1358,7 +1358,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 13,
-  "rarity": "epic",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -1374,8 +1374,8 @@ var KV_CARDS = [
   "note": "",
   "art": "images/cards/lava-guardian.png",
   "power": 9,
-  "rarity": "uncommon",
-  "starter": false
+  "rarity": "common",
+  "starter": true
  },
  {
   "key": "fallen-knight",
@@ -1406,7 +1406,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 13,
-  "rarity": "epic",
+  "rarity": "rare",
   "starter": false
  },
  {
@@ -1422,7 +1422,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 11,
-  "rarity": "rare",
+  "rarity": "epic",
   "starter": false
  },
  {
@@ -1454,7 +1454,7 @@ var KV_CARDS = [
   "note": "",
   "art": "images/cards/war-captain.png",
   "power": 16,
-  "rarity": "legendary",
+  "rarity": "mythic",
   "starter": false
  },
  {
@@ -1486,7 +1486,7 @@ var KV_CARDS = [
   "note": "",
   "art": "images/cards/unstable-titan.png",
   "power": 12,
-  "rarity": "rare",
+  "rarity": "uncommon",
   "starter": false
  },
  {
@@ -1518,7 +1518,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 11,
-  "rarity": "uncommon",
+  "rarity": "epic",
   "starter": false
  },
  {
@@ -1534,7 +1534,7 @@ var KV_CARDS = [
   "note": "",
   "art": null,
   "power": 10,
-  "rarity": "uncommon",
+  "rarity": "epic",
   "starter": false
  },
  {
@@ -1598,8 +1598,8 @@ var KV_CARDS = [
   "note": "",
   "art": "images/cards/fire-sprite.png",
   "power": 8,
-  "rarity": "common",
-  "starter": true
+  "rarity": "epic",
+  "starter": false
  },
  {
   "key": "wisp",
@@ -1662,7 +1662,7 @@ var KV_CARDS = [
   "note": "",
   "art": "images/cards/wisp-major.png",
   "power": 16,
-  "rarity": "legendary",
+  "rarity": "epic",
   "starter": false
  }
 ];

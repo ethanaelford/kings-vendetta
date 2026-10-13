@@ -595,6 +595,13 @@ t('Chariot Warrior rides into an empty slot', function () {
   ok(s2 && s2.turn === 'p2');
 });
 
+t('Grim Reaper is an event, not a dealt card; Mythic tier exists', function () {
+  eq(R.readyPool().indexOf('grim-reaper'), -1);
+  ok(R.EVENTS.reaper, 'reaper event');
+  eq(KV_CARDS.filter(function (c) { return c.rarity === 'mythic'; }).map(function (c) { return c.key; }).sort(), ['bounty-hunter', 'melee-expert', 'war-captain']);
+  eq(R.cardDef('morphing-warrior').rarity, 'legendary');
+});
+
 console.log('deal');
 t('exactly one General per team, no duplicates (200 deals)', function () {
   for (var n = 0; n < 200; n++) {

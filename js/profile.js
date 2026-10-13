@@ -3,19 +3,19 @@
 var KV_PROFILE = (function () {
   var KEY = 'kv-profile';
   var DECK_SIZE = 20;
-  var RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
-  var RARITY_LABEL = { common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' };
+  var RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
+  var RARITY_LABEL = { common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic', legendary: 'Legendary', mythic: 'Mythic' };
   function img(path, cls) { return '<img class="' + (cls || 'ico') + '" src="images/ui/' + path + '.png" alt="">'; }
   // Chest art from sprites3: <id>.png and <id>_open.png. price = buyable in the shop.
   var CHESTS = {
     wood:      { name: 'Wooden Chest',    cardChance: 0.55, coins: [20, 40],   odds: { common: 60, uncommon: 30, rare: 8,  epic: 2,  legendary: 0 } },
     silver:    { name: 'Silver Chest',    cardChance: 0.6,  coins: [50, 90],   odds: { common: 30, uncommon: 40, rare: 20, epic: 8,  legendary: 2 } },
     gold:      { name: 'Golden Chest',    cardChance: 0.7,  coins: [120, 200], odds: { common: 10, uncommon: 30, rare: 35, epic: 18, legendary: 7 } },
-    epic:      { name: 'Epic Chest',      cardChance: 0.8,  coins: [250, 400], odds: { common: 0,  uncommon: 15, rare: 40, epic: 35, legendary: 10 } },
-    legendary: { name: 'Legendary Chest', cardChance: 0.9,  coins: [500, 800], odds: { common: 0,  uncommon: 0,  rare: 30, epic: 45, legendary: 25 } },
+    epic:      { name: 'Epic Chest',      cardChance: 0.8,  coins: [250, 400], odds: { common: 0,  uncommon: 15, rare: 40, epic: 33, legendary: 10, mythic: 2 } },
+    legendary: { name: 'Legendary Chest', cardChance: 0.9,  coins: [500, 800], odds: { common: 0,  uncommon: 0,  rare: 30, epic: 42, legendary: 23, mythic: 5 } },
     royal:     { name: 'Royal Chest',     cardChance: 0.75, coins: [150, 260], odds: { common: 5,  uncommon: 25, rare: 40, epic: 22, legendary: 8 },  price: 300 },
-    frost:     { name: 'Frost Chest',     cardChance: 0.85, coins: [300, 450], odds: { common: 0,  uncommon: 10, rare: 40, epic: 38, legendary: 12 }, price: 650 },
-    infernal:  { name: 'Infernal Chest',  cardChance: 0.9,  coins: [600, 900], odds: { common: 0,  uncommon: 0,  rare: 25, epic: 45, legendary: 30 }, price: 1200 },
+    frost:     { name: 'Frost Chest',     cardChance: 0.85, coins: [300, 450], odds: { common: 0,  uncommon: 10, rare: 40, epic: 36, legendary: 11, mythic: 3 }, price: 650 },
+    infernal:  { name: 'Infernal Chest',  cardChance: 0.9,  coins: [600, 900], odds: { common: 0,  uncommon: 0,  rare: 25, epic: 42, legendary: 27, mythic: 6 }, price: 1200 },
   };
   Object.keys(CHESTS).forEach(function (k) { CHESTS[k].icon = img('chest_' + k); CHESTS[k].art = 'images/ui/chest_' + k + '.png'; CHESTS[k].openArt = 'images/ui/chest_' + k + '_open.png'; });
 

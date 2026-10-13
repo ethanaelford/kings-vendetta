@@ -10,7 +10,7 @@ var KV_BOTS = (function () {
     if (r < 1200) return { common: 40, uncommon: 40, rare: 20 };
     if (r < 1400) return { common: 20, uncommon: 35, rare: 30, epic: 15 };
     if (r < 1600) return { uncommon: 25, rare: 35, epic: 30, legendary: 10 };
-    return { rare: 30, epic: 40, legendary: 30 };
+    return { rare: 30, epic: 38, legendary: 27, mythic: 5 };
   }
   function pickWeighted(w, rng) {
     var tot = 0, k; for (k in w) tot += w[k];

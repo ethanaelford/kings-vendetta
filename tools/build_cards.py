@@ -50,14 +50,15 @@ READY = {
     'Attack Wagon', 'Centurion', 'Field Marshall', 'Phoenix', 'Kings Knight', "General's Guard", 'Bounty Hunter',
     # the last 9
     'Dark Knight', 'War Captain', 'Wisp Major', 'Morphing Warrior', 'Strategic Warrior', 'Shadow Warrior',
-    'Lightning Wizard', 'Grim Reaper', 'Chariot Warrior',
+    'Lightning Wizard', 'Chariot Warrior',
 }
 
 # Special-Life cards whose Life is handled by their ability (js/abilities.js)
-READY_SPECIAL_LIFE = {'Bounty Hunter', 'Morphing Warrior', 'Grim Reaper'}
+READY_SPECIAL_LIFE = {'Bounty Hunter', 'Morphing Warrior'}
 
 # One-line "what's missing" notes for the Card Library (default: ability not built yet).
 LATER = {
+    'Grim Reaper': 'Now a battlefield event (playable card planned for a later version)',
     'Grim Reaper': 'Special Life (D) - later session',
     'Bounty Hunter': 'Special Life (Inf) - later session',
     'Morphing Warrior': 'Special Life (?) - later session',
@@ -102,6 +103,29 @@ STARTER_COUNT = 20
 SUPER_RARE = {'grim-reaper'}  # drops very rarely from chests
 
 
+RARITY = {}
+for _r, _names in {
+    'common': ['Militia', 'Front Lineman', 'Foot Soldier', 'Archer', 'Blood Hound', 'Cannon', 'Thunder Warrior', 'Unskilled Warrior',
+               'Captain', 'Tactical Warrior', 'Fire Striker', 'Lightning Mage', 'Avenger', 'Wisp', 'Chariot Warrior',
+               'Horse Mounted Troop', 'Heavily Armored Soldier', 'Blade Dancer', 'Minotaur', 'Lava Guardian', 'Medic', 'Neon Wisp'],
+    'uncommon': ['Catapult', 'Stationary Crossbow Soldier', 'Iron Giant', 'Brute', 'Knight', 'Hammer Dwarf', 'Ranger', 'Peasant Mob',
+                 'Apprentice', 'Magma Knight', 'Royal Assassin', 'Rookie', 'Wizard', 'Cobalt Knight', 'Attack Wagon', 'Eagle Warrior',
+                 'Lightning Ninja', 'Unstable Titan', 'Fallen Knight', 'Spartan', 'Dwarf Blitzer', 'Venom Warrior', 'The Supplier',
+                 'Wisp Captain', 'Hog Mounted Brute', 'Frost Brute', 'Unstable Bomb Expert', 'Redstone Warrior', 'Tactical Alchemist',
+                 'Stone Monster', 'Elephant Mounted Warrior', 'Dragon Ninja'],
+    'rare': ['Titan', 'Stealth Warrior', 'Juggernaut', 'Berserker Warrior', 'Armored Warrior', 'Elf Rampager', 'Elf Blitz Warrior',
+             'Frost Giant', 'Ice Sentinel', 'Samurai', 'Ent', 'Commander', 'Tactical Ninja', 'Bomb Expert', 'Joker',
+             'Chemical Warfare Warrior', 'Hydra', 'Shadow Warrior', 'Lightning Wizard', 'Dark Knight', "General's Guard",
+             'Generals Bodyguard', 'Fire Sentinel', 'Wolf Mounted Dwarf', 'Ace', 'Admiral', 'Corrupt Commander'],
+    'epic': ['Elite Assasin', 'Phoenix', 'Light Dragon', 'Dragon Tamer', 'Major', 'Reviver', 'Centurion', 'The Manipulator',
+             'Strategic Warrior', 'Ranged Expert', 'Guardian', 'Fire Sprite', 'Stone Golem', 'Spy', 'Wisp Major'],
+    'legendary': ['Morphing Warrior', 'Kings Knight', 'Field Marshall'],
+    'mythic': ['War Captain', 'Bounty Hunter', 'Melee Expert'],   # the top 3 cards in the game
+}.items():
+    for _n in _names:
+        RARITY[_n] = _r
+
+
 def assign_rarity(cards):
     pool = [c for c in cards if c['key'] != 'general']
     for c in pool:
@@ -109,13 +133,13 @@ def assign_rarity(cards):
     ranked = sorted(pool, key=lambda c: (c['power'], c['name']))
     for i, c in enumerate(ranked):
         f = i / len(ranked)
-        c['rarity'] = next(r for lim, r in RARITY_SPLITS if f < lim)
+        c['rarity'] = RARITY.get(c['name']) or next(r for lim, r in RARITY_SPLITS if f < lim)
     for c in cards:
         if c['key'] in SUPER_RARE:
             c['rarity'], c['superRare'] = 'legendary', True
         if c['key'] == 'general':
             c['rarity'], c['power'], c['starter'] = 'legendary', 99, True
-    ready = [c for c in sorted(pool, key=lambda c: (c['power'], c['name'])) if c['ready']]
+    ready = [c for c in sorted(pool, key=lambda c: (c['rarity'] != 'common', c['power'], c['name'])) if c['ready']]
     starters = set(c['key'] for c in ready[:STARTER_COUNT])
     for c in pool:
         c['starter'] = c['key'] in starters
@@ -202,6 +226,9 @@ def main():
     print('%d cards, %d ready' % (len(cards), len(ready)))
     from collections import Counter
     print('rarity:', dict(Counter(c['rarity'] for c in cards if c['ready'])))
+    unlisted = [c['name'] for c in cards if c['ready'] and c['key'] != 'general' and c['name'] not in RARITY]
+    if unlisted:
+        print('NOT IN RARITY TABLE (using formula):', unlisted)
     print('starters:', ', '.join(c['name'] for c in cards if c.get('starter') and c['key'] != 'general'))
     for c in cards:
         print('%-3s %-30s life=%-4s %-8s %s' % ('OK' if c['ready'] else '--', c['name'], c['life'], c['pattern'], c['text'][:60]))
